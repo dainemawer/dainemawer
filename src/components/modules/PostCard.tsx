@@ -13,7 +13,7 @@ export default function PostCard({ post }: { post: PostCardFragmentType }) {
   const featuredCategory = categories?.[0];
 
   return (
-    <article className="relative bg-white rounded-2xl shadow-sm overflow-hidden">
+    <article className="relative bg-white dark:bg-black rounded-2xl shadow-sm overflow-hidden">
       <div className="grid md:grid-cols-2 gap-6">
         <div className="relative h-64 md:h-full">
           {image ? (
@@ -49,7 +49,7 @@ export default function PostCard({ post }: { post: PostCardFragmentType }) {
             </time>
           ) : null}
           <h3 className="text-2xl font-bold mb-">
-            <Link href={`/blog/${post.slug}`} className="hover:text-pink-600 transition-colors">
+            <Link href={`/articles/${post.slug}`} className="hover:text-pink-600 transition-colors">
               {title}
             </Link>
           </h3>
@@ -62,7 +62,7 @@ export default function PostCard({ post }: { post: PostCardFragmentType }) {
             ) : null}
           </div>
           <Link
-            href={`/blog/${post.slug}`}
+            href={`/articles/${post.slug}`}
             className="flex items-center text-pink-600 font-medium hover:text-pink-700 transition-colors"
           >
             Read More

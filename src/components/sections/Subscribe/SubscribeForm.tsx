@@ -30,11 +30,11 @@ const SubscribeForm = ({ section }: { section: SubscribeSection }) => {
             id="email"
             name="email"
             placeholder="Enter your email"
-            className="w-full py-3 px-4 bg-transparent bg-opacity-20 text-white placeholder-gray-100 border border-white border-opacity-30 rounded-md focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+            className="w-full py-3 px-4 bg-transparent bg-opacity-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
             required
           />
         </div>
-        <Button type="submit" variant={'outline'} size={'xl'} disabled={pending}>
+        <Button type="submit" variant={'default'} size={'xl'} disabled={pending}>
           {section.buttonText}
         </Button>
       </form>

@@ -39,5 +39,12 @@ export default async function Page(props: Props) {
 
   const { _id, _type, pageSections } = page;
 
-  return <PageSections documentId={_id} documentType={_type} sections={pageSections} />;
+  return (
+    <>
+      <div className="flex flex-col container mx-auto">
+        <h1 className="text-4xl font-bold">{page.name}</h1>
+      </div>
+      <PageSections documentId={_id} documentType={_type} sections={pageSections} />
+    </>
+  );
 }

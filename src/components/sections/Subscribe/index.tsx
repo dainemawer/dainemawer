@@ -5,16 +5,17 @@ import type { SubscribeSection } from '../types';
 
 export default function SubscribeSection({ section }: { section: SubscribeSection }) {
   return (
-    <section className="py-10 md:py-14 bg-white container mx-auto">
-      <div className="bg-gradient-to-r from-pink-500 to-blue-500 py-16 md:py-24 rounded-4xl container">
-        <div className="">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{section?.heading}</h2>
-            <div className="[&_p]:text-white">
-              <PortableText value={section.content as PortableTextBlock[]} />
-            </div>
-            <SubscribeForm section={section} />
+    <section className="py-10 md:py-60 container mx-auto">
+      <div className="">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-6xl font-semibold mb-4">{section?.heading}</h2>
+          <div className="">
+            <PortableText value={section.content as PortableTextBlock[]} />
           </div>
+          <SubscribeForm section={section} />
+          <p className="text-sm italic mt-4 text-gray-500">
+            You’ll hear from me just once a month — no fluff, no spam.
+          </p>
         </div>
       </div>
     </section>

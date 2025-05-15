@@ -16,8 +16,11 @@ import blogPage from './singletons/blogPage';
 import card from './objects/sections/card';
 import divider from './objects/sections/divider';
 import subscribe from './objects/sections/subscribe';
+import tiles from './objects/sections/tiles';
 import menuItem from './objects/menuItem';
 import seoTypes from './objects/seo';
+import recommendations from './objects/sections/recommendations';
+import content from './objects/sections/content';
 
 export const schemaTypes = [
   // Singletons
@@ -40,6 +43,9 @@ export const schemaTypes = [
   cardGrid,
   divider,
   subscribe,
+  tiles,
+  recommendations,
+  content,
 
   // Objects
   blockContent,

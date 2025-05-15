@@ -1,7 +1,5 @@
-import Logo from '../icons/Logo';
 import { sanityFetch } from '@/lib/sanity/client/live';
 import { settingsQuery } from '@/lib/sanity/queries/queries';
-import { Button } from '../ui/button';
 
 export default async function Footer() {
   const { data: settings } = await sanityFetch({
@@ -13,102 +11,79 @@ export default async function Footer() {
   }
 
   return (
-    <footer className=" text-gray-600 py-12 md:py-16 relative bg-gray-100">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Logo />
-              <h3 className="text-lg font-semibold">{settings.title}</h3>
-            </div>
-            <p className="text-sm">{settings.description}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a href="#" className="hover:text-gray-900 transition-colors">
-                  Home
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-900 transition-colors">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-900 transition-colors">
-                  Posts
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-900 transition-colors">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-gray-900 transition-colors">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-gray-900 transition-colors">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-gray-900 transition-colors">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z" />
-                </svg>
-              </a>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Newsletter</h3>
-            <p className="text-sm mb-4">Stay updated with our latest news and offers.</p>
-            <form className="flex">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="px-3 py-2 w-full text-sm bg-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-pink-400"
-              />
-              <Button type="submit" className="py-2 h-auto rounded-tl-none rounded-bl-none">
-                Subscribe
-              </Button>
-            </form>
-          </div>
-        </div>
-        <div className="mt-8 pt-8 border-t border-gray-200 text-sm text-center">
-          <p>
-            &copy; {new Date().getFullYear()} {settings.title} by{' '}
-            <a href="https://10up.com" className="underline hover:text-gray-900 transition-colors">
-              10up
+    <footer className="py-9">
+      <div className="container flex justify-between items-center mx-auto px-4 max-w-7xl">
+        <p>
+          &copy; Copyright {new Date().getFullYear()} <strong>Daine Mawer</strong>
+        </p>
+        <ul className="flex gap-4">
+          <li>
+            <a href="https://x.com/dainemawer" target="_blank" rel="noopener noreferrer">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14.2833 10.1571L23.2178 0H21.1006L13.3427 8.81931L7.14656 0H0L9.36984 13.3364L0 23.9877H2.11732L10.3098 14.6742L16.8534 23.9877H24L14.2827 10.1571H14.2833ZM11.3833 13.4538L10.4339 12.1258L2.88022 1.55881H6.1323L12.2282 10.0867L13.1776 11.4147L21.1016 22.4998H17.8495L11.3833 13.4544V13.4538Z"
+                  fill="black"
+                />
+              </svg>
             </a>
-            . All rights reserved.
-          </p>
-        </div>
+          </li>
+          <li>
+            <a href="https://github.com/dainemawer" target="_blank" rel="noopener noreferrer">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g clipPath="url(#clip0_12_398)">
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M11.9642 0C5.34833 0 0 5.5 0 12.3042C0 17.7432 3.42686 22.3472 8.18082 23.9767C8.77518 24.0992 8.9929 23.712 8.9929 23.3862C8.9929 23.101 8.97331 22.1232 8.97331 21.1045C5.64514 21.838 4.95208 19.6378 4.95208 19.6378C4.41722 18.2118 3.62473 17.8452 3.62473 17.8452C2.53543 17.0915 3.70408 17.0915 3.70408 17.0915C4.91241 17.173 5.54645 18.3545 5.54645 18.3545C6.61592 20.2285 8.33926 19.699 9.03257 19.373C9.13151 18.5785 9.44865 18.0285 9.78539 17.723C7.13094 17.4377 4.33812 16.3785 4.33812 11.6523C4.33812 10.3078 4.81322 9.20775 5.56604 8.35225C5.44727 8.04675 5.03118 6.7835 5.68506 5.09275C5.68506 5.09275 6.69527 4.76675 8.97306 6.35575C9.94827 6.08642 10.954 5.9494 11.9642 5.94825C12.9744 5.94825 14.0042 6.091 14.9552 6.35575C17.2332 4.76675 18.2434 5.09275 18.2434 5.09275C18.8973 6.7835 18.481 8.04675 18.3622 8.35225C19.1349 9.20775 19.5904 10.3078 19.5904 11.6523C19.5904 16.3785 16.7976 17.4172 14.1233 17.723C14.5592 18.11 14.9353 18.8433 14.9353 20.0045C14.9353 21.6545 14.9158 22.9788 14.9158 23.386C14.9158 23.712 15.1337 24.0992 15.7278 23.977C20.4818 22.347 23.9087 17.7432 23.9087 12.3042C23.9282 5.5 18.5603 0 11.9642 0Z"
+                    fill="#24292F"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_12_398">
+                    <rect width="24" height="24" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://www.linkedin.com/in/dainemawer/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M0 1.76041C0 0.815265 0.794438 0.0480957 1.77375 0.0480957H22.2262C23.2059 0.0480957 24 0.815265 24 1.76041V22.2401C24 23.1855 23.2059 23.9521 22.2262 23.9521H1.77375C0.794531 23.9521 0 23.1856 0 22.2403V1.76013V1.76041Z"
+                  fill="black"
+                />
+                <path
+                  d="M7.2933 20.0527V9.291H3.70192V20.0527H7.29367H7.2933ZM5.49836 7.82193C6.75048 7.82193 7.53002 6.99556 7.53002 5.96283C7.50658 4.90658 6.75048 4.10327 5.52217 4.10327C4.29302 4.10327 3.49023 4.90658 3.49023 5.96274C3.49023 6.99547 4.26948 7.82184 5.47483 7.82184H5.49808L5.49836 7.82193ZM9.28117 20.0527H12.8723V14.0435C12.8723 13.7223 12.8957 13.4002 12.9906 13.1708C13.2501 12.5279 13.841 11.8625 14.8333 11.8625C16.1325 11.8625 16.6525 12.8492 16.6525 14.2961V20.0527H20.2435V13.8822C20.2435 10.5769 18.472 9.0387 16.1093 9.0387C14.1721 9.0387 13.3213 10.1171 12.8486 10.8516H12.8725V9.29137H9.28136C9.32823 10.3009 9.28108 20.053 9.28108 20.053L9.28117 20.0527Z"
+                  fill="white"
+                />
+              </svg>
+            </a>
+          </li>
+        </ul>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-500 to-blue-500"></div>
     </footer>
   );
 }

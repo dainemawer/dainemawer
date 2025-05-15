@@ -64,6 +64,9 @@ export default function CustomPortableText({
       normal: ({ children }) => (
         <p className="text-lg leading-relaxed text-gray-700 mb-6">{children}</p>
       ),
+      subtitle: ({ children }) => (
+        <p className="text-xl md:text-2xl text-gray-400 mb-6">{children}</p>
+      ),
       h1: ({ children, value }) => (
         <Heading
           as="h1"

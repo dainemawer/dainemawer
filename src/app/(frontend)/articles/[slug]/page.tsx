@@ -31,6 +31,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 
   return {
+    title: routeData.title,
+    description: routeData.excerpt,
     alternates: {
       canonical: getDocumentLink(routeData, true),
     },

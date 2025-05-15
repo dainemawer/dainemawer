@@ -3,10 +3,10 @@
  * file, it will not be tree shaken effectively across routes
  */
 
-import { Inter } from 'next/font/google';
+import { Public_Sans } from 'next/font/google';
 
-const inter = Inter({
-  variable: '--font-inter',
+const publicSans = Public_Sans({
+  variable: '--font-public-sans',
   subsets: ['latin'],
   display: 'swap',
 });
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
+    <html lang="en" className={`${publicSans.variable}`} suppressHydrationWarning>
       {children}
     </html>
   );

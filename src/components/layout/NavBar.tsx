@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { SettingsQueryResult } from '@/sanity.types';
+import type { SettingsQueryResult } from '@/sanity.types';
 import { getLinkByLinkObject } from '@/lib/links';
 
 export default function NavBar({
@@ -24,63 +24,56 @@ export default function NavBar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-end flex-1">
+    <div className="flex items-center justify-center flex-1">
       {/* Desktop Navigation */}
       <div className="hidden md:flex items-center space-x-6">
-        <NavigationMenu>
-          <NavigationMenuList>
-            {menuItems.map((item) => (
-              <NavigationMenuItem key={item._key}>
-                {item.childMenu ? (
-                  // Dropdown menu for items with children
-                  <>
-                    <NavigationMenuTrigger className={cn(navigationMenuTriggerStyle())}>
-                      {item.text}
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <div className="p-1 w-[200px]">
-                        {item.childMenu.map((child) => (
-                          <NavigationMenuLink key={child._key} asChild>
-                            <Link
-                              href={child.link ? getLinkByLinkObject(child.link) || '#' : '#'}
-                              className="block p-2 hover:bg-gray-100 rounded-md"
-                              {...(child.link?.openInNewTab
-                                ? { target: '_blank', rel: 'noopener noreferrer' }
-                                : {})}
-                            >
-                              {child.text}
-                            </Link>
-                          </NavigationMenuLink>
-                        ))}
-                      </div>
-                    </NavigationMenuContent>
-                  </>
-                ) : (
-                  // Simple link for items without children
-                  <NavigationMenuLink asChild>
-                    <Link
-                      href={item.link ? getLinkByLinkObject(item.link) || '#' : '#'}
-                      className={cn(navigationMenuTriggerStyle(), 'cursor-pointer')}
-                      {...(item.link?.openInNewTab
-                        ? { target: '_blank', rel: 'noopener noreferrer' }
-                        : {})}
-                    >
-                      {item.text}
-                    </Link>
-                  </NavigationMenuLink>
-                )}
-              </NavigationMenuItem>
-            ))}
-          </NavigationMenuList>
-        </NavigationMenu>
-
-        <div className="flex space-x-2">
-          <Button asChild variant="default">
-            <Link href={'/'}>Get Started</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={'/'}>Log In</Link>
-          </Button>
+        <div className="border border-gray-200 rounded-full px-6 py-2">
+          <NavigationMenu>
+            <NavigationMenuList>
+              {menuItems.map((item) => (
+                <NavigationMenuItem key={item._key}>
+                  {item.childMenu ? (
+                    // Dropdown menu for items with children
+                    <>
+                      <NavigationMenuTrigger className={cn(navigationMenuTriggerStyle())}>
+                        {item.text}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="p-1 w-[200px]">
+                          {item.childMenu.map((child) => (
+                            <NavigationMenuLink key={child._key} asChild>
+                              <Link
+                                href={child.link ? getLinkByLinkObject(child.link) || '#' : '#'}
+                                className="block p-2 hover:bg-gray-100 rounded-md"
+                                {...(child.link?.openInNewTab
+                                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                                  : {})}
+                              >
+                                {child.text}
+                              </Link>
+                            </NavigationMenuLink>
+                          ))}
+                        </div>
+                      </NavigationMenuContent>
+                    </>
+                  ) : (
+                    // Simple link for items without children
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href={item.link ? getLinkByLinkObject(item.link) || '#' : '#'}
+                        className={cn(navigationMenuTriggerStyle(), 'cursor-pointer')}
+                        {...(item.link?.openInNewTab
+                          ? { target: '_blank', rel: 'noopener noreferrer' }
+                          : {})}
+                      >
+                        {item.text}
+                      </Link>
+                    </NavigationMenuLink>
+                  )}
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
         </div>
       </div>
 
@@ -108,7 +101,7 @@ export default function NavBar({
       {/* Mobile Menu */}
       <div
         className={cn(
-          'md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-50 transform transition-all duration-300 ease-in-out origin-top',
+          'md:hidden absolute top-full left-0 right-0 bg-white dark:bg-black shadow-lg z-50 transform transition-all duration-300 ease-in-out origin-top',
           isMobileMenuOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0',
         )}
       >

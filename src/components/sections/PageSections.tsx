@@ -12,6 +12,9 @@ import PostList from './PostList';
 import CardGrid from './CardGrid';
 import Divider from './Divider';
 import Subscribe from './Subscribe';
+import TilesSection from './Tiles';
+import Recommendations from './Recommendations';
+import Content from './Content';
 
 type PageSectionstype = Section['_type'];
 
@@ -23,6 +26,9 @@ const SECTION_COMPONENTS: Record<PageSectionstype, ElementType> = {
   postList: PostList,
   cardGrid: CardGrid,
   divider: Divider,
+  tiles: TilesSection,
+  recommendations: Recommendations,
+  content: Content,
 } as const;
 
 type PageSectionsProps = {
