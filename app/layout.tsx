@@ -8,6 +8,8 @@ import Main from "@/components/layout/main";
 import Script from "next/script";
 import { Analytics } from '@vercel/analytics/react';
 import SkipLink from "@/components/layout/skip-link";
+import PreviewBanner from '@/components/preview-banner';
+import Navigation from '@/components/layout/navigation';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -95,6 +97,8 @@ export default function RootLayout({
 				>
 					<SkipLink />
 					<Header />
+					<PreviewBanner />
+					<Navigation />
 					<Main>
 						{children}
 					</Main>
