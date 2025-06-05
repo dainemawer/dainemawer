@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import Image from 'next/image'
 import Newsletter from '@/components/newsletter'
+import { Marquee } from "@/components/magicui/marquee"
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -52,6 +53,34 @@ export const metadata: Metadata = {
 	},
 }
 
+const clients = [
+	{
+		id: 1,
+		image: '/clients/google.png',
+		username: 'Google',
+	},
+	{
+		id: 2,
+		image: '/clients/amazon.png',
+		username: 'Amazon',
+	},
+	{
+		id: 3,
+		image: '/clients/facebook.png',
+		username: 'Facebook',
+	},
+	{
+		id: 4,
+		image: '/clients/microsoft.png',
+		username: 'Microsoft',
+	},
+	{
+		id: 5,
+		image: '/clients/apple.png',
+		username: 'Apple',
+	},
+]
+
 export default function Homepage() {
 	return (
 		<>
@@ -80,6 +109,15 @@ export default function Homepage() {
 						With over a decade of hands-on experience, I lead the strategy behind frontend systems that serve millions —
 						reliably, accessibly, and fast.
 					</p>
+					<div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
+						<Marquee className="[--duration:20s]">
+							{clients.map((client) => (
+								<figure key={client.id}>
+									<Image src={client.image} alt={client.username} width={100} height={100} />
+								</figure>
+							))}
+						</Marquee>
+					</div>
 					<div className="flex flex-col sm:flex-row gap-4 justify-center">
 						<Button className="bg-black text-white hover:bg-gray-800 px-8 py-3 text-base font-medium rounded-full">
 							Join Today
