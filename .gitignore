@@ -141,3 +141,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# macOS
+.DS_Store
+*.pem
+
+# pnpm debug log
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# Next.js generated type declarations
+next-env.d.ts
+
+# Claude Code local (machine-specific) session settings
+.claude/settings.local.json
