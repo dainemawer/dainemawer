@@ -106,6 +106,33 @@ CMS dependency unless/until the blog needs one. Keep content (copy, project
 data, post frontmatter) separate from presentational components so it's easy
 to swap the data source later without touching component code.
 
+## Agent Skills
+
+This repo has skills installed under `.agents/skills/` (tracked in
+`skills-lock.json`). Reach for them proactively when the situation matches —
+don't wait to be asked by name.
+
+- **vercel-react-best-practices** — consult whenever writing, reviewing, or
+  refactoring React/Next.js code (components, pages, data fetching, bundle
+  size). Encodes the RSC-first / minimal-client-JS rules required above.
+  Full rule set: `.agents/skills/vercel-react-best-practices/rules/`.
+- **vercel-composition-patterns** — consult when a component's props are
+  multiplying (boolean flags, "mode" props) or when designing a reusable or
+  compound component — favors compound components, lifted state, and
+  context-as-interface over prop drilling. Rules:
+  `.agents/skills/vercel-composition-patterns/rules/`.
+- **web-design-guidelines** — run before calling a UI or interaction change
+  "done," or whenever asked to review UI/accessibility/UX. Checks against the
+  Web Interface Guidelines that back the WCAG 2.2 AA bar required above.
+- **code-review** — run when asked to review a branch, PR, or in-progress
+  diff against a fixed point (commit/branch/tag/`main`). Reviews Standards
+  (repo conventions) and Spec (does it match the ask) in parallel.
+- **tdd** — use when building a feature or fixing a bug test-first, or when
+  asked for "red-green-refactor" or integration tests.
+- **grill-with-docs**, **loop-me** — user-triggered only
+  (`disable-model-invocation: true`). Never self-invoke these; only run them
+  when the user explicitly types `/grill-with-docs` or `/loop-me`.
+
 ## Git Workflow
 
 - Never commit directly to `main`. All work happens on a feature branch
