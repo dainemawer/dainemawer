@@ -111,8 +111,9 @@ to swap the data source later without touching component code.
 - Never commit directly to `main`. All work happens on a feature branch
   (`type/short-description`, e.g. `feat/hero-section`) and lands via a pull
   request into `main`.
-- Before every push: run typecheck (`tsc --noEmit`), Biome lint, and the
-  build. A branch with failing checks does not get pushed.
+- Before every push: run typecheck (`tsc --noEmit`) and Biome lint. A branch
+  with failing checks does not get pushed. (The production build is verified
+  by CI/Vercel on the PR, not in the pre-push hook, to keep local pushes fast.)
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`), enforced by
   Commitlint via a Husky `commit-msg` hook. A Husky `pre-push` hook runs
