@@ -138,13 +138,13 @@ don't wait to be asked by name.
 - Never commit directly to `main`. All work happens on a feature branch
   (`type/short-description`, e.g. `feat/hero-section`) and lands via a pull
   request into `main`.
-- Before every push: run typecheck (`tsc --noEmit`) and Biome lint. A branch
-  with failing checks does not get pushed. (The production build is verified
-  by CI/Vercel on the PR, not in the pre-push hook, to keep local pushes fast.)
+- Typecheck (`tsc --noEmit`), Biome lint, and build all run in GitHub Actions
+  CI (`.github/workflows/ci.yml`) on every push and pull request — kept out
+  of local git hooks so pushes stay fast. A branch with failing CI does not
+  get merged.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
-  (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`), enforced by
-  Commitlint via a Husky `commit-msg` hook. A Husky `pre-push` hook runs
-  lint + typecheck.
+  (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`), enforced
+  locally by Commitlint via a Husky `commit-msg` hook.
 - PR titles also follow Conventional Commits format.
 
 ## Deployment
