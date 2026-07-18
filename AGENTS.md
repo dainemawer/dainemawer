@@ -138,10 +138,11 @@ don't wait to be asked by name.
 - Never commit directly to `main`. All work happens on a feature branch
   (`type/short-description`, e.g. `feat/hero-section`) and lands via a pull
   request into `main`.
-- Typecheck (`tsc --noEmit`), Biome lint, and build all run in GitHub Actions
-  CI (`.github/workflows/ci.yml`) on every push and pull request — kept out
-  of local git hooks so pushes stay fast. A branch with failing CI does not
-  get merged.
+- Typecheck (`tsc --noEmit`) and Biome lint run in GitHub Actions CI
+  (`.github/workflows/ci.yml`) on every push and pull request — kept out of
+  local git hooks so pushes stay fast. A branch with failing CI does not get
+  merged. The production build is verified separately by the Vercel preview
+  deployment that runs on every push (no need to duplicate it in CI).
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`), enforced
   locally by Commitlint via a Husky `commit-msg` hook.

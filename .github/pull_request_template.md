@@ -22,7 +22,6 @@
 
 - [ ] `pnpm typecheck`
 - [ ] `pnpm lint`
-- [ ] `pnpm build`
 - [ ] Manually verified in the browser (attach screenshots below for UI changes)
 
 ## Accessibility & performance
