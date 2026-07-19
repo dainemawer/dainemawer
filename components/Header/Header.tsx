@@ -13,7 +13,7 @@ export function Header() {
       <div className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 py-6 md:px-16">
         <Link
           href="/"
-          className="shrink-0 font-sans text-base font-bold text-white"
+          className="shrink-0 font-sans text-sm font-bold text-white"
         >
           <span className="md:hidden">DM</span>
           <span className="hidden md:inline">Daine Mawer</span>
