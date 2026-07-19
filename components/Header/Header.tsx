@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Container } from "@/components/Container";
 import { Nav } from "./Nav";
 
 export function Header() {
@@ -10,7 +11,7 @@ export function Header() {
       >
         Skip to content
       </a>
-      <div className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 py-6 md:px-16">
+      <Container className="flex items-center gap-6 py-6">
         <Link
           href="/"
           className="shrink-0 font-sans text-sm font-bold text-white"
@@ -20,7 +21,7 @@ export function Header() {
         </Link>
         <span aria-hidden="true" className="h-px flex-1 bg-border-1" />
         <Nav />
-      </div>
+      </Container>
     </header>
   );
 }
