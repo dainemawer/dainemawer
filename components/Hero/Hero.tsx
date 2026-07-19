@@ -1,10 +1,10 @@
 export function Hero() {
   return (
-    <section className="px-6 py-24 md:px-12 md:py-32">
+    <section className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col justify-between px-6 py-10 md:px-16 md:py-16">
       <div className="flex items-center gap-4">
         <div
           aria-hidden="true"
-          className="h-12 w-12 shrink-0 rounded-full bg-surface-2 ring-1 ring-border-1"
+          className="h-9 w-9 shrink-0 rounded-full bg-surface-2 ring-1 ring-border-1 md:h-16 md:w-16"
         />
         <p className="font-mono text-xs text-muted-2 sm:text-sm">
           I build and ship AI-powered products using Next.js, TypeScript,
@@ -12,11 +12,11 @@ export function Hero() {
         </p>
       </div>
 
-      <h1 className="mt-8 max-w-4xl text-[40px] font-semibold leading-[1.1] tracking-[-1.5px] text-white sm:text-[56px] sm:tracking-[-2.5px] md:text-[80px] md:leading-[84px] md:tracking-[-4px]">
+      <h1 className="max-w-4xl text-[44px] font-semibold leading-[1.05] tracking-[-2.2px] text-white md:text-[80px] md:leading-[84px] md:tracking-[-4px] min-[1440px]:text-[104px] min-[1440px]:leading-[109px] min-[1440px]:tracking-[-5.2px]">
         Staff Engineer, <span className="text-white/50">Building with AI</span>
       </h1>
 
-      <div className="mt-10 flex flex-col divide-y divide-border-1 font-mono text-xs uppercase tracking-widest text-muted-3 md:flex-row md:items-center md:divide-x md:divide-y-0">
+      <div className="flex flex-col divide-y divide-border-1 font-mono text-xs uppercase tracking-widest text-muted-3 md:flex-row md:items-center md:divide-x md:divide-y-0">
         <span className="py-2 md:py-0 md:pr-4">Cape Town, South Africa</span>
         <span className="py-2 md:px-4">GMT+2</span>
         <span className="flex items-center gap-2 py-2 text-accent md:pl-4">

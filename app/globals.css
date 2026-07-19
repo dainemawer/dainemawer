@@ -15,10 +15,11 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
 
-  /* Mobile and tablet share one collapsed layout through 768px inclusive —
-     shift the default `md` breakpoint (768px) up by 1px so `md:` utilities
-     only apply above it, matching the design spec's "<=768px" rule. */
-  --breakpoint-md: 769px;
+  /* Mobile and tablet share one collapsed nav/layout; measured directly
+     against the live reference site via binary search (collapsed at
+     959px, expanded at 960px) — supersedes the spec doc's "768px" claim,
+     which didn't hold up against the actual site. */
+  --breakpoint-md: 960px;
 }
 
 @layer base {
