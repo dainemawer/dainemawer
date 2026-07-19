@@ -25,13 +25,13 @@
      on the reference site via data-framer-appear-id, though its exact
      runtime timing isn't recoverable from static CSS, so this duration/
      easing is a tasteful approximation, not a measured value. */
-  --animate-fade-in-up: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in-up: fade-in-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(32px);
   }
   to {
     opacity: 1;
