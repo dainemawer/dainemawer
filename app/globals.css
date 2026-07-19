@@ -14,6 +14,29 @@
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+
+  /* Mobile and tablet share one collapsed nav/layout; measured directly
+     against the live reference site via binary search (collapsed at
+     959px, expanded at 960px) — supersedes the spec doc's "768px" claim,
+     which didn't hold up against the actual site. */
+  --breakpoint-md: 960px;
+
+  /* On-load entry animation for above-the-fold content — confirmed present
+     on the reference site via data-framer-appear-id, though its exact
+     runtime timing isn't recoverable from static CSS, so this duration/
+     easing is a tasteful approximation, not a measured value. */
+  --animate-fade-in-up: fade-in-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @layer base {
