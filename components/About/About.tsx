@@ -7,7 +7,7 @@ import { ParallaxPortrait } from "./ParallaxPortrait";
 export function About() {
   return (
     <section id="about" aria-labelledby="about-heading">
-      <Container className="py-16 md:py-24">
+      <Container className="pt-16 pb-16 md:pt-14 md:pb-24">
         <h2 id="about-heading" className="sr-only">
           About
         </h2>
