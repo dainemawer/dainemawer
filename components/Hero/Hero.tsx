@@ -3,7 +3,7 @@ import { Container } from "@/components/Container";
 export function Hero() {
   return (
     <section>
-      <Container className="pt-10 pb-10 md:pt-16 md:pb-[140px]">
+      <Container className="py-10 md:py-16">
         <div className="flex animate-fade-in-down items-center gap-4 [animation-delay:400ms]">
           <div
             aria-hidden="true"
@@ -15,7 +15,7 @@ export function Hero() {
           </p>
         </div>
 
-        <h1 className="mt-16 max-w-4xl animate-fade-in-up text-[44px] font-semibold leading-[1.05] tracking-[-2.2px] text-white md:mt-[195px] md:text-[80px] md:leading-[84px] md:tracking-[-4px] min-[1440px]:text-[104px] min-[1440px]:leading-[109px] min-[1440px]:tracking-[-5.2px]">
+        <h1 className="mt-16 max-w-4xl animate-fade-in-up text-[44px] font-semibold leading-[1.05] tracking-[-2.2px] text-white md:mt-[300px] md:text-[80px] md:leading-[84px] md:tracking-[-4px] min-[1440px]:text-[104px] min-[1440px]:leading-[109px] min-[1440px]:tracking-[-5.2px]">
           Staff Engineer,{" "}
           <span className="text-white/50">Building with AI</span>
         </h1>
