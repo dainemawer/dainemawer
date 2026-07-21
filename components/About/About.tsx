@@ -19,7 +19,7 @@ export function About() {
                 href="https://cal.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded px-2 py-2 hover:underline"
+                className="flex items-center gap-1.5 rounded px-2 py-2 uppercase hover:underline hover:underline-offset-[3px]"
               >
                 Book a call
                 <ArrowUpRightIcon />
@@ -28,7 +28,7 @@ export function About() {
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded px-2 py-2 hover:underline"
+                className="flex items-center gap-1.5 rounded px-2 py-2 uppercase hover:underline hover:underline-offset-[3px]"
               >
                 LinkedIn
                 <ArrowUpRightIcon />

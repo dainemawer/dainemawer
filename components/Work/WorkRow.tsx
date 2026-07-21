@@ -34,8 +34,10 @@ export function WorkRow({ project, tone }: WorkRowProps) {
         </div>
         <div
           aria-hidden="true"
-          className="hidden aspect-[4/3] w-[180px] shrink-0 bg-surface-3 ring-1 ring-border-1 transition-transform duration-300 ease-out group-hover:scale-105 sm:block"
-        />
+          className="hidden aspect-[4/3] w-[302px] shrink-0 overflow-hidden bg-surface-3 ring-1 ring-border-1 md:block"
+        >
+          <div className="h-full w-full grayscale transition-[filter,transform] duration-300 ease-out group-hover:scale-105 group-hover:grayscale-0" />
+        </div>
         <span className="sr-only"> — View project</span>
       </Link>
     </div>
