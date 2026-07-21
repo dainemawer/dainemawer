@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Container } from "@/components/Container";
 import { ArrowUpRightIcon } from "./ArrowUpRightIcon";
+import { BioText } from "./BioText";
+import { ParallaxPortrait } from "./ParallaxPortrait";
 
 export function About() {
   return (
@@ -11,13 +13,7 @@ export function About() {
         </h2>
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-6">
           <div className="flex flex-col justify-between gap-16">
-            <p className="max-w-xl text-xl text-white">
-              I’m a full-stack engineer who ships AI-powered products fast —
-              architecting backend systems, integrating models, and building
-              polished UIs without waiting on a team. Next.js, TypeScript,
-              Supabase, Vercel. I turn ambiguous ideas into production software
-              in days, not months.
-            </p>
+            <BioText />
             <div className="-mx-2 flex items-center gap-6 font-sans text-base text-white">
               <Link
                 href="https://cal.com"
@@ -39,10 +35,7 @@ export function About() {
               </Link>
             </div>
           </div>
-          <div
-            aria-hidden="true"
-            className="aspect-[432/526] w-full bg-surface-2 ring-1 ring-border-1"
-          />
+          <ParallaxPortrait />
         </div>
       </Container>
     </section>
