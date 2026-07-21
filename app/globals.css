@@ -32,7 +32,7 @@
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(32px);
+    transform: translateY(64px);
   }
   to {
     opacity: 1;
@@ -43,7 +43,7 @@
 @keyframes fade-in-down {
   from {
     opacity: 0;
-    transform: translateY(-32px);
+    transform: translateY(-64px);
   }
   to {
     opacity: 1;

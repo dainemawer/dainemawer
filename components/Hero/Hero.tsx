@@ -3,7 +3,7 @@ import { Container } from "@/components/Container";
 export function Hero() {
   return (
     <section>
-      <Container className="py-10 md:py-16">
+      <Container className="pt-10 pb-10 md:pt-16 md:pb-[140px]">
         <div className="flex animate-fade-in-down items-center gap-4 [animation-delay:400ms]">
           <div
             aria-hidden="true"

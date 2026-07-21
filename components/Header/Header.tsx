@@ -13,7 +13,7 @@ export function Header() {
     <header className="sticky top-0 z-50">
       <div
         aria-hidden="true"
-        className="absolute inset-0 backdrop-blur-md"
+        className="absolute inset-0 backdrop-blur-xl"
         style={FADE_MASK}
       />
       <a
