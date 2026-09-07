@@ -26,13 +26,18 @@ const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 // (public/gtm-init.js) rather than adding to the inline-script surface —
 // only gtm.js and GA4's collection endpoints need domain allowlisting,
 // and only once NEXT_PUBLIC_GTM_ID is actually set.
+// Vercel Analytics is proxied same-origin (/_vercel/insights/*) in
+// production on Vercel, so 'self' covers it there — but locally (and on
+// any non-Vercel host) the package falls back to its public domains, so
+// those stay allowlisted unconditionally rather than gated behind an env
+// var like GTM above.
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${gtmId ? " https://www.googletagmanager.com" : ""};
+  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${gtmId ? " https://www.googletagmanager.com" : ""} https://va.vercel-scripts.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self'${gtmId ? " https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com" : ""};
+  connect-src 'self'${gtmId ? " https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com" : ""} https://vitals.vercel-insights.com;
   ${gtmId ? "frame-src https://www.googletagmanager.com;" : ""}
   object-src 'none';
   base-uri 'self';
