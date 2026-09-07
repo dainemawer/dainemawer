@@ -1,3 +1,4 @@
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Figtree, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@/components/analytics";
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           schema={[personSchema(), organizationSchema(), websiteSchema()]}
         />
         <Analytics />
+        <VercelAnalytics />
         <CommandPaletteProvider>
           <SubscribeModalProvider>
             <InertWhenModalOpen>
