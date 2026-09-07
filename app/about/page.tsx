@@ -94,6 +94,17 @@ export default function AboutPage() {
             </ul>
           </MetaRow>
 
+          <MetaRow id="clients" label="Clients">
+            <ul className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
+              {about.clients.map((client, index) => (
+                <li key={client} className="flex items-baseline gap-x-2">
+                  {index > 0 && <span className="text-divider">|</span>}
+                  <span>{client}</span>
+                </li>
+              ))}
+            </ul>
+          </MetaRow>
+
           <MetaRow id="speaking" label="Speaking">
             <ul className="flex flex-col gap-3.5 text-base text-ink leading-normal">
               {about.speaking.map((item) => (
