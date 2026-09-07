@@ -25,6 +25,16 @@ export const topics: Topic[] = [
     name: "Engineering Management",
     dek: "Estimation, scoping, team process.",
   },
+  {
+    slug: "staff-engineering",
+    name: "Staff Engineering",
+    dek: "Technical direction, cross-team leverage, the work beyond a single codebase.",
+  },
+  {
+    slug: "ai",
+    name: "AI",
+    dek: "Agentic coding, review practices, and how AI is reshaping the day-to-day of building software.",
+  },
 ];
 
 export function getTopicBySlug(slug: string): Topic | undefined {
