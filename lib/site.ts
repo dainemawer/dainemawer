@@ -5,7 +5,7 @@ export const site = {
   company: { name: "Fueled", url: "https://www.fueled.com" },
   location: "Cape Town, South Africa",
   tagline: "Staff Engineer at Fueled, Cape Town",
-  url: "https://dainemawer.com",
+  url: "https://www.dainemawer.com",
   email: "daine@dainemawer.com",
   social: {
     github: "https://github.com/dainemawer",
