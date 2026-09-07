@@ -1,5 +1,5 @@
 export const now = {
-  updated: { day: "09", month: "02", year: "2026" },
+  updated: { day: "06", month: "09", year: "2026" },
   entries: [
     {
       label: "Building",
@@ -7,16 +7,20 @@ export const now = {
     },
     {
       label: "Leading",
-      body: "Working out how a frontend team estimates well when half the work now involves an AI-assisted first draft. The FATE framework still holds, but the T is getting harder to defend.",
+      body: "Tech lead on the mobile app for a major U.S. motorcycle brand, built in React Native and Expo. Different muscles than a browser: same discipline about state, worse tooling for finding out why a screen re-rendered.",
+    },
+    {
+      label: "Traveling",
+      body: "Booked for Lead Dev NYC. Still working out which talks to skip in favour of the hallway track.",
     },
     {
       label: "Reading",
-      body: "The Baseline 2026 feature set, and rather more of the Interop dashboard than is strictly healthy.",
+      body: "Loop engineering and agentic workflows — where an AI agent's plan–execute–verify loop earns trust, and where it still needs a human in the loop before anything ships.",
     },
     {
       label: "Not doing",
       body: "Consulting work, new side projects, and anything that requires a fourth Slack workspace.",
     },
   ],
-  archive: ["Feb 2026", "Nov 2025", "Jul 2025", "Mar 2025"],
+  archive: ["Sep 2026", "Feb 2026", "Nov 2025", "Jul 2025"],
 } as const;

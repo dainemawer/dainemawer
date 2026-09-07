@@ -4,7 +4,7 @@ export type UsesSection = {
   items: { name: string; description: string }[];
 };
 
-export const usesReviewedOn = "2026-02-09";
+export const usesReviewedOn = "2026-09-06";
 
 export const usesSections: UsesSection[] = [
   {
@@ -24,6 +24,16 @@ export const usesSections: UsesSection[] = [
       {
         name: "Keychron K3 — brown switches",
         description: "Low profile, quiet enough for a call I forgot to mute.",
+      },
+      {
+        name: "iPhone 15 Pro",
+        description:
+          "The on-device test unit. A simulator will lie to you about haptics, camera, and real network conditions.",
+      },
+      {
+        name: "Pixel 8",
+        description:
+          "Kept next to the iPhone for the same reason — Android is where React Native's cross-platform promise actually gets tested.",
       },
     ],
   },
@@ -46,6 +56,16 @@ export const usesSections: UsesSection[] = [
         description:
           "Starship prompt, trimmed to branch and node version only.",
       },
+      {
+        name: "Xcode + Android Studio",
+        description:
+          "Open for the simulators and native build tooling, not for writing code in either.",
+      },
+      {
+        name: "Expo CLI / EAS",
+        description:
+          "The actual dev loop for the React Native work — prebuild, dev client, and OTA updates without a store release.",
+      },
     ],
   },
   {
@@ -66,6 +86,11 @@ export const usesSections: UsesSection[] = [
         name: "CrUX + Vercel Analytics",
         description: "Field data settles arguments that lab data starts.",
       },
+      {
+        name: "React Native DevTools",
+        description:
+          "Replaced Flipper in the stack. Component tree, network, and the profiler in one place, without a separate app running.",
+      },
     ],
   },
   {
@@ -81,6 +106,16 @@ export const usesSections: UsesSection[] = [
         name: "Storybook",
         description:
           "With visual regression. The subject of one of the more useful things I've written.",
+      },
+      {
+        name: "EAS Build + Submit",
+        description:
+          "Cloud builds for both platforms from one config, then straight to store submission without touching Xcode or Android Studio's own release flow.",
+      },
+      {
+        name: "TestFlight + Play Console",
+        description:
+          "Where a build actually lands in front of a client before it reaches the store.",
       },
     ],
   },

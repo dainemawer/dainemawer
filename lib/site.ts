@@ -1,12 +1,12 @@
 export const site = {
   name: "Daine Mawer",
   logo: "D-M",
-  role: "Staff Engineer",
+  role: "Staff Engineer, Web Applications",
   company: { name: "Fueled", url: "https://www.fueled.com" },
   location: "Cape Town, South Africa",
-  tagline: "Staff Engineer at Fueled, Cape Town",
+  tagline: "Staff Engineer, Web Applications at Fueled, Cape Town",
   url: "https://dainemawer.com",
-  email: "daine@dainemawer.com",
+  email: "hello@dainemawer.com",
   social: {
     github: "https://github.com/dainemawer",
     linkedin: "https://www.linkedin.com/in/dainemawer",
