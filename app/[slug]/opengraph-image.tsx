@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
+import { LOGO_ASPECT_RATIO, logoDataUri } from "@/lib/logo-mark";
 import { getAllPosts, getPostBySlug } from "@/lib/posts";
-import { site } from "@/lib/site";
+
+const LOGO_HEIGHT = 32;
+const LOGO_WIDTH = Math.round(LOGO_HEIGHT * LOGO_ASPECT_RATIO);
 
 export const alt = "Article preview";
 export const size = { width: 1200, height: 630 };
@@ -29,16 +32,13 @@ export default async function Image(props: PageProps<"/[slug]">) {
         fontFamily: "sans-serif",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          fontSize: 32,
-          fontWeight: 700,
-          color: "#111111",
-        }}
-      >
-        {site.logo}
-      </div>
+      {/* biome-ignore lint/performance/noImgElement: next/image can't render inside Satori's ImageResponse (og image generation) */}
+      <img
+        src={logoDataUri("#111111")}
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        alt=""
+      />
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div
           style={{
