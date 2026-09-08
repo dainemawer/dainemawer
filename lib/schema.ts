@@ -52,6 +52,32 @@ export function websiteSchema() {
   };
 }
 
+// The about page's dedicated node, tying it to the site-wide Person node
+// (also emitted in app/layout.tsx) as its mainEntity — the pattern Google's
+// guidance uses for a personal profile page. Person is inlined here rather
+// than left as a bare `{"@id": ...}` pointer, per the same reasoning as
+// articleSchema below: a crawler reading this script in isolation should
+// still resolve who the page is about.
+export function profilePageSchema() {
+  return {
+    "@type": "ProfilePage",
+    "@id": `${site.url}/about#profile`,
+    url: `${site.url}/about`,
+    name: `About ${site.name}`,
+    isPartOf: { "@id": websiteId },
+    mainEntity: {
+      "@type": "Person",
+      "@id": personId,
+      name: site.name,
+      url: site.url,
+      jobTitle: site.role,
+      description: about.summary,
+      knowsAbout: about.writesAbout.map((topic) => topic.label),
+      sameAs: Object.values(site.social),
+    },
+  };
+}
+
 export function breadcrumbListSchema(
   items: { label: string; href?: string }[],
 ) {

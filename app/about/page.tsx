@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { JsonLd } from "@/components/json-ld";
 import { MetaRow } from "@/components/meta-row";
 import { PageShell } from "@/components/page-shell";
 import { TrackedLink } from "@/components/tracked-link";
 import { about } from "@/lib/about";
+import { profilePageSchema } from "@/lib/schema";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -50,6 +52,7 @@ export default function AboutPage() {
         </nav>
       }
     >
+      <JsonLd schema={profilePageSchema()} />
       <div className="mx-auto max-w-content">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "About" }]}
