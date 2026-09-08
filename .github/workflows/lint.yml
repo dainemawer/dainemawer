@@ -27,3 +27,6 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Lint MDX
+        run: pnpm lint:mdx
