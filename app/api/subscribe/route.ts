@@ -5,11 +5,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
   const apiKey = process.env.RESEND_API_KEY;
-  const audienceId = process.env.RESEND_AUDIENCE_ID;
+  const segmentId = process.env.RESEND_SEGMENT_ID;
 
-  if (!apiKey || !audienceId) {
+  if (!apiKey || !segmentId) {
     console.error(
-      "Newsletter signup attempted without RESEND_API_KEY/RESEND_AUDIENCE_ID configured",
+      "Newsletter signup attempted without RESEND_API_KEY/RESEND_SEGMENT_ID configured",
     );
     return NextResponse.json({ error: "not_configured" }, { status: 500 });
   }
@@ -22,9 +22,11 @@ export async function POST(request: Request) {
   }
 
   const resend = new Resend(apiKey);
+  // audienceId is deprecated in Resend's API in favor of segments — see
+  // https://resend.com/docs/dashboard/segments/migrating-from-audiences-to-segments
   const { error } = await resend.contacts.create({
     email,
-    audienceId,
+    segments: [{ id: segmentId }],
     unsubscribed: false,
   });
 
