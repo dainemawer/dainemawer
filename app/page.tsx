@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ViewTransition } from "react";
 import { DirectionalTransition } from "@/components/directional-transition";
 import { PageShell } from "@/components/page-shell";
@@ -22,9 +23,14 @@ export default async function HomePage(props: PageProps<"/">) {
       >
         <h1 className="sr-only">Writing</h1>
         <ul className="flex flex-col gap-8.5">
-          {posts.map((post) => (
+          {posts.map((post, index) => (
             <ViewTransition key={post.slug}>
-              <li>
+              <li
+                className="stagger-in"
+                style={
+                  { "--stagger-index": Math.min(index, 12) } as CSSProperties
+                }
+              >
                 <PostListItem post={post} />
               </li>
             </ViewTransition>

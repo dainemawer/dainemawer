@@ -9,7 +9,8 @@ This project uses **pnpm** exclusively. Do not use `npm` or `yarn` — there is 
 - `pnpm install` — install dependencies
 - `pnpm dev` — start the dev server
 - `pnpm build` — production build
-- `pnpm lint` — run Biome checks
+- `pnpm lint` — run Biome checks (code files only — see `.remarkrc.mjs` for MDX prose)
+- `pnpm lint:mdx` — lint `content/posts/*.mdx` prose with remark (headings, lists, links)
 - `pnpm format` — apply Biome formatting
 
 ## Commits
@@ -20,7 +21,7 @@ Commit messages must follow [Conventional Commits](https://www.conventionalcommi
 
 Git hooks are managed by [Lefthook](https://github.com/evilmartians/lefthook) (`lefthook.yml`), installed automatically via the `prepare` script on `pnpm install`:
 
-- `pre-commit` — runs Biome against staged files
+- `pre-commit` — runs Biome against staged code files and remark against staged `content/posts/*.mdx` files
 - `commit-msg` — validates the commit message against Conventional Commits
 
 Do not bypass hooks (`--no-verify`) unless explicitly instructed to.

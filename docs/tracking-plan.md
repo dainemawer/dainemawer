@@ -35,6 +35,8 @@ Tools: Google Tag Manager (container) + Google Analytics 4 (a tag inside that co
 | `topic_filter_selected` | A topic is clicked | `topic` | `app/topics/[topic]/page.tsx` | Not wired |
 | `outbound_link_clicked` | GitHub / LinkedIn / Bluesky / employer link clicked | `destination` | `footer-elsewhere.tsx`, about page | Not wired |
 | `feed_link_clicked` | RSS / JSON Feed / Sitemap link clicked | `feed_type` | `footer-elsewhere.tsx` | Not wired |
+| `article_shared` | A share link (X / Bluesky / LinkedIn) clicked on an article | `platform`, `url` | `share-links.tsx` | Wired |
+| `article_link_copied` | "Copy link" clicked on an article | `url` | `share-links.tsx` | Wired |
 
 `archive_year_selected` (the homepage year filter) is deliberately left off — it's a plain `<Link>` navigation to `/?year=`, so GA4 already captures it as a pageview with no extra event needed.
 

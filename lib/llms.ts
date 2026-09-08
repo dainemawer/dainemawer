@@ -22,7 +22,10 @@ export function generateLlmsTxt(): string {
   ];
 
   for (const topic of topics) {
-    lines.push(`- [${topic.name}](${site.url}/topics/${topic.slug}.md):`);
+    // No .md twin: a topic page is just a filtered index of the articles
+    // already listed below, each with its own .md link — a markdown
+    // version would only repeat those same titles.
+    lines.push(`- [${topic.name}](${site.url}/topics/${topic.slug}):`);
     lines.push(`  ${topic.dek}`);
   }
 
@@ -40,7 +43,9 @@ export function generateLlmsTxt(): string {
     "",
     `- [Full archive](${site.url}/)`,
     `- [RSS](${site.url}/rss.xml)`,
-    `- [About](${site.url}/about.md)`,
+    // No .md twin: the About/Author bio above already covers what's on
+    // that page (name, role, location) — not a citable article.
+    `- [About](${site.url}/about)`,
   );
 
   return lines.join("\n");
