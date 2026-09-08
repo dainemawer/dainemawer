@@ -13,7 +13,10 @@ export function SubscribeModal() {
   const open = useSubscribeModalOpen();
   const setOpen = useSetSubscribeModalOpen();
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "pending" | "error" | "success"
+  >("idle");
+  const [errorReason, setErrorReason] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const emailId = `${titleId}-email`;
@@ -34,20 +37,41 @@ export function SubscribeModal() {
     setOpen(false);
     setEmail("");
     setStatus("idle");
+    setErrorReason(null);
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!EMAIL_PATTERN.test(email)) {
       setStatus("error");
+      setErrorReason("invalid_email");
       trackEvent("newsletter_signup_failed", { reason: "invalid_email" });
       return;
     }
     trackEvent("newsletter_signup_submitted");
-    // TODO: wire this up to a real newsletter provider (e.g. Buttondown,
-    // ConvertKit) once one is chosen — this only simulates success.
-    setStatus("success");
-    trackEvent("newsletter_signup_succeeded");
+    setStatus("pending");
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const { error } = await response.json().catch(() => ({}));
+        setStatus("error");
+        setErrorReason(error ?? "unknown");
+        trackEvent("newsletter_signup_failed", {
+          reason: error ?? "unknown",
+        });
+        return;
+      }
+      setStatus("success");
+      trackEvent("newsletter_signup_succeeded");
+    } catch {
+      setStatus("error");
+      setErrorReason("network_error");
+      trackEvent("newsletter_signup_failed", { reason: "network_error" });
+    }
   }
 
   return (
@@ -87,7 +111,7 @@ export function SubscribeModal() {
 
         {status === "success" ? (
           <output className="mt-6 block text-ink text-md">
-            You're on the list — check your inbox to confirm.
+            You're on the list.
           </output>
         ) : (
           <form
@@ -108,6 +132,7 @@ export function SubscribeModal() {
               onChange={(event) => {
                 setEmail(event.target.value);
                 setStatus("idle");
+                setErrorReason(null);
               }}
               placeholder="you@example.com"
               aria-invalid={status === "error"}
@@ -116,14 +141,17 @@ export function SubscribeModal() {
             />
             {status === "error" && (
               <p id={errorId} role="alert" className="text-red-600 text-xs">
-                Enter a valid email address.
+                {errorReason === "invalid_email"
+                  ? "Enter a valid email address."
+                  : "Something went wrong — try again in a moment."}
               </p>
             )}
             <button
               type="submit"
-              className="cursor-pointer rounded-md bg-ink px-3 py-2 text-sm text-surface hover:opacity-90 focus-visible:opacity-90"
+              disabled={status === "pending"}
+              className="cursor-pointer rounded-md bg-ink px-3 py-2 text-sm text-surface hover:opacity-90 focus-visible:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Subscribe
+              {status === "pending" ? "Subscribing…" : "Subscribe"}
             </button>
           </form>
         )}
