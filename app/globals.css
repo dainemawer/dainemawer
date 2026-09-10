@@ -42,6 +42,8 @@
   --text-xl--line-height: 1.25;
   --text-2xl: 1.875rem; /* 30px - h1 page title */
   --text-2xl--line-height: 1.2;
+  --text-3xl: 3rem; /* 48px - article h1 headline */
+  --text-3xl--line-height: 1.1;
 
   /* Layout constants */
   --grid-template-columns-shell: 13.25rem 1fr; /* 212px sidebar + content */

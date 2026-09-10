@@ -98,7 +98,7 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
               ]}
             />
 
-            <h1 className="mt-4.5 text-2xl text-ink tracking-tight text-pretty">
+            <h1 className="mt-4.5 text-3xl text-ink tracking-tight text-pretty">
               {post.title}
             </h1>
             <div className="mt-2 text-md text-muted text-pretty">
@@ -137,13 +137,13 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
 
             <div className="mt-13">
               <MetaRow label="The short answer">
-                <p className="text-md text-ink leading-relaxed text-pretty">
+                <p className="text-md text-ink italic leading-relaxed text-pretty">
                   {renderInlineText(content.shortAnswer)}
                 </p>
               </MetaRow>
             </div>
 
-            <div className="mt-15 flex flex-col gap-6.5 text-md text-ink leading-relaxed">
+            <div className="mt-15 flex max-w-[68ch] flex-col gap-6.5 text-md text-ink leading-relaxed">
               <MDXRemote
                 source={content.rawBody}
                 components={getMdxComponents(slug)}

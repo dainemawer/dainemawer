@@ -44,7 +44,7 @@ export function ReadingProgress() {
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
+      className="fixed inset-x-0 top-0 z-50 h-1.5 bg-transparent"
     >
       <div
         ref={barRef}
