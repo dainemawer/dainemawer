@@ -1,0 +1,79 @@
+---
+title: Migrating to TypeScript 7 Without Breaking Your Toolchain
+dek: The native compiler is 8-12x faster. The programmatic API isn't ready yet, and that's where teams get burned.
+date: '2026-09-11'
+topics:
+  - javascript
+  - staff-engineering
+shortAnswer: 'TypeScript 7''s native Go compiler is 8-12x faster on real codebases, but it ships without the stable programmatic API that custom transformers, ts-node, typescript-eslint, and ts-morph depend on. That API lands in TypeScript 7.1. Until then, alias TypeScript 6 for anything using compiler internals, and migrate `tsc` itself separately from the rest of your tooling.'
+takeaways:
+  - "TypeScript 7's Go-native compiler is 8-12x faster on full builds in practice: VS Code's own build went from 125.7 seconds to 10.6 seconds, an 11.9x improvement, with memory use down about 18%."
+  - "The benchmark headline hides the real story: TypeScript 7.0 doesn't expose a compiler API. Anything that imports `typescript` and calls into it directly isn't guaranteed to work yet."
+  - "ts-node, custom AST transformers, typescript-eslint, and ts-morph all lean on that API. The stable version isn't shipping until TypeScript 7.1."
+  - "The workaround teams are using: alias `typescript` to `@typescript/typescript6` for tools that need the old API, while running the native binary for `tsc` itself in CI."
+  - "This is the same shape every toolchain rewrite takes: the vendor benchmark is real, and it's not the risk. The risk is the long tail of things built on internals nobody thought of as a public API."
+faq:
+  - question: Is TypeScript 7 backwards compatible with custom transformers?
+    answer: Not fully, not yet. TypeScript 7.0's native Go compiler doesn't expose the programmatic compiler API that custom AST transformers rely on. A stable version of that API is planned for TypeScript 7.1, so tools built on transformers need to stay on TypeScript 6 until then.
+  - question: Does upgrading to TypeScript 7 break ts-node or typescript-eslint?
+    answer: It can. Both depend on importing TypeScript directly and calling into its compiler internals, which the 7.0 native port doesn't expose in a stable form. The common fix is an npm alias that keeps typescript resolving to a TypeScript 6 compatibility package for those tools, while tsc itself runs on the fast native binary.
+  - question: Should I upgrade to TypeScript 7 now or wait?
+    answer: "For the compiler itself, most teams can move now and see a real speedup. For anything depending on the compiler API, custom transformers, ts-node, editor plugins, wait for 7.1 or alias TypeScript 6 in the meantime. Treat it as two separate migrations, not one."
+needsRewrite: false
+---
+
+TypeScript 7 shipped in July 2026 as a full rewrite of the compiler and language service in Go, and the number everyone's repeating is real: [Microsoft's own benchmarks](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) show full builds running 8 to 12 times faster. On the VS Code codebase, a full build went from 125.7 seconds to 10.6 seconds, an 11.9x improvement, with aggregate memory use down around 18%. Opening a file with a type error, previously a 17.5-second wait in a large project, now takes under 1.3 seconds.
+
+None of that is marketing exaggeration. It's also not the part of this migration that determines whether it goes smoothly.
+
+## The number that matters less than you think
+
+A compiler rewrite in a systems language is, by now, a familiar shape. Turbopack replaced parts of webpack in Rust. Meta's React Compiler moved from JavaScript to Rust for the same reason. Every one of these ships with a benchmark slide and a smaller, quieter note further down the page about what didn't come along for the ride.
+
+For TypeScript 7, that note is the programmatic API. The Go-native `tsc` type-checks and compiles your code just fine. What it doesn't do, at least not yet, is expose the compiler internals that a chunk of the JavaScript ecosystem was built on top of without much fanfare. Custom AST transformers, editor plugins, and anything that imports `typescript` and reaches into its guts for diagnostics, source maps, or program information, isn't guaranteed to work against the native port. Microsoft has said a stable version of that API is coming in TypeScript 7.1, not 7.0.
+
+That's not a footnote. It's the actual scope of the migration.
+
+## Who this quietly breaks
+
+The compiler API was never a headline feature, which is exactly why so much depends on it without anyone noticing until it's gone. A few concrete examples:
+
+- `ts-node` and similar tools compile TypeScript on the fly by calling into the compiler API directly. Their compatibility with the 7.0 native port varies by tool and version.
+- `typescript-eslint` uses TypeScript's own type information to power type-aware lint rules, which means it needs the API surface, not just a working `tsc`.
+- `ts-morph` and other codemod tooling are built entirely around programmatic access to the AST. There's no faster-compiler story for them until 7.1 lands.
+- Any in-house script your team wrote three years ago that imports `typescript` to check types programmatically, generate types from a schema, or build a custom lint rule falls into the same bucket. It's the one nobody remembers exists until CI breaks.
+
+The pattern across all of these: none of them are edge cases. They're ordinary parts of a mature TypeScript setup, which is exactly why the migration risk is bigger than "upgrade a devDependency and watch it get faster."
+
+## A migration that doesn't gamble on CI
+
+The fix teams have converged on doesn't wait for 7.1. It splits the upgrade into two separate tracks and lets them move at different speeds:
+
+First, upgrade `tsc` itself wherever nothing else depends on importing it programmatically. That's most local development, most editor type-checking, and any CI step that just runs `tsc --noEmit` and reads the exit code. This is where the 8-12x number pays out immediately with close to zero risk.
+
+Second, alias `typescript` to a TypeScript 6 compatibility package for anything that touches the compiler API. The pattern several teams are documenting looks like this in `package.json`:
+
+```json
+{
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}
+```
+
+That keeps `typescript` resolving to the 6.0 API for anything that needs it, `ts-node`, `typescript-eslint`, custom transformers, while the native binary runs your actual type-checking pass under a separate name. It's not elegant, but it's a real bridge, not a workaround built on hope.
+
+Third, audit before you assume. Grep the codebase for `import * as ts from 'typescript'` and anything similar before deciding the migration is "just a version bump." That search takes ten minutes and tells you how big this migration actually is for your specific repo, which is a very different number for a team running a lint config off the shelf than for one with five years of internal tooling built on compiler internals.
+
+Frameworks are moving at different speeds here too. Check whether your specific stack, Next.js, a monorepo tool, your test runner, has published its own TypeScript 7 compatibility notes before assuming the ecosystem caught up uniformly. Some have; several hadn't as of the 7.0 release.
+
+## The lesson that outlasts this specific migration
+
+The interesting part of this isn't TypeScript. It's what a staff engineer should take from watching this pattern repeat: Turbopack, React Compiler, now this. Every toolchain rewrite in a faster language ships with a real benchmark and a real compatibility gap, and the gap is never in the part of the tool everyone thinks about. It's in the part that became load-bearing infrastructure without ever being designed as a public contract.
+
+The actual skill here isn't reading the changelog. It's the habit of asking, before adopting any faster rewrite of a tool your team depends on: what's built on top of this that was never meant to be an integration point? A linter plugin, a codemod script, a build step someone wrote in 2022 and nobody's touched since. Answering that before the migration, not during a broken CI run, is the difference between an easy 10x speedup and an afternoon spent figuring out why `ts-node` stopped working three sprints after everyone forgot the upgrade happened.
+
+## Bringing it together
+
+TypeScript 7's speedup is real and worth having. The migration risk isn't in the compiler, it's in everything wired to its internals without anyone tracking it: `ts-node`, custom transformers, `typescript-eslint`, `ts-morph`, and whatever in-house script imports `typescript` directly. Split the upgrade into two tracks, fast `tsc` now, an aliased TypeScript 6 for anything touching the compiler API, and audit your own codebase for that dependency before you find out about it in CI. The stable programmatic API lands in 7.1. Until then, treat this as two migrations wearing one version number.
