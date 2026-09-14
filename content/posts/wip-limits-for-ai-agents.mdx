@@ -1,0 +1,70 @@
+---
+title: Why AI Coding Agents Need WIP Limits Too
+dek: A framework for deciding how many agents one engineer can actually run at once.
+date: '2026-09-14'
+topics:
+  - staff-engineering
+  - engineering-management
+  - ai
+shortAnswer: Running several AI coding agents in parallel fails the same way understaffing does, too much work in flight for the verification capacity behind it. Cap agents per engineer to what they can actually review, write a checkable definition of done before any agent starts, and set an autonomy budget matching task risk before kickoff.
+takeaways:
+  - WIP limits apply to agents the same way they apply to people. The real constraint is verification capacity, not compute or how many agents a laptop can run.
+  - A vague prompt produces a diff nobody can verify quickly. Write a checkable definition of done before an agent starts, not after it finishes.
+  - Set an autonomy budget per task before kickoff, minutes for a scoped fix, hours for a feature, a scheduled check-in for anything longer, rather than deciding mid-run how long is too long.
+  - Decide kill criteria upfront. Know what a diverging agent looks like for this specific task before you're several turns deep and reluctant to throw the work away.
+  - Track verification hours per engineer, not agents launched or PRs merged. That number predicts whether a team is drowning long before throughput metrics do.
+faq:
+  - question: How many AI coding agents can one engineer run at once?
+    answer: There's no universal number. It's bounded by how fast that engineer can verify output, not by how many agents a machine can launch. A reasonable starting point is capping concurrent agents at what one engineer can review the same day, then lowering that cap if review starts backing up.
+  - question: What is a WIP limit for AI agents?
+    answer: The same idea as a work-in-progress limit in kanban, applied to agent tasks in flight instead of tickets in a column. Capping how many agent tasks one engineer has open at a time stops a review backlog from building up the same way capping tickets stops unfinished work from piling up.
+  - question: How do you know when to stop an AI agent that's going down the wrong path?
+    answer: Decide before it starts, not while it's running. Set a maximum time or turn count for the task, and write down what "clearly off track" looks like for that specific piece of work. Deciding the threshold upfront beats trying to judge it mid-stream, once you're already invested in reading the output.
+needsRewrite: false
+---
+
+Most engineering teams still plan agent work the way they planned a single assistant helping one person type faster. That model broke sometime in the last year. The actual unit of work now is one engineer directing several agents at once, each on a different task, each generating output faster than any one person can read it.
+
+Nobody built a process for that. Most teams just kept adding agents until something gave, and the thing that usually gives is review. [LinearB's 2026 analysis of more than 8.1 million pull requests across 4,800-plus organizations](https://linearb.io/blog/8-million-prs-engineering-productivity) found that AI-authored pull requests wait 4.6 times longer for a reviewer to even start looking at them, despite being reviewed about twice as fast once someone does. The queue is the bottleneck, not the reading speed. That's exactly what happens when the number of agents in flight outruns the number of people who can actually check their work.
+
+This isn't a review-technique problem. It's a staffing problem, and it needs the same tool every staffing problem needs: a limit on how much can be in progress before you start the next thing.
+
+## Name the actual constraint
+
+The instinct is to think of agent capacity as a compute problem, run as many as the machine and the API budget allow. That's the wrong constraint to optimize. The real ceiling is how much output one engineer can verify closely enough to trust, and that number doesn't move just because you added a fourth agent.
+
+Verification capacity is roughly fixed per person, per day. Adding agents past that point doesn't produce more finished, trustworthy work. It produces a longer queue of unreviewed diffs sitting exactly where the LinearB data says they sit, waiting for a reviewer who's already behind.
+
+## Set a WIP limit per engineer, not per team
+
+Kanban solved this same problem for tickets decades ago: cap how many things can be in progress at once, and don't start the next one until something finishes. The same cap works for agent tasks, applied per engineer rather than per team, because verification capacity is an individual constraint, not a shared pool.
+
+A workable starting point is capping concurrent agent tasks at whatever one engineer can review the same day, not the same week. If a task's diff is still sitting unread after a full day, that's a signal to lower the cap, not a signal to add another agent to keep busy while the queue grows. The number will differ by task complexity and by engineer, and it should move based on what the review backlog actually shows, not on a fixed number picked once and never revisited.
+
+## Write the definition of done before kickoff
+
+A vague prompt is the single fastest way to produce a diff nobody can verify quickly. "Add validation to the signup form" leaves an agent free to touch six files across three features, and now the reviewer has to reconstruct the actual requirement from the output before they can even start checking it.
+
+The fix happens before the agent starts, not after. Write down what "done" checkably means for this task: which files should be in scope, which behavior has to hold, what the acceptance test looks like. This is closer to writing a ticket a new hire could execute without asking a follow-up question than it is to writing a prompt. The upfront cost is real, but it's smaller than the cost of a reviewer reverse-engineering scope from a finished diff, and it's the same cost teams already pay for well-scoped human tickets. Agents just make the corner-cutting version of skipping it visible faster.
+
+## Give every task an autonomy budget
+
+Not every task deserves the same leash. A scoped bug fix in a file the agent already touched an hour ago can run for a few minutes before a check-in. A new feature with real architectural surface area needs a shorter leash, not a longer one, because the cost of an hour spent diverging on the wrong approach is much higher than the cost of an hour spent on a contained fix that's easy to throw away.
+
+Decide the autonomy budget when the task starts, not while it's running. Minutes for a narrow, low-risk change. A scheduled check-in partway through for anything with real design surface. A hard stop and human review before anything touches auth, billing, or a data migration, regardless of how long it's been running or how confident the output looks. Deciding this upfront removes the worst version of the decision, made mid-run, by someone who's already read enough of the output to feel invested in seeing where it goes.
+
+## Decide kill criteria before you're invested
+
+The hardest moment in any agent-heavy workflow is the one where a task has clearly gone sideways, but stopping it means throwing away work that already exists and looks almost right. That's a sunk-cost trap, and it's worse with agents than with people, because agent output arrives fast enough that a lot of a work day can disappear into a task nobody decided to kill in time.
+
+The fix is the same one good incident response uses: decide the criteria before the situation, not during it. What does "clearly off track" look like for this specific task, a wrong file touched, a pattern that doesn't match the rest of the codebase, a test the agent quietly rewrote instead of fixing the code to pass it. Write that down at kickoff, next to the definition of done, so the decision to stop is a checklist item instead of a judgment call made under the pull of work that's already 80% written.
+
+## Track verification hours, not agents launched
+
+Throughput metrics get worse, not better, once agents are in the picture, because agents launched and PRs merged both go up regardless of whether anyone actually verified what shipped. Neither number tells you whether the team is keeping up or quietly falling behind on the part of the job that actually determines whether the output is safe to trust.
+
+Track verification hours per engineer instead, and watch it against the number of agent tasks in flight. If verification hours are climbing while WIP stays flat, that's a sign the work is getting harder to check, not that the team needs to slow down agents across the board. If WIP is climbing faster than verification hours can plausibly keep pace with, that's the queue LinearB's data describes, forming in real time, on your own team, before it shows up as a missed deadline or a bug that made it past review because nobody had time to look closely.
+
+## The actual shift
+
+None of this is really about agents. It's the same capacity planning discipline that's always applied to a team doing more work than its review process can absorb, just applied to a resource that produces output faster than any previous version of the problem did. Agents didn't create the need for WIP limits, checkable scope, and honest capacity tracking. They just made it obvious how much teams had been getting away with skipping those, back when the work in flight moved slowly enough to hide it.
