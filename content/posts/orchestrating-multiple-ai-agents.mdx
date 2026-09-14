@@ -1,0 +1,63 @@
+---
+title: How to Orchestrate Multiple AI Coding Agents Without Losing Architectural Control
+dek: A framework for staff engineers directing several agents at once, not just reviewing what one of them wrote.
+date: '2026-09-11'
+topics:
+  - staff-engineering
+  - ai
+shortAnswer: Running several AI agents in parallel breaks the single-PR review habit built for one agent at a time. The fix is treating orchestration as its own skill, decompose the problem before delegating, give each agent an owned slice of the codebase, define one integration checkpoint, and track coordination overhead so directing agents doesn't cost more than doing the work.
+takeaways:
+  - Decompose the problem yourself before assigning it to agents. An agent asked to split its own work divides along file boundaries or naming similarity, not along the seams your architecture actually has.
+  - Anthropic's own 2026 agentic coding report calls this the delegation gap, developers use AI in roughly 60% of their work but can fully delegate only 0-20% of tasks. Running more agents in parallel doesn't close that gap, it just spreads the remaining judgment across more places at once.
+  - Give each agent a slice of the codebase it owns outright. Shared interfaces get frozen before any agent starts, not discovered as a merge conflict once two agents finish.
+  - Define one integration checkpoint where a human reviews how the pieces fit together, not four separate approvals for four isolated diffs that each pass their own tests.
+  - Track coordination time the same way you'd track review time. If directing three agents costs more wall-clock time than running one agent through the same work serially, the parallelism isn't paying for itself yet.
+faq:
+  - question: How do you manage multiple AI coding agents working on the same feature?
+    answer: Decompose the feature into ownership boundaries yourself, the way you would when splitting work across a team of engineers, before assigning any piece to an agent. Freeze shared interfaces first, give each agent a slice of the codebase it won't have to share mid-task, and review the assembled result at one integration checkpoint rather than approving each agent's diff in isolation.
+  - question: What is the delegation gap in AI-assisted software engineering?
+    answer: It's the gap between how much of their work engineers run through AI, roughly 60% according to Anthropic's 2026 agentic coding report, and how much they can actually delegate without close supervision, only 0-20% of tasks. Coordinating multiple agents doesn't shrink that gap, it just multiplies how many places the remaining judgment has to show up.
+  - question: When should you use a single AI agent instead of running several in parallel?
+    answer: When the task is tightly coupled enough that a real ownership boundary doesn't exist, a bug fix touching one function, a change to a single service, anything where two agents would end up needing the same shared state. If coordination overhead ever exceeds the time one agent would have taken working serially, collapse back to one.
+needsRewrite: false
+---
+
+Six months ago, the interesting problem was reviewing a pull request one agent wrote. That's still worth doing well. But teams running more than one agent at a time have already moved past it, into a harder problem: directing three or four agents working in parallel on pieces of the same feature, without the whole thing turning into a merge-conflict factory nobody signed up for.
+
+That's orchestration, and it's a different skill than review. Review asks whether a finished diff is any good. Orchestration asks how the work got split in the first place, who owns what while it's still in progress, and where a human actually needs to look before the pieces get stitched back together.
+
+Anthropic's own [2026 Agentic Coding Trends Report](https://resources.anthropic.com/2026-agentic-coding-trends-report) names this exact problem the delegation gap: developers now run AI through roughly 60% of their work, but can fully delegate only 0 to 20% of tasks without close supervision. Running more agents in parallel doesn't close that gap. It just spreads the remaining 40 to 100% of judgment across more places at once, and if nobody's tracking where those places are, the judgment quietly stops happening.
+
+## Decompose the problem yourself
+
+The instinct is to hand an agent an ambiguous feature request and ask it to split the work across two or three sub-agents. That produces splits that look reasonable and aren't. An agent divides work along file boundaries or naming similarity, not along the seams your architecture actually has, because it has no view of the seams that matter until you give it one.
+
+Do the decomposition first, as a human, the same way you'd break work into tickets for a team of engineers. Ask which module boundaries already exist, which pieces can be built and tested independently, and which piece is genuinely shared state that shouldn't be split at all. If you can't describe the boundary between two agents' work in a single sentence, they don't have a real boundary yet. They have a raffle for which one edits a given file first.
+
+## Give each agent a slice it actually owns
+
+Two agents touching the same file at the same time produce the same conflict two engineers would, except neither one can look up from its editor and ask whether the other is also in `orderService.ts` right now. The conflict just shows up later, fully formed, once both have already finished.
+
+Assign each agent a set of files or a directory it can work in without another agent's changes landing on top of it mid-task. Shared interfaces, a type definition, a utility function, an API contract, get decided and frozen before any agent starts, not discovered as a merge conflict after two agents have already built against different assumptions about the same shape.
+
+## One integration checkpoint, not four green checkmarks
+
+Four agents whose output each passes its own tests doesn't mean the feature works. It means four isolated pieces pass isolated tests. Whether they compose into the thing you actually asked for is a separate question, and it's not one CI answers for you.
+
+Define a single point where a human reviews the assembled result before it ships, rather than four separate approvals for four separate diffs. That checkpoint is where the actual risk lives: does the data shape one agent produced match what another agent consumed, does error handling agree across the pieces, does the whole thing behave like one coherent feature instead of four agents' best individual guesses at one.
+
+## Track coordination overhead like a budget
+
+Orchestrating agents costs real time: writing clear boundaries, checking in on progress, resolving the disagreement that shows up when two agents made different assumptions about a shared piece. That cost is easy to undercount, because none of it looks like writing code, so it doesn't show up on the burndown chart the way "in progress" does.
+
+If directing three agents through a feature takes longer, wall-clock, than one agent working through the same feature single-threaded would have, the parallelism isn't paying for itself yet. Track hours spent coordinating the same way you'd track review time creeping past what it used to cost. A number that keeps climbing is a process problem worth fixing, not a reason to add a fourth agent to the mix.
+
+## Know when to collapse back to one agent
+
+Not every task benefits from splitting across agents. A tightly coupled change to a single service, a bug fix that touches one function, anything where the shared-state problem above can't actually be avoided, these are all cheaper single-threaded, and pretending otherwise just manufactures coordination work that wasn't necessary.
+
+A few signs it's time to collapse back to one: coordination overhead exceeding the time the split was supposed to save, agents repeatedly stepping on the same files despite an assigned boundary, or a review that spends more effort reconciling three different approaches than reviewing one coherent diff would have taken in the first place.
+
+## The skill that actually scales
+
+Running more agents at once isn't the skill. Deciding, correctly and early, whether a piece of work is genuinely parallelizable, and holding the architectural line while agents fill in what you've already decided, is. That's project management applied to a team that never gets tired and never pushes back on an unrealistic split, which means all of the judgment about scope, boundaries, and correctness stays exactly where it has to: with the person doing the orchestrating, not the agents being orchestrated.
