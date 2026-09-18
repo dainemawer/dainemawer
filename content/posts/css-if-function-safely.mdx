@@ -1,0 +1,140 @@
+---
+title: Using CSS's New if() Function Without Breaking Safari and Firefox
+dek: One inline conditional to replace three separate at-rules, once the rest of the web catches up.
+date: '2026-09-18'
+topics:
+  - css
+shortAnswer: "CSS's if() function picks a property's value based on a media, feature, or style condition, replacing separate @media, @supports, and container style query blocks with one inline declaration. It shipped in Chrome 137, but Firefox and Safari don't support it yet, so ship it as a second declaration after a plain fallback, not a replacement for one."
+takeaways:
+  - "if() takes condition-value pairs, media(), style(), or supports(), plus an else, and resolves them inside a single property declaration instead of a separate at-rule block."
+  - "It shipped in Chrome 137 in 2026. Firefox support is still in progress and Safari has it slated for 2026-2027, so it isn't Baseline yet."
+  - "Because an unsupported value just fails to parse, the safe pattern is a plain fallback declaration first and the if() version second on its own line, not necessarily wrapped in @supports."
+  - "style() reads a custom property's computed value, which gets you container-style-query-style logic without nesting a separate @container block."
+  - "Treat it like any experimental CSS feature: genuinely useful today on Chromium-only internal tools, progressive enhancement everywhere else."
+faq:
+  - question: What does the CSS if() function do?
+    answer: It lets a single property pick its own value based on a condition, a media query, a feature check, or a container style query, evaluated inline instead of duplicated across separate @media, @supports, or @container blocks. The syntax is condition-value pairs separated by semicolons, with an optional else at the end.
+  - question: Does CSS if() work in Safari and Firefox?
+    answer: 'Not yet, as of September 2026. It shipped in Chrome 137 and works in Edge and Opera too, since they share the Chromium engine, but Firefox support is still in progress and Safari has it on its roadmap for 2026-2027. MDN marks it as limited availability, not Baseline.'
+  - question: How do you use if() safely without breaking older browsers?
+    answer: Write the plain, static value as a normal declaration first, then add the if() version as a second declaration for the same property directly underneath it. Browsers that don't understand if() ignore that line and keep the first value, which is the same fallback pattern CSS has always used for progressively enhanced values.
+needsRewrite: false
+---
+
+CSS has had conditional logic for a while now: `@media` for viewport conditions, `@supports` for feature checks, `@container` for context based on an ancestor. Each one works, and each one asks you to write a separate block, usually with the same selector repeated, just to change one value.
+
+`if()` collapses that pattern into a single declaration. It shipped in Chrome 137 in 2026, and it's worth understanding now, both because it changes how you'll write conditional CSS once it's everywhere, and because it's genuinely usable today if you know where the edges are.
+
+## What if() actually does
+
+The syntax is a list of condition-value pairs, separated by semicolons, evaluated in order, with an optional `else` at the end:
+
+```css
+.button {
+  padding: if(media(width > 700px): 1rem 1.5rem; else: 0.75rem 1rem);
+}
+```
+
+The first condition that evaluates to true wins. If nothing matches and there's no `else`, the property behaves as though it was never set, falling through to whatever the cascade would otherwise apply.
+
+That's the whole model. What makes it useful is what counts as a condition.
+
+## Three condition types, one function
+
+`if()` accepts three kinds of tests, and you can mix them in the same declaration.
+
+**`media()`** checks a media feature, the same conditions `@media` accepts, just written inline:
+
+```css
+.hero-title {
+  font-size: if(media(width > 1024px): 3rem; else: 2rem);
+}
+```
+
+**`supports()`** checks feature support, the same thing `@supports` does, but scoped to one value instead of a whole rule:
+
+```css
+.layout {
+  display: if(supports(display: grid): grid; else: flex);
+}
+```
+
+**`style()`** checks the computed value of a custom property, which is the part that used to require a container style query and a separate block:
+
+```css
+.card {
+  padding: if(style(--density: compact): 0.75rem; else: 1.25rem);
+}
+```
+
+Set `--density: compact` anywhere up the cascade, on the element itself, a parent, a data attribute selector, and every property using that `style()` check picks it up. No `@container` wrapper, no naming a containment context, no duplicated selector.
+
+## What it actually replaces
+
+What matters is the collapsing, not the syntax on its own. Here's the same responsive padding rule, before and after.
+
+Before, with a duplicated selector:
+
+```css
+.button {
+  padding: 0.75rem 1rem;
+}
+
+@media (width > 700px) {
+  .button {
+    padding: 1rem 1.5rem;
+  }
+}
+```
+
+After, as one declaration:
+
+```css
+.button {
+  padding: if(media(width > 700px): 1rem 1.5rem; else: 0.75rem 1rem);
+}
+```
+
+Same result, no repeated selector, and the condition sits next to the value it controls instead of in a separate block somewhere else in the file. That's a small readability win on one property. On a component with five or six conditional values across breakpoints, states, and containers, it stops being small. You stop hunting through `@media` and `@container` blocks trying to reconstruct what a single element actually renders at a given width.
+
+## Browser support today
+
+This is the part that matters before you touch it in production. As of September 2026, `if()` works in Chrome 137 and up, along with Edge and Opera, since all three share the Chromium engine. Firefox support is still in progress, and Safari has it listed on its roadmap for 2026-2027, not shipped. MDN currently marks `if()` as limited availability rather than Baseline, which means the usual rule applies: don't ship it as your only source of a value unless your audience is genuinely Chromium-only, an internal tool or an Electron app, for instance.
+
+The [State of CSS 2026](https://2026.stateofcss.com/en-US) developer survey found `if()` among the least-used features respondents reported, and browser support gaps around `if()` and the related `@function` mixins proposal came up repeatedly as the reason. That tracks. A feature that only works in one engine family isn't something most teams reach for on customer-facing work yet, whatever the syntax looks like.
+
+## Shipping it safely today
+
+The good news is that CSS has handled this exact situation forever: a browser that doesn't recognize a value just discards that one declaration and moves on. You don't need a `@supports` wrapper around the whole rule to use `if()` safely. Write the plain value first, then the conditional version as a second declaration for the same property:
+
+```css
+.card {
+  padding: 1.25rem;
+  padding: if(style(--density: compact): 0.75rem; else: 1.25rem);
+}
+```
+
+A browser without `if()` support parses the first line, fails to parse the second one because it doesn't recognize the function, and keeps the first value. A browser with support parses both and the second declaration, being later in the cascade, wins. No feature query needed, no branching stylesheet, just the same fallback-then-enhancement order you'd use for any newer CSS value.
+
+If you do want to gate a larger block of styles on `if()` support specifically, rather than fall back one property at a time, `@supports` still works for that:
+
+```css
+@supports (padding: if(style(--density: compact): 1rem; else: 1rem)) {
+  /* if()-dependent styles that need more than one property to make sense together */
+}
+```
+
+Reach for that version when several related properties only make sense as a set. For a single value, the two-declaration pattern above is simpler and doesn't need a nested block at all.
+
+## Where this is heading
+
+`if()` is part of a bigger CSS Working Group effort to bring conditional logic and reusable logic natively into stylesheets, alongside the related mixins and custom functions proposal. None of it replaces a preprocessor's full feature set yet, but it closes a real gap: today, expressing "this value depends on that condition" usually means either a duplicated `@media` block or reaching for JavaScript to toggle a class. `if()` makes that a one-line answer, once the browsers you actually need to support catch up.
+
+Until then, treat it the way you'd treat any Chromium-first feature: real value on Chromium-only surfaces now, a fallback-first pattern everywhere your audience includes Safari or Firefox users, which for most public sites is still most of your traffic.
+
+## Further reading
+
+- [MDN: if() CSS function](https://developer.mozilla.org/en-US/docs/Web/CSS/if)
+- [Chrome for Developers: CSS conditionals with the new if() function](https://developer.chrome.com/blog/if-article)
+- [Can I Use: CSS if() function](https://caniuse.com/css-if)
+- [State of CSS 2026](https://2026.stateofcss.com/en-US)
