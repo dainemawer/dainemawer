@@ -43,6 +43,7 @@ export const footerNav = [
   {
     heading: "Machine",
     links: [
+      { label: "Agents", href: "/agents" },
       { label: "llms.txt", href: "/llms.txt" },
       { label: "Uses", href: "/uses" },
       { label: "Now", href: "/now" },

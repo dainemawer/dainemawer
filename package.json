@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "biome check",
     "lint:mdx": "remark content/posts --quiet --frail",
+    "test": "tsx --test 'tests/*.test.ts'",
     "format": "biome format --write",
     "prepare": "lefthook install"
   },
@@ -44,6 +45,7 @@
     "remark-preset-lint-consistent": "^6.0.1",
     "remark-preset-lint-recommended": "^7.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.14",
     "typescript": "^5"
   }
 }

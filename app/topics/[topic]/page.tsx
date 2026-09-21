@@ -22,7 +22,10 @@ export async function generateMetadata(
   return {
     title: `${topic.name} articles`,
     description: topic.dek,
-    alternates: { canonical: `/topics/${slug}` },
+    alternates: {
+      canonical: `/topics/${slug}`,
+      types: { "text/markdown": `/topics/${slug}.md` },
+    },
   };
 }
 

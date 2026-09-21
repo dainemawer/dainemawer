@@ -30,3 +30,6 @@ jobs:
 
       - name: Lint MDX
         run: pnpm lint:mdx
+
+      - name: Test
+        run: pnpm test

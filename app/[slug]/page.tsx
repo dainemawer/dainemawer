@@ -46,6 +46,19 @@ export async function generateMetadata(
       canonical: `/${slug}`,
       types: { "text/markdown": `/${slug}.md` },
     },
+    // Overrides the site-wide `type: "website"` from app/layout.tsx.
+    // og:title/og:description/og:image are still filled in from the
+    // fields above and the opengraph-image convention.
+    openGraph: {
+      type: "article",
+      url: `${site.url}/${slug}`,
+      siteName: site.name,
+      locale: "en_US",
+      publishedTime: post.date,
+      modifiedTime: post.updated ?? post.date,
+      authors: [site.url],
+      tags: post.topics,
+    },
   };
 }
 

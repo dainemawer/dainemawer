@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   title: "Now",
   description:
     "What has my attention this month, kept honest by a visible date.",
-  alternates: { canonical: "/now" },
+  alternates: {
+    canonical: "/now",
+    types: { "text/markdown": "/now.md" },
+  },
 };
 
 export default function NowPage() {

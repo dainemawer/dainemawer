@@ -8,7 +8,10 @@ import { usesReviewedOn, usesSections } from "@/lib/uses";
 export const metadata: Metadata = {
   title: "Uses",
   description: "The hardware and software I actually open every day, and why.",
-  alternates: { canonical: "/uses" },
+  alternates: {
+    canonical: "/uses",
+    types: { "text/markdown": "/uses.md" },
+  },
 };
 
 export default function UsesPage() {

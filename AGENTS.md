@@ -11,7 +11,20 @@ This project uses **pnpm** exclusively. Do not use `npm` or `yarn` — there is 
 - `pnpm build` — production build
 - `pnpm lint` — run Biome checks (code files only — see `.remarkrc.mjs` for MDX prose)
 - `pnpm lint:mdx` — lint `content/posts/*.mdx` prose with remark (headings, lists, links)
+- `pnpm test` — run the unit tests in `tests/` (`node --test` via `tsx`, no other runner)
 - `pnpm format` — apply Biome formatting
+
+## Markdown content negotiation
+
+Every page is served as HTML or Markdown from the same canonical URL, per [acceptmarkdown.com](https://acceptmarkdown.com). The moving parts:
+
+- `lib/content-negotiation.ts` — `Accept` parsing (q-values, specificity, `q=0`), `Vary` merging, path mapping. Pure, and unit-tested.
+- `proxy.ts` — rewrites a page request to its Markdown twin when `text/markdown` wins, returns 406 when the client accepts neither, and passes RSC/Server Function traffic through untouched.
+- `app/md/[[...path]]/route.ts` — the single Markdown handler, reached three ways: the negotiation rewrite, the public `/:slug.md` rewrites in `next.config.ts`, and directly.
+- `lib/markdown-pages.ts` — builds the Markdown for every route, including the 404 body.
+- `lib/agents.ts` — the when-to-use guidance and endpoint list shared by `/agents`, `/agents.md` and `llms.txt`.
+
+Adding a page means adding it to `lib/markdown-pages.ts` (and `app/sitemap.ts`), or agents get the 404 document for it.
 
 ## Commits
 
