@@ -1,0 +1,108 @@
+---
+title: CSS Can Finally Replace Your Tooltip and Dropdown Libraries
+dek: Anchor positioning and customizable selects both have real browser support now. Here's what to drop, what to keep, and where the gaps still bite.
+date: '2026-09-16'
+topics:
+  - css
+  - javascript
+shortAnswer: CSS anchor positioning (Chrome 125+, Safari 26+, Firefox 145 behind a flag) and appearance base-select (Chrome 135+, Safari 27+) now let native CSS handle floating tooltips and styled dropdowns without a JS library. Both degrade gracefully behind @supports, so you can adopt them now for new components and drop the library once support catches up.
+takeaways:
+  - "CSS anchor positioning ties one element's position to another with `anchor-name`, `position-anchor`, and `anchor()`, the exact job Popper.js, Floating UI, and Tippy.js exist to do."
+  - It shipped in Chrome 125 and reached Baseline Newly Available in January 2025. Safari added support in version 26, and Firefox shipped it behind a flag in version 145, so it isn't Baseline Newly Available across all three engines yet.
+  - "`appearance: base-select` unlocks full CSS styling of a real `<select>`, keeping the native keyboard handling and screen-reader semantics that a hand-rolled listbox has to rebuild from scratch."
+  - Chrome 135 and Safari 27 support base-select. Firefox doesn't yet, and it simply ignores the property, so an @supports-wrapped implementation degrades to a normal, working select with zero breakage.
+  - Ship both behind @supports as progressive enhancement now rather than waiting for three-engine parity, and delete the JS dependency once the remaining gaps close.
+faq:
+  - question: Can CSS anchor positioning replace Popper.js or Floating UI?
+    answer: For a growing share of cases, yes. Anchor positioning handles tethering a tooltip or popover to a trigger element and flipping its side when it would overflow the viewport, which is most of what those libraries are used for. It doesn't yet match every collision-detection edge case a mature JS library handles, so complex cases (nested scroll containers, virtualized lists) may still need the library until Firefox support matures past a flag.
+  - question: "Does appearance: base-select work in Firefox?"
+    answer: "Not yet, as of September 2026. Firefox ignores the property and keeps rendering its native, unstyled select popup. Because the behavior is a graceful no-op rather than an error, wrapping styles in an @supports (appearance: base-select) block lets you ship the feature today without breaking the Firefox experience."
+  - question: Is CSS anchor positioning ready for production in 2026?
+    answer: For Chrome and Safari, yes. Firefox only supports it behind a flag as of version 145, so production use still needs an @supports fallback or a lightweight polyfill for that browser. Treat it as safe to adopt for new components now, not something to retrofit across an entire design system in one pass.
+  - question: "What is appearance: base-select in CSS?"
+    answer: "A value that opts a native <select> and its dropdown popup into a fully stylable mode, replacing the closed, browser-drawn control with one you can target using ordinary CSS selectors and pseudo-elements like ::picker(select). It's shipped in Chrome 135 and Safari 27; Firefox support isn't out yet."
+needsRewrite: false
+---
+
+For years, two of the most common UI patterns on the web, a tooltip that stays attached to its trigger and a select dropdown you can actually style, have both needed a JavaScript library to do properly. Popper.js, Floating UI, and Tippy.js exist because CSS had no concept of "position this relative to that other element, and flip sides if it would overflow." Custom select components like react-select exist because the native `<select>` popup has always been a black box no stylesheet can touch.
+
+Both gaps are closing. CSS anchor positioning and `appearance: base-select` now ship in real browsers, not experimental flags in one engine. Neither has full three-way parity yet, but both are far enough along to change what you reach for on the next component you build.
+
+## Anchor positioning: tethering without a library
+
+CSS anchor positioning lets you tie one element's position to another using three pieces: `anchor-name` on the element being anchored to, `position-anchor` on the element being positioned, and the `anchor()` function inside its `top`/`left`/`right`/`bottom` values.
+
+```css
+.trigger {
+  anchor-name: --tooltip-trigger;
+}
+
+.tooltip {
+  position: absolute;
+  position-anchor: --tooltip-trigger;
+  top: anchor(bottom);
+  left: anchor(left);
+}
+```
+
+That's the whole job Popper.js was built to do: compute a floating element's position relative to a reference element, expressed as three CSS declarations instead of a runtime library recalculating on every scroll and resize event. `@position-try` goes further, letting you define fallback positions the browser switches to automatically when the default would overflow the viewport, the flipping behavior that made Floating UI's `autoUpdate` necessary in the first place.
+
+The browser support picture, per [Chrome for Developers](https://developer.chrome.com/blog/anchor-positioning-api) and [OddBird's ongoing anchor positioning coverage](https://www.oddbird.net/2025/10/13/anchor-position-area-update/), looks like this: Chrome shipped it in version 125 and it reached Baseline Newly Available in January 2025. Safari added support in version 26. Firefox shipped an implementation behind a flag in version 145, which means it isn't Baseline Newly Available across all three engines yet, only in the two that ship it unflagged.
+
+That's close enough to use, not close enough to rip out a mature tooltip library across an entire app in one pass. The realistic move: reach for anchor positioning on new floating UI, wrapped in an `@supports` check, and keep the JS library only where you already depend on it for edge cases anchor positioning doesn't cover yet, like elements inside a virtualized list or a deeply nested scroll container.
+
+```css
+.tooltip {
+  display: none;
+}
+
+@supports (anchor-name: --x) {
+  .tooltip {
+    display: block;
+    position: absolute;
+    position-anchor: --tooltip-trigger;
+    top: anchor(bottom);
+    left: anchor(left);
+  }
+}
+```
+
+Anchor positioning is also one of the named focus areas in [Interop 2025](https://web.dev/blog/whats-new-in-web-io2025), the annual cross-browser effort Chrome, Firefox, and Safari's engineering teams use to close exactly these kinds of gaps. That's a reasonable signal that the remaining Firefox flag is a matter of time, not a stalled proposal.
+
+## Customizable selects: styling what used to be a black box
+
+The second gap is the `<select>` element. Its trigger has always taken CSS fine. Its popup, the actual list of options, has never been reachable by a stylesheet, which is why teams have spent a decade reaching for `react-select`, `downshift`, or a hand-rolled combobox any time a design called for anything beyond the browser default.
+
+`appearance: base-select` changes that:
+
+```css
+select,
+::picker(select) {
+  appearance: base-select;
+}
+
+::picker(select) {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+select option:checked::before {
+  content: '✓';
+}
+```
+
+Setting `appearance: base-select` on both the `<select>` and its `::picker(select)` pseudo-element opts the control into a fully stylable mode. The element is still a real `<select>`, which matters more than it sounds: keyboard navigation, type-ahead, focus management, and the accessibility tree all keep working the way a native form control's are expected to, none of it needs reimplementing the way it does in a from-scratch listbox component.
+
+Per [Chrome for Developers' announcement post](https://developer.chrome.com/blog/a-customizable-select) and its [follow-up findings from developer feedback](https://developer.chrome.com/blog/rfc-customizable-select-findings), the feature is available starting in Chrome 135 and Safari 27. Firefox doesn't support it yet, but it fails safe: an unsupported browser just ignores the `appearance` value and renders the ordinary native select, unstyled but fully functional. That makes it one of the lowest-risk progressive enhancements available right now, closer in spirit to a CSS fallback than a feature you need a JS shim to polyfill.
+
+What matters more than the styling freedom is what you don't have to rebuild. A hand-rolled combobox has to reimplement arrow-key navigation, type-ahead-to-jump, `aria-activedescendant` wiring, and the focus behavior a screen reader expects from a listbox, and it's easy to get subtly wrong in ways that don't show up until an accessibility audit. A `<select>` styled with `base-select` is still the same element under the hood, so none of that behavior needs rebuilding or re-testing. You're styling a native control, not a `<div>` dressed up to look like one.
+
+## How to actually adopt these
+
+The mistake to avoid is waiting for full three-engine support before touching either feature, or the opposite mistake of ripping out a working library across an entire codebase before the gaps close. Neither serves a team well.
+
+Gate both behind `@supports`. `@supports (anchor-name: --x)` and `@supports (appearance: base-select)` ship the CSS-native version to browsers that support it and fall back cleanly everywhere else, with no user-agent sniffing required. Start with new components rather than retrofits: a new tooltip or a new filter dropdown is a much safer place to try anchor positioning or base-select than reworking an existing, load-bearing component library in one migration.
+
+Keep the JS library where it's actually earning its place. Complex collision detection, virtualized-list anchoring, and multi-select comboboxes with custom filtering logic are still legitimately harder in pure CSS today, so don't delete a dependency you still need just because a newer primitive exists. And track the Firefox gap rather than the calendar. Firefox 145 shipping anchor positioning behind a flag is the signal to watch, not a fixed date. Once it ships unflagged and base-select lands in Firefox too, the remaining case for the JS dependency in most apps disappears.
+
+Neither feature is a wholesale replacement yet. Both are further along than most teams have noticed, and the components built today are exactly the ones that'll benefit from being written the native way from the start, instead of migrated off a library later.
