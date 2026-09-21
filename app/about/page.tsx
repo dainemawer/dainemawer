@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "Work history, speaking, and how to verify who's actually writing this.",
-  alternates: { canonical: "/about" },
+  alternates: {
+    canonical: "/about",
+    types: { "text/markdown": "/about.md" },
+  },
 };
 
 export default function AboutPage() {

@@ -85,6 +85,11 @@ const nextConfig: NextConfig = {
         source: "/:slug.md",
         destination: "/md/:slug",
       },
+      {
+        // Same reasoning one level down, for the topic indexes.
+        source: "/topics/:topic.md",
+        destination: "/md/topics/:topic",
+      },
     ];
   },
   async redirects() {

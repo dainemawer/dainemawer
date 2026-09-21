@@ -23,7 +23,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: "/*.md",
+        // /md/* is the internal handler the /*.md twins (and the
+        // Accept: text/markdown rewrites in proxy.ts) resolve to —
+        // same duplicate-content reasoning as the .md URLs themselves.
+        disallow: ["/*.md", "/md/"],
         other: {
           // https://contentsignals.org — search=yes keeps normal indexing
           // on; ai-input=yes permits RAG/grounding use (the point of

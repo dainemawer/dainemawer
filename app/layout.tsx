@@ -32,7 +32,20 @@ export const metadata: Metadata = {
     "Frontend engineering, web performance, JavaScript, CSS, and engineering management, written by Daine Mawer.",
   alternates: {
     canonical: "/",
-    types: { "application/rss+xml": `${site.url}/rss.xml` },
+    types: {
+      "application/rss+xml": `${site.url}/rss.xml`,
+      "text/markdown": `${site.url}/index.md`,
+    },
+  },
+  // og:title, og:description and og:image are filled in per-page by
+  // Next (from `title`/`description` and the opengraph-image convention);
+  // og:type and og:locale have no such fallback, so they're declared
+  // here and inherited by every page that doesn't set its own openGraph.
+  openGraph: {
+    type: "website",
+    url: site.url,
+    siteName: site.name,
+    locale: "en_US",
   },
 };
 
