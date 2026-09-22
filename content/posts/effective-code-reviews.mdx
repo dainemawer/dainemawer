@@ -31,7 +31,7 @@ None of that is inevitable. Here are ten things that actually help.
 
 A common misconception is that a feature only needs reviewing once, right at the end. That's a bit like arriving somewhere with no idea how you got there. Constant review of the same code isn't efficient, but staying close to a feature as it develops is.
 
-Check in at 25% and 75% complete, for example. That gives room to course-correct early, and it helps you understand what the engineer is actually trying to build, not just what they eventually submit. Junior engineers especially tend to appreciate it: it feels like building the feature together rather than being graded on it at the end.
+Check in at 25% and 75% complete, for example. That gives room to course-correct early, and it helps you understand what the engineer is actually trying to build, not just what they eventually submit. Junior engineers especially tend to appreciate it: it feels like building the feature together rather than being graded on it at the end. That matters more now that [the easy tickets juniors used to learn on are largely automated](/keeping-the-junior-pipeline-alive).
 
 A quick look at a draft PR at each checkpoint is usually enough. Save the deep review for when the engineer considers the feature done.
 
@@ -69,13 +69,13 @@ Asking a question instead of pointing out a mistake disarms a review almost inst
 - "Why is this a string here but an array over there?"
 - "What's this variable actually for?"
 
-It also puts the reviewee in the position of explaining their own logic, which tends to build confidence rather than dent it, and it usually gets you a clearer picture of what they were going for.
+It also puts the reviewee in the position of explaining their own logic, which tends to build confidence rather than dent it, and it usually gets you a clearer picture of what they were going for. That second question is worth asking often, since [returning the wrong data type](/using-the-return-statement) is the kind of bug that runs without erroring.
 
 ## Automate what you can
 
 Don't spend review time calling out things a linter would already catch, especially if the tooling exists and just isn't wired in yet.
 
-GitHub Actions can run these checks automatically on push or PR. Husky or lint-staged narrow that further, running lint scripts only against changed files. Between the two, most styling issues and careless mistakes never need a human eye at all.
+GitHub Actions can run these checks automatically on push or PR. Husky or lint-staged narrow that further, running lint scripts only against changed files, and [CommitLint does the same job for commit messages](/leveraging-commitlint). Between the two, most styling issues and careless mistakes never need a human eye at all.
 
 Worth automating specifically: CSS and JS code style, framework conventions, unit tests, and performance or end-to-end tests. Automated tools won't catch everything, but they'll catch most of what wastes a reviewer's time.
 
@@ -128,4 +128,4 @@ Kept up consistently, this becomes a useful record over time, especially when tr
 
 ## Bringing it together
 
-Getting good at code review takes time for senior and junior engineers alike. Done well, it changes how a team ships, not just how clean the code looks. Open communication, feedback aimed at the code rather than the person, review that goes beyond the diff, and automation for everything that doesn't need a human, that's most of it.
+Getting good at code review takes time for senior and junior engineers alike. Done well, it changes how a team ships, not just how clean the code looks. Open communication, feedback aimed at the code rather than the person, review that goes beyond the diff, and automation for everything that doesn't need a human, that's most of it. All of it still applies when [the author of the diff is an agent rather than a person](/reviewing-ai-generated-code), with one addition: you also have to ask whether the change should exist at all.

@@ -64,13 +64,13 @@ The vendors Baseline considers:
 
 The biggest win for teams is cutting out the guesswork before adopting a new feature. Say a frontend engineer wants to use CSS Grid's [subgrid](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Subgrid) feature. Baseline gives a fast, confident answer on support instead of a research task.
 
-Subgrid lets you define a grid inside a grid for finer layout control. [caniuse.com](http://caniuse.com) puts global usage at **87.42%**, which sounds decent, but doesn't tell you which vendors support it, partially support it, or don't. That's where Baseline fills the gap: caniuse now shows a Baseline badge marking subgrid as "newly available across major browsers." MDN's subgrid docs carry the same badge, and the [web.dev writeup](https://web.dev/blog/baseline2023) confirms it landed in Baseline in 2023. Three sources, one consistent answer.
+Subgrid lets you define a grid inside a grid for finer layout control. [caniuse.com](http://caniuse.com) puts global usage at **87.42%**, which sounds decent, but doesn't tell you which vendors support it, partially support it, or don't. That's where Baseline fills the gap: caniuse now shows a Baseline badge marking subgrid as "newly available across major browsers." MDN's subgrid docs carry the same badge, and the [web.dev writeup](https://web.dev/blog/baseline2023) confirms it landed in Baseline in 2023. Three sources, one consistent answer. The same check is what decides whether [anchor positioning is safe to ship without a JavaScript fallback](/css-anchor-positioning-customizable-select) on a given project.
 
 ## A word on evergreen browsers
 
 This doesn't get talked about enough. For most users, manually updating a browser is a thing of the past. Chrome, Firefox, and Edge auto-update. Safari is the outlier, still requiring a manual update or an annual OS upgrade.
 
-Even so, more users than ever are running the latest browser version. Graceful degradation still matters, but it's less of a hard requirement now and more of an extra layer of safety.
+Even so, more users than ever are running the latest browser version. Graceful degradation still matters, but it's less of a hard requirement now and more of an extra layer of safety. It matters most for anything Chromium ships first, where Baseline status is the thing holding you back: [the `if()` function is the current example](/css-if-function-safely).
 
 ## Useful links
 

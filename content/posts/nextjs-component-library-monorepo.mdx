@@ -26,7 +26,7 @@ I've worked with monorepos in production for over a year now, and I'll say this 
 
 NPM has supported workspaces (v7 and above) for a while now, which gets you most of the way to a proper monorepo structure.
 
-I recently built a component suite for a Next.js project. The goal: develop components actively with Storybook, and have my Next.js projects consume them directly, the same way I'd import any third-party library. Next.js has always supported a `components` folder, but it's scoped to the app itself. A monorepo lets you treat your component library as its own real package instead.
+I recently built a component suite for a Next.js project. The goal: develop components actively with Storybook, and have my Next.js projects consume them directly, the same way I'd import any third-party library. Next.js has always supported a `components` folder, but it's scoped to the app itself. A monorepo lets you treat your component library as its own real package instead. It's the point at which [a project's file architecture](/frontend-file-architectures) stops being a folder question and starts being a packaging one.
 
 ## Set up the project structure
 
@@ -92,7 +92,7 @@ Repeat this for whatever `packages/component-library` needs too.
 
 ## Set up components and Storybook
 
-This isn't a full Storybook setup tutorial, just enough to prove the monorepo wiring works. Since Storybook isn't a dependency of either workspace, install it at the monorepo root:
+This isn't a full Storybook setup tutorial, just enough to prove the monorepo wiring works; [addons, docs, and visual regression testing with Chromatic](/react-scalability-storybook) are a longer story on their own. Since Storybook isn't a dependency of either workspace, install it at the monorepo root:
 
 ```bash
 npm install --save-dev @storybook/react @storybook/manager-webpack5 @storybook/builder-webpack5 @storybook/addon-postcss
@@ -231,4 +231,4 @@ Without a shortcut, running a build means `cd`-ing into every project or package
 
 A monorepo structure built on NPM workspaces, a component library and a production site sharing it through Storybook and Next.js, scripts that make the whole thing manageable from the root, and every dependency managed in one place instead of juggling submodules.
 
-From here, adding another site, extending the component library, or bringing in packages for CMS integrations or API support is all straightforward. The structure scales with however far you want to take it.
+From here, adding another site, extending the component library, or bringing in packages for CMS integrations or API support is all straightforward. The structure scales with however far you want to take it. One thing worth checking before a toolchain upgrade lands on a setup like this: [monorepo tooling has its own TypeScript 7 compatibility story](/typescript-7-native-compiler-migration), separate from the compiler's.

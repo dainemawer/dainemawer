@@ -36,7 +36,7 @@ The word "spec" gets overloaded fast, so it's worth being specific about what ma
 - What is explicitly out of scope, so an agent doesn't "helpfully" solve an adjacent problem you didn't ask about.
 - How will you know it's done, ideally as a list a reviewer or a test suite can actually check against.
 
-That last point is what separates a spec from documentation. Documentation describes what code does after the fact. A spec constrains what gets written before it exists. If it can't be checked, it isn't doing that job yet, it's just a longer prompt.
+That last point is what separates a spec from documentation. Documentation describes what code does after the fact. A spec constrains what gets written before it exists. If it can't be checked, it isn't doing that job yet, it's just a longer prompt. It's the same instinct behind [agreeing a review process before development starts](/effective-code-reviews), moved one step earlier.
 
 ## Write it before you delegate, not after
 
@@ -44,7 +44,7 @@ The instinct that kills this practice fastest is writing the spec after the fact
 
 The order matters because a spec written first has to survive contact with your own uncertainty. Writing "the export function should handle malformed CSV rows" before any code exists forces you to decide what "handle" means: skip the row, fail the batch, log and continue. Writing it after the agent has already picked one just documents whatever it happened to choose. The friction of deciding upfront is the entire value of the exercise. Skip it, and the spec becomes theater.
 
-This doesn't mean you have to write every word yourself. Letting an agent draft a first pass at the spec from a ticket is fine, and often faster than starting from a blank page. The requirement is that a human edits and approves it before implementation starts, not after.
+This doesn't mean you have to write every word yourself. Letting an agent draft a first pass at the spec from a ticket is fine, and often faster than starting from a blank page. The requirement is that a human edits and approves it before implementation starts, not after. That matters more, not less, when [the work is split across several agents at once](/orchestrating-multiple-ai-agents), since each one needs a boundary it can't renegotiate mid-task.
 
 ## Keep the spec small enough to be worth reading
 
@@ -62,7 +62,7 @@ It also makes the second and third pass through a feature cheaper. Six months fr
 
 ## Review the diff against the spec first
 
-This is the part of the practice that actually changes how a review happens, and it's a small but real shift from reviewing AI-generated code on its own terms. Before checking whether the code is correct line by line, check whether it satisfies the spec. Before approving the spec's own coverage, check it against the ticket or the problem it was meant to solve.
+This is the part of the practice that actually changes how a review happens, and it's a small but real shift from [reviewing AI-generated code on its own terms](/reviewing-ai-generated-code). Before checking whether the code is correct line by line, check whether it satisfies the spec. Before approving the spec's own coverage, check it against the ticket or the problem it was meant to solve.
 
 A diff that's clean, passes CI, and perfectly satisfies a spec that missed an edge case is still the wrong feature. Catching that at the spec is far cheaper than catching it in production, and far cheaper than catching it three PRs later once other code has been built on top of the gap.
 
@@ -74,7 +74,7 @@ Spec-driven development isn't a substitute for judgment, it's a place to put jud
 
 Treating the spec as a one-time artifact instead of a living one. Requirements shift mid-build more often than anyone plans for, and a spec that doesn't get updated alongside that shift becomes exactly as unreliable as no spec at all, just with more false confidence attached.
 
-Assuming a good spec means a lighter review. It doesn't. It changes what the review is checking, from "is this code sensible" to "does this code satisfy the contract, and was the contract right," but it doesn't remove the need for a human to check either one.
+Assuming a good spec means a lighter review. It doesn't. It changes what the review is checking, from "is this code sensible" to "does this code satisfy the contract, and was the contract right," but it doesn't remove the need for a human to check either one, which is why the number of specs in flight still needs [a cap tied to what one person can actually verify](/wip-limits-for-ai-agents).
 
 ## Bringing it together
 

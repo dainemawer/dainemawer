@@ -44,7 +44,7 @@ The fix isn't protecting juniors from AI. It's changing what they're accountable
 
 A 2026 junior engineer's actual job increasingly looks like this:
 
-- **Auditing AI-generated code for bugs**, rather than writing the first draft themselves. This is a genuinely different skill from writing code, closer to what a reviewer does, and it's one juniors need regardless of who or what wrote the code they'll eventually inherit.
+- **Auditing AI-generated code for bugs**, rather than writing the first draft themselves. This is a genuinely different skill from writing code, [closer to what a reviewer does](/effective-code-reviews), and it's one juniors need regardless of who or what wrote the code they'll eventually inherit.
 - **Evaluating two or three competing AI-generated implementations** of the same feature and explaining which one they'd ship and why. This forces an opinion about tradeoffs earlier than the old path did, where a junior usually just wrote one version and waited for a senior's review to learn what was wrong with it.
 - **Understanding a system before prompting an agent to change it**, rather than prompting first and hoping the result fits. A junior who can describe what a service actually does and why, before asking an agent to touch it, is building the same mental model a senior needs. One who can't is just generating plausible-looking diffs faster.
 
@@ -70,7 +70,7 @@ This costs a senior's time up front. It's also very close to what staff engineer
 
 Ticket count and PR volume were always imperfect proxies for how much a junior was actually learning, and AI makes them worse, because both numbers go up regardless of whether a junior understood what shipped or just approved what an agent proposed.
 
-Track something closer to the thing that actually matters: can this junior explain, unprompted, why a piece of code they touched last month works the way it does. Can they anticipate what an agent's next suggestion is likely to miss, based on a pattern they've seen before. Are they catching more in review than they were last quarter, not just producing more.
+Track something closer to the thing that actually matters: can this junior explain, unprompted, why a piece of code they touched last month works the way it does. Can they anticipate what an agent's next suggestion is likely to miss, based on a pattern they've seen before. Are they catching more in review than they were last quarter, not just producing more. It's the same shift as [measuring an individual contributor's growth rather than their output](/motivate-individual-contributors), applied to a role that just lost its old measuring stick.
 
 None of that fits neatly into a burndown chart, which is exactly why it gets skipped in favor of metrics that do. It's worth tracking anyway, because it's the actual signal for whether the redesigned junior role is working or just looks busy.
 

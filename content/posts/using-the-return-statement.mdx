@@ -51,7 +51,7 @@ return (
 
 ## 2. Return the correct data type
 
-Return the type your caller actually expects. Get this wrong and your program will still run, just not correctly, thanks to JavaScript's [type coercion](https://developer.mozilla.org/en-US/docs/Glossary/Type_coercion) quietly patching over the mismatch until it eventually causes a real bug somewhere downstream.
+Return the type your caller actually expects. Get this wrong and your program will still run, just not correctly, thanks to JavaScript's [type coercion](https://developer.mozilla.org/en-US/docs/Glossary/Type_coercion) quietly patching over the mismatch until it eventually causes a real bug somewhere downstream. It's exactly the kind of thing [worth raising as a question rather than an assumed mistake](/effective-code-reviews) in review, since nothing about the code looks wrong.
 
 ```javascript
 function add(a, b) {

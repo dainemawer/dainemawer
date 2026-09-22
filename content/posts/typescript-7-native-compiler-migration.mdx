@@ -28,7 +28,7 @@ None of that is marketing exaggeration. It's also not the part of this migration
 
 ## The number that matters less than you think
 
-A compiler rewrite in a systems language is, by now, a familiar shape. Turbopack replaced parts of webpack in Rust. Meta's React Compiler moved from JavaScript to Rust for the same reason. Every one of these ships with a benchmark slide and a smaller, quieter note further down the page about what didn't come along for the ride.
+A compiler rewrite in a systems language is, by now, a familiar shape. Turbopack replaced parts of webpack in Rust, the same build layer that [decides how much unused code reaches the browser](/understanding-chromes-coverage-panel). Meta's React Compiler moved from JavaScript to Rust for the same reason. Every one of these ships with a benchmark slide and a smaller, quieter note further down the page about what didn't come along for the ride.
 
 For TypeScript 7, that note is the programmatic API. The Go-native `tsc` type-checks and compiles your code just fine. What it doesn't do, at least not yet, is expose the compiler internals that a chunk of the JavaScript ecosystem was built on top of without much fanfare. Custom AST transformers, editor plugins, and anything that imports `typescript` and reaches into its guts for diagnostics, source maps, or program information, isn't guaranteed to work against the native port. Microsoft has said a stable version of that API is coming in TypeScript 7.1, not 7.0.
 
@@ -66,13 +66,13 @@ That keeps `typescript` resolving to the 6.0 API for anything that needs it, `ts
 
 Third, audit before you assume. Grep the codebase for `import * as ts from 'typescript'` and anything similar before deciding the migration is "just a version bump." That search takes ten minutes and tells you how big this migration actually is for your specific repo, which is a very different number for a team running a lint config off the shelf than for one with five years of internal tooling built on compiler internals.
 
-Frameworks are moving at different speeds here too. Check whether your specific stack, Next.js, a monorepo tool, your test runner, has published its own TypeScript 7 compatibility notes before assuming the ecosystem caught up uniformly. Some have; several hadn't as of the 7.0 release.
+Frameworks are moving at different speeds here too. Check whether your specific stack, Next.js, [a monorepo tool](/nextjs-component-library-monorepo), your test runner, has published its own TypeScript 7 compatibility notes before assuming the ecosystem caught up uniformly. Some have; several hadn't as of the 7.0 release.
 
 ## The lesson that outlasts this specific migration
 
 The interesting part of this isn't TypeScript. It's what a staff engineer should take from watching this pattern repeat: Turbopack, React Compiler, now this. Every toolchain rewrite in a faster language ships with a real benchmark and a real compatibility gap, and the gap is never in the part of the tool everyone thinks about. It's in the part that became load-bearing infrastructure without ever being designed as a public contract.
 
-The actual skill here isn't reading the changelog. It's the habit of asking, before adopting any faster rewrite of a tool your team depends on: what's built on top of this that was never meant to be an integration point? A linter plugin, a codemod script, a build step someone wrote in 2022 and nobody's touched since. Answering that before the migration, not during a broken CI run, is the difference between an easy 10x speedup and an afternoon spent figuring out why `ts-node` stopped working three sprints after everyone forgot the upgrade happened.
+The actual skill here isn't reading the changelog. It's the same habit that [separates a plausible change from a correct one](/reviewing-ai-generated-code): asking, before adopting any faster rewrite of a tool your team depends on, what's built on top of this that was never meant to be an integration point? A linter plugin, a codemod script, a build step someone wrote in 2022 and nobody's touched since. Answering that before the migration, not during a broken CI run, is the difference between an easy 10x speedup and an afternoon spent figuring out why `ts-node` stopped working three sprints after everyone forgot the upgrade happened.
 
 ## Bringing it together
 

@@ -99,7 +99,7 @@ Same result, no repeated selector, and the condition sits next to the value it c
 
 ## Browser support today
 
-This is the part that matters before you touch it in production. As of September 2026, `if()` works in Chrome 137 and up, along with Edge and Opera, since all three share the Chromium engine. Firefox support is still in progress, and Safari has it listed on its roadmap for 2026-2027, not shipped. MDN currently marks `if()` as limited availability rather than Baseline, which means the usual rule applies: don't ship it as your only source of a value unless your audience is genuinely Chromium-only, an internal tool or an Electron app, for instance.
+This is the part that matters before you touch it in production. As of September 2026, `if()` works in Chrome 137 and up, along with Edge and Opera, since all three share the Chromium engine. Firefox support is still in progress, and Safari has it listed on its roadmap for 2026-2027, not shipped. MDN currently marks `if()` as limited availability [rather than Baseline](/what-is-google-baseline), which means the usual rule applies: don't ship it as your only source of a value unless your audience is genuinely Chromium-only, an internal tool or an Electron app, for instance.
 
 The [State of CSS 2026](https://2026.stateofcss.com/en-US) developer survey found `if()` among the least-used features respondents reported, and browser support gaps around `if()` and the related `@function` mixins proposal came up repeatedly as the reason. That tracks. A feature that only works in one engine family isn't something most teams reach for on customer-facing work yet, whatever the syntax looks like.
 
@@ -114,7 +114,7 @@ The good news is that CSS has handled this exact situation forever: a browser th
 }
 ```
 
-A browser without `if()` support parses the first line, fails to parse the second one because it doesn't recognize the function, and keeps the first value. A browser with support parses both and the second declaration, being later in the cascade, wins. No feature query needed, no branching stylesheet, just the same fallback-then-enhancement order you'd use for any newer CSS value.
+A browser without `if()` support parses the first line, fails to parse the second one because it doesn't recognize the function, and keeps the first value. A browser with support parses both and the second declaration, being later in the cascade, wins. No feature query needed, no branching stylesheet, just [the same fallback-then-enhancement order](/css-custom-properties-fallbacks) you'd use for any newer CSS value.
 
 If you do want to gate a larger block of styles on `if()` support specifically, rather than fall back one property at a time, `@supports` still works for that:
 
@@ -130,7 +130,7 @@ Reach for that version when several related properties only make sense as a set.
 
 `if()` is part of a bigger CSS Working Group effort to bring conditional logic and reusable logic natively into stylesheets, alongside the related mixins and custom functions proposal. None of it replaces a preprocessor's full feature set yet, but it closes a real gap: today, expressing "this value depends on that condition" usually means either a duplicated `@media` block or reaching for JavaScript to toggle a class. `if()` makes that a one-line answer, once the browsers you actually need to support catch up.
 
-Until then, treat it the way you'd treat any Chromium-first feature: real value on Chromium-only surfaces now, a fallback-first pattern everywhere your audience includes Safari or Firefox users, which for most public sites is still most of your traffic.
+Until then, treat it the way you'd treat any Chromium-first feature: real value on Chromium-only surfaces now, a fallback-first pattern everywhere your audience includes Safari or Firefox users, which for most public sites is still most of your traffic. [Anchor positioning and customizable selects](/css-anchor-positioning-customizable-select) sit further along the same curve, and the adoption pattern is identical.
 
 ## Further reading
 
