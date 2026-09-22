@@ -56,7 +56,7 @@ A few tools already do a solid job of getting CSS coverage close to 100%. PurgeC
 
 Even WordPress Gutenberg shipped a filter that only loads block-library CSS when a block is actually on the page.
 
-Modern CSS approaches help here too. CSS Modules, Vanilla Extract, and Linaria can all cut down the impact of unused CSS in a React codebase.
+Modern CSS approaches help here too. CSS Modules, Vanilla Extract, and Linaria can all cut down the impact of unused CSS in a React codebase. So does writing less of it in the first place: [custom properties with fallbacks](/css-custom-properties-fallbacks) collapse a set of variant rules into one.
 
 ## JavaScript wins
 
@@ -66,7 +66,7 @@ Worth looking into: route-based code splitting, tree shaking, dynamic import, fa
 
 ## Build tool wins
 
-Webpack handles code-splitting and tree-shaking well, and both help coverage numbers directly. This space moves fast, so it's worth checking whether a newer build tool gets you further with less effort.
+Webpack handles code-splitting and tree-shaking well, and both help coverage numbers directly. This space moves fast, so it's worth checking whether a newer build tool gets you further with less effort, and whether [the faster rewrite of it still supports everything you had wired in](/typescript-7-native-compiler-migration).
 
 ## Dead ends, not worth the effort
 
@@ -80,7 +80,7 @@ It's worth keeping this in perspective, too. Chasing coverage on code that barel
 
 ## Planning and refactoring
 
-Your stack and architecture matter more than any individual fix. Each one expects something slightly different from you when it comes to shipping only what a page needs.
+Your stack and architecture matter more than any individual fix. Each one expects something slightly different from you when it comes to shipping only what a page needs, and [the file architecture you picked](/frontend-file-architectures) shapes how much of that is even possible.
 
 High code coverage is a long-term path to solid performance, not a quick win. Write JavaScript to good performance practices, get your build configuration right, and plan features with this in mind from the start, and the coverage numbers tend to follow.
 

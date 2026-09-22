@@ -34,7 +34,7 @@ This isn't a niche problem. Adoption of agentic coding tools roughly doubled in 
 
 The instinct with a large diff is to go top to bottom, checking each line. That works when the code was written slowly by someone who might have gotten tired halfway through. It works less well against an agent that generated the whole thing in one coherent pass, because line-by-line reading misses the thing most worth catching: a confident, well-structured solution to a requirement the agent misunderstood.
 
-Before reading a single line, ask what problem this diff claims to solve, and whether the shape of the change matches that problem. A ticket asking for "add validation to the signup form" that comes back touching six files across three unrelated features is a signal worth chasing before you look at indentation. So is a one-file diff for something you expected to touch shared state.
+Before reading a single line, ask what problem this diff claims to solve, and whether the shape of the change matches that problem. A ticket asking for "add validation to the signup form" that comes back touching six files across three unrelated features is a signal worth chasing before you look at indentation. So is a one-file diff for something you expected to touch shared state. Both questions get easier to answer when [the scope was agreed in writing before the agent started](/spec-driven-development).
 
 Once the plan makes sense, then go line by line, but weight your attention. A helper function with a descriptive name and a single return statement needs a glance. Anything touching auth, payments, or a database migration needs the scrutiny you'd give it regardless of who wrote it.
 
@@ -46,7 +46,7 @@ This is the step that's easiest to skip when a PR looks polished, and the one mo
 
 ## Hold the same architectural bar, on purpose
 
-An agent has no opinion about your codebase's conventions unless you gave it one, and it will happily introduce a new pattern next to three existing ones that already solve the same problem. A new API client wrapper when there's already a shared one. A bespoke date formatter when the codebase has a utility for it. None of this shows up as a bug. It shows up eighteen months later as the reason nobody can explain why there are four ways to fetch data in the same app.
+An agent has no opinion about your codebase's conventions unless you gave it one, and it will happily introduce a new pattern next to three existing ones that already solve the same problem. A new API client wrapper when there's already a shared one. A bespoke date formatter when the codebase has a utility for it. None of this shows up as a bug. It shows up eighteen months later as the reason nobody can explain why there are four ways to fetch data in the same app. The risk compounds once [several agents are filling in pieces of the same feature at once](/orchestrating-multiple-ai-agents), each improvising against a different corner of the codebase.
 
 The fix isn't reviewing agent output more suspiciously than human output. It's reviewing it exactly as carefully, without the unconscious discount that comes from code looking tidy. Treat a clean-looking diff from an agent the way you'd treat a clean-looking diff from a new hire who hasn't seen the rest of the codebase yet: probably fine, worth a specific check for whether it reinvented something that already exists.
 
@@ -54,7 +54,7 @@ The fix isn't reviewing agent output more suspiciously than human output. It's r
 
 The promise of agentic coding is that engineers spend less time writing and more time on judgment calls. That only holds if review doesn't eat up the hours writing used to take, without anyone noticing it happened. If a feature that took a day to write now takes ten minutes to generate but ninety minutes to review properly, the team hasn't gotten faster. It's moved the bottleneck and made it less visible, because "review" doesn't show up on a burndown chart the way "in progress" does.
 
-Track review time per pull request the same way you'd track anything else you're trying to protect. If it's climbing while merge counts go up, that's not a sign to review less carefully. It's a sign the team is generating output faster than it can verify it, which is a staffing and process problem, not a code quality one.
+Track review time per pull request the same way you'd track anything else you're trying to protect. If it's climbing while merge counts go up, that's not a sign to review less carefully. It's a sign the team is [generating output faster than it can verify it](/wip-limits-for-ai-agents), which is a staffing and process problem, not a code quality one.
 
 ## The actual skill that scales
 

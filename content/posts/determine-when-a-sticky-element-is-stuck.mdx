@@ -26,7 +26,7 @@ Using `position: sticky` is a handy CSS positioning property that sticks an elem
 
 ## Why CSS can't detect a stuck element
 
-CSS still won't tell you whether a sticky element is currently stuck. That's annoying, because sticky headers often need a different look once they've stuck: a shadow, a smaller logo, a background colour. A `:stuck` pseudo-class would fix this outright. The spec just doesn't define one.
+CSS still won't tell you whether a sticky element is currently stuck. That's annoying, because sticky headers often need a different look once they've stuck: a shadow, a smaller logo, a background colour. A `:stuck` pseudo-class would fix this outright. The spec just doesn't define one. CSS has closed gaps like this recently, [tethering a tooltip and styling a select](/css-anchor-positioning-customizable-select) each stopped needing a JavaScript library, but not this one.
 
 So I use a small JavaScript function that watches the element's position and toggles a class once it's stuck:
 

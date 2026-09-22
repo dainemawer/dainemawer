@@ -20,7 +20,7 @@ faq:
 needsRewrite: false
 ---
 
-Picking the right file architecture early can save a lot of pain later, especially once a frontend project starts to scale. There are several common approaches, each with real trade-offs. Here are five of them, and where each one tends to hold up or fall apart.
+Picking the right file architecture early can save a lot of pain later, especially once a frontend project starts to scale. There are several common approaches, each with real trade-offs. Here are five of them, and where each one tends to hold up or fall apart. If the site is a straightforward marketing build, it's worth asking first whether [a no-code tool would do the job](/no-code-low-code-frontend) without any of this.
 
 ## Flat architecture
 
@@ -116,6 +116,8 @@ It also gives a high-level view of what the site actually does, which helps new 
 - Only works well if developers keep components standardized
 - Somewhat steeper learning curve
 
+Once a project reaches this shape, the components are usually worth [documenting and testing in isolation](/react-scalability-storybook) rather than only in the pages that consume them.
+
 ## Component-based architecture
 
 ```text
@@ -178,4 +180,4 @@ This works especially well when a team's roadmap is organized around shipping di
 
 ## Choosing one
 
-There's no simple formula here. Scalability should come first, but developer experience, how often features get built or extended, and how easily things can be added or removed all matter too. The stack matters as well: what works well for a React project won't necessarily be the right call for a WordPress-based one.
+There's no simple formula here. Scalability should come first, but developer experience, how often features get built or extended, and how easily things can be added or removed all matter too. The stack matters as well: what works well for a React project won't necessarily be the right call for a WordPress-based one. And once a shared component library outgrows a single app, the question stops being which folder structure to use and becomes whether to [split it into its own workspace](/nextjs-component-library-monorepo).

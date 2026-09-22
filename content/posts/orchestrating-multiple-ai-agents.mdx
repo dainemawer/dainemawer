@@ -22,7 +22,7 @@ faq:
 needsRewrite: false
 ---
 
-Six months ago, the interesting problem was reviewing a pull request one agent wrote. That's still worth doing well. But teams running more than one agent at a time have already moved past it, into a harder problem: directing three or four agents working in parallel on pieces of the same feature, without the whole thing turning into a merge-conflict factory nobody signed up for.
+Six months ago, the interesting problem was [reviewing a pull request one agent wrote](/reviewing-ai-generated-code). That's still worth doing well. But teams running more than one agent at a time have already moved past it, into a harder problem: directing three or four agents working in parallel on pieces of the same feature, without the whole thing turning into a merge-conflict factory nobody signed up for.
 
 That's orchestration, and it's a different skill than review. Review asks whether a finished diff is any good. Orchestration asks how the work got split in the first place, who owns what while it's still in progress, and where a human actually needs to look before the pieces get stitched back together.
 
@@ -38,7 +38,7 @@ Do the decomposition first, as a human, the same way you'd break work into ticke
 
 Two agents touching the same file at the same time produce the same conflict two engineers would, except neither one can look up from its editor and ask whether the other is also in `orderService.ts` right now. The conflict just shows up later, fully formed, once both have already finished.
 
-Assign each agent a set of files or a directory it can work in without another agent's changes landing on top of it mid-task. Shared interfaces, a type definition, a utility function, an API contract, get decided and frozen before any agent starts, not discovered as a merge conflict after two agents have already built against different assumptions about the same shape.
+Assign each agent a set of files or a directory it can work in without another agent's changes landing on top of it mid-task. Shared interfaces, a type definition, a utility function, an API contract, [get decided and frozen before any agent starts](/spec-driven-development), not discovered as a merge conflict after two agents have already built against different assumptions about the same shape.
 
 ## One integration checkpoint, not four green checkmarks
 
@@ -50,7 +50,7 @@ Define a single point where a human reviews the assembled result before it ships
 
 Orchestrating agents costs real time: writing clear boundaries, checking in on progress, resolving the disagreement that shows up when two agents made different assumptions about a shared piece. That cost is easy to undercount, because none of it looks like writing code, so it doesn't show up on the burndown chart the way "in progress" does.
 
-If directing three agents through a feature takes longer, wall-clock, than one agent working through the same feature single-threaded would have, the parallelism isn't paying for itself yet. Track hours spent coordinating the same way you'd track review time creeping past what it used to cost. A number that keeps climbing is a process problem worth fixing, not a reason to add a fourth agent to the mix.
+If directing three agents through a feature takes longer, wall-clock, than one agent working through the same feature single-threaded would have, the parallelism isn't paying for itself yet. Track hours spent coordinating the same way you'd track review time creeping past what it used to cost. A number that keeps climbing is a process problem worth fixing, not a reason to add a fourth agent to the mix. It's the same signal as [a review queue filling faster than anyone can drain it](/wip-limits-for-ai-agents).
 
 ## Know when to collapse back to one agent
 

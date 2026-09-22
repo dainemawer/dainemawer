@@ -23,11 +23,11 @@ faq:
 needsRewrite: false
 ---
 
-Most engineering teams still plan agent work the way they planned a single assistant helping one person type faster. That model broke sometime in the last year. The actual unit of work now is one engineer directing several agents at once, each on a different task, each generating output faster than any one person can read it.
+Most engineering teams still plan agent work the way they planned a single assistant helping one person type faster. That model broke sometime in the last year. The actual unit of work now is [one engineer directing several agents at once](/orchestrating-multiple-ai-agents), each on a different task, each generating output faster than any one person can read it.
 
 Nobody built a process for that. Most teams just kept adding agents until something gave, and the thing that usually gives is review. [LinearB's 2026 analysis of more than 8.1 million pull requests across 4,800-plus organizations](https://linearb.io/blog/8-million-prs-engineering-productivity) found that AI-authored pull requests wait 4.6 times longer for a reviewer to even start looking at them, despite being reviewed about twice as fast once someone does. The queue is the bottleneck, not the reading speed. That's exactly what happens when the number of agents in flight outruns the number of people who can actually check their work.
 
-This isn't a review-technique problem. It's a staffing problem, and it needs the same tool every staffing problem needs: a limit on how much can be in progress before you start the next thing.
+This isn't [a review-technique problem](/reviewing-ai-generated-code). It's a staffing problem, and it needs the same tool every staffing problem needs: a limit on how much can be in progress before you start the next thing.
 
 ## Name the actual constraint
 
@@ -45,7 +45,7 @@ A workable starting point is capping concurrent agent tasks at whatever one engi
 
 A vague prompt is the single fastest way to produce a diff nobody can verify quickly. "Add validation to the signup form" leaves an agent free to touch six files across three features, and now the reviewer has to reconstruct the actual requirement from the output before they can even start checking it.
 
-The fix happens before the agent starts, not after. Write down what "done" checkably means for this task: which files should be in scope, which behavior has to hold, what the acceptance test looks like. This is closer to writing a ticket a new hire could execute without asking a follow-up question than it is to writing a prompt. The upfront cost is real, but it's smaller than the cost of a reviewer reverse-engineering scope from a finished diff, and it's the same cost teams already pay for well-scoped human tickets. Agents just make the corner-cutting version of skipping it visible faster.
+The fix happens before the agent starts, not after. Write down [what "done" checkably means for this task](/spec-driven-development): which files should be in scope, which behavior has to hold, what the acceptance test looks like. This is closer to writing a ticket a new hire could execute without asking a follow-up question than it is to writing a prompt. The upfront cost is real, but it's smaller than the cost of a reviewer reverse-engineering scope from a finished diff, and it's the same cost teams already pay for well-scoped human tickets. Agents just make the corner-cutting version of skipping it visible faster.
 
 ## Give every task an autonomy budget
 
@@ -67,4 +67,4 @@ Track verification hours per engineer instead, and watch it against the number o
 
 ## The actual shift
 
-None of this is really about agents. It's the same capacity planning discipline that's always applied to a team doing more work than its review process can absorb, just applied to a resource that produces output faster than any previous version of the problem did. Agents didn't create the need for WIP limits, checkable scope, and honest capacity tracking. They just made it obvious how much teams had been getting away with skipping those, back when the work in flight moved slowly enough to hide it.
+None of this is really about agents. It's the same [capacity planning discipline](/mastering-task-estimation) that's always applied to a team doing more work than its review process can absorb, just applied to a resource that produces output faster than any previous version of the problem did. Agents didn't create the need for WIP limits, checkable scope, and honest capacity tracking. They just made it obvious how much teams had been getting away with skipping those, back when the work in flight moved slowly enough to hide it.
