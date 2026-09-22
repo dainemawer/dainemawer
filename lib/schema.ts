@@ -9,6 +9,34 @@ const personId = `${site.url}/#person`;
 const organizationId = `${site.url}/#organization`;
 const websiteId = `${site.url}/#website`;
 
+// Shared by the Person and Organization nodes so the two can never drift
+// apart and describe the same entity as being in two different places.
+// City-level only — see the comment on `site.address` for why there's no
+// `streetAddress` or `postalCode` here.
+function postalAddress() {
+  return {
+    "@type": "PostalAddress",
+    addressLocality: site.address.locality,
+    addressRegion: site.address.region,
+    addressCountry: site.address.country,
+  };
+}
+
+// The one machine-readable way to reach a human here. `contactType` is
+// free text in schema.org (the list in Google's docs is guidance, not an
+// enumeration), so it says what this address is actually for rather than
+// borrowing a commerce label like "customer support" that would misdescribe
+// a single-author blog. No `telephone`: there's no business line to answer
+// one, and a number that rings out is a worse trust signal than none.
+function contactPoint() {
+  return {
+    "@type": "ContactPoint",
+    contactType: "editorial",
+    email: site.email,
+    availableLanguage: "English",
+  };
+}
+
 export function personSchema() {
   return {
     "@type": "Person",
@@ -22,7 +50,8 @@ export function personSchema() {
       name: site.company.name,
       url: site.company.url,
     },
-    address: { "@type": "PostalAddress", addressLocality: site.location },
+    address: postalAddress(),
+    email: site.email,
     sameAs: Object.values(site.social),
   };
 }
@@ -30,13 +59,26 @@ export function personSchema() {
 // A separate Organization node for `publisher` — Google's Article guidance
 // expects an Organization there (with an identity distinct from `author`),
 // not the same Person doing double duty as both writer and publisher.
+//
+// It's a self-publishing entity, not a company: the same individual named by
+// the Person node, wearing the publisher hat. `founder` is what ties the two
+// together, and `sameAs` is intentionally the same set of profiles, since
+// there is no separate corporate presence to point at. Everything asserted
+// here has to stay true of that individual — an Organization an agent can't
+// corroborate against an external record is a worse signal than a modest one
+// it can.
 export function organizationSchema() {
   return {
     "@type": "Organization",
     "@id": organizationId,
     name: site.name,
     url: site.url,
+    description: site.tagline,
     founder: { "@id": personId },
+    email: site.email,
+    address: postalAddress(),
+    contactPoint: contactPoint(),
+    sameAs: Object.values(site.social),
   };
 }
 
