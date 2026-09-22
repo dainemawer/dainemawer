@@ -1,0 +1,81 @@
+---
+title: 'Spec-Driven Development: Why the Spec Is Becoming the New Code Review'
+dek: Prompts drift. A versioned spec is how teams are catching it before it ships.
+date: '2026-09-21'
+topics:
+  - staff-engineering
+  - ai
+shortAnswer: Spec-driven development treats a written spec, not a one-off prompt, as the source of truth an agent codes against. GitClear's 2026 research found duplicated code blocks up 81% since 2023, the drift this practice is meant to catch. Write acceptance criteria before delegating, version the spec with the code, and review the diff against it, not on its own.
+takeaways:
+  - "A spec isn't a PRD. It's a short, testable contract: what the system must do, what it explicitly shouldn't, and how you'll know it's done, written before any code exists."
+  - "GitClear's 2026 code quality research, drawn from real commit histories, found duplicated code blocks up 81% since 2023, and refactoring's share of changed lines sliding from around a quarter in 2021 to under 10% by 2024. That's what happens when agents ship against a vague prompt instead of a fixed target."
+  - "Write the spec yourself, or edit an agent's first draft of one, before any implementation starts. A spec written after the code is documentation, not a contract, and it won't catch anything."
+  - "Version the spec in the same PR as the code it produced. When the two disagree, that's the actual bug report, whether the code drifted from the spec or the spec never matched what you meant."
+  - "Review the diff against the spec first, then the spec against the ticket. A clean diff that satisfies the wrong spec is still the wrong feature, just harder to notice."
+faq:
+  - question: What is spec-driven development?
+    answer: A methodology where a written, versioned specification, not a prompt, is the source of truth an AI agent codes against. The team writes acceptance criteria and constraints first, the agent generates an implementation plan from that spec, and the code is reviewed against it rather than judged on its own.
+  - question: How is spec-driven development different from vibe coding?
+    answer: Vibe coding is describing a goal in a prompt and accepting whatever code comes back if it looks right. Spec-driven development inserts a written, reviewable contract between the request and the code, so drift gets caught at the spec stage instead of discovered in production.
+  - question: Do I need a tool like GitHub Spec Kit to do spec-driven development?
+    answer: 'No. The tooling (GitHub Spec Kit, AWS Kiro, and similar) automates turning a spec into tasks and prompts, but the practice itself is just discipline: write the contract before the code, keep it versioned, review against it. You can start with a markdown file in the repo.'
+needsRewrite: false
+---
+
+Vibe coding, describing what you want in a prompt and accepting whatever comes back if it looks right, was never going to hold up at scale, and by 2026 the data backs that up. GitClear's 2026 code quality research, built from real commit histories rather than survey responses, found duplicated code blocks up 81% since 2023. The same body of GitClear data shows refactoring's share of changed lines sliding from around a quarter in 2021 to under 10% by 2024. Code is getting written faster and maintained less, and the gap between those two numbers is where technical debt actually accumulates.
+
+Spec-driven development is the response that stuck. Not because it's new, engineers have written specs before code for decades, but because AI agents made the old failure mode visible at a speed and volume that made it impossible to ignore. An agent given a vague prompt doesn't ask clarifying questions the way a person eventually would. It produces something plausible, and plausible is exactly the problem: the diff reads cleanly, passes the tests it wrote for itself, and still isn't what you meant.
+
+GitHub open-sourced Spec Kit in September 2025 as a direct response to this, giving Copilot, Claude Code, and other agents a structured process instead of a blank prompt box. Other tools followed the same shape. The common thread across all of them is simple enough to use without any tooling at all: write the spec first, treat it as the thing under version control, and review the code against it.
+
+## A spec is a contract, not a PRD
+
+The word "spec" gets overloaded fast, so it's worth being specific about what makes one useful here. It isn't a product requirements doc, and it isn't a design file. It's short, testable, and answers three questions before a single line of code exists:
+
+- What does the system have to do, stated as behavior you can check, not intent you have to interpret.
+- What is explicitly out of scope, so an agent doesn't "helpfully" solve an adjacent problem you didn't ask about.
+- How will you know it's done, ideally as a list a reviewer or a test suite can actually check against.
+
+That last point is what separates a spec from documentation. Documentation describes what code does after the fact. A spec constrains what gets written before it exists. If it can't be checked, it isn't doing that job yet, it's just a longer prompt.
+
+## Write it before you delegate, not after
+
+The instinct that kills this practice fastest is writing the spec after the fact, once the agent has already produced something and you're rationalizing what it built. That's not a spec, it's a changelog with better formatting.
+
+The order matters because a spec written first has to survive contact with your own uncertainty. Writing "the export function should handle malformed CSV rows" before any code exists forces you to decide what "handle" means: skip the row, fail the batch, log and continue. Writing it after the agent has already picked one just documents whatever it happened to choose. The friction of deciding upfront is the entire value of the exercise. Skip it, and the spec becomes theater.
+
+This doesn't mean you have to write every word yourself. Letting an agent draft a first pass at the spec from a ticket is fine, and often faster than starting from a blank page. The requirement is that a human edits and approves it before implementation starts, not after.
+
+## Keep the spec small enough to be worth reading
+
+The failure mode on the other side is over-specifying: turning a two-paragraph contract into a twelve-page waterfall document nobody reads, which just recreates the exact process spec-driven development was supposed to replace. A spec that takes longer to review than the code it produces has stopped paying for itself.
+
+A useful test: if you can't imagine an agent or a teammate meaningfully disagreeing with a line in the spec, it probably doesn't need to be there. Constraints and edge cases earn their place. Restating what a REST endpoint obviously does doesn't.
+
+## Version the spec with the code
+
+Once a spec exists, it needs to live somewhere durable, in the repo, in the same PR as the implementation it produced, not in a chat thread that scrolls away. That's what makes it checkable later instead of just aspirational now.
+
+The direct payoff shows up during review and during debugging. When code and spec disagree, that disagreement is the actual bug report. Either the implementation drifted from what was agreed, which is a normal review finding, or the spec never described what you actually meant, which is worth catching just as much. Either way, you're debugging against a fixed target instead of your own memory of what you originally asked for.
+
+It also makes the second and third pass through a feature cheaper. Six months from now, "why does this behave this way" has an answer that isn't "read the whole implementation and guess."
+
+## Review the diff against the spec first
+
+This is the part of the practice that actually changes how a review happens, and it's a small but real shift from reviewing AI-generated code on its own terms. Before checking whether the code is correct line by line, check whether it satisfies the spec. Before approving the spec's own coverage, check it against the ticket or the problem it was meant to solve.
+
+A diff that's clean, passes CI, and perfectly satisfies a spec that missed an edge case is still the wrong feature. Catching that at the spec is far cheaper than catching it in production, and far cheaper than catching it three PRs later once other code has been built on top of the gap.
+
+This reordering matters specifically because of how agents fail. An agent rarely produces code that's obviously broken. It produces code that's obviously plausible, which is a much harder thing to catch by reading the diff alone. Reviewing against a spec written before the code existed removes the temptation to grade the implementation on its own confident-looking terms.
+
+## Where it breaks down
+
+Spec-driven development isn't a substitute for judgment, it's a place to put judgment where it's checkable. Two ways it goes wrong in practice, both preventable:
+
+Treating the spec as a one-time artifact instead of a living one. Requirements shift mid-build more often than anyone plans for, and a spec that doesn't get updated alongside that shift becomes exactly as unreliable as no spec at all, just with more false confidence attached.
+
+Assuming a good spec means a lighter review. It doesn't. It changes what the review is checking, from "is this code sensible" to "does this code satisfy the contract, and was the contract right," but it doesn't remove the need for a human to check either one.
+
+## Bringing it together
+
+The GitClear numbers describe a real cost: duplication up, refactoring down, in the same years AI-assisted coding scaled fastest. Spec-driven development doesn't fix that by making agents smarter. It fixes it by giving them, and the humans reviewing their output, a fixed target to check drift against instead of a memory of what a prompt was supposed to mean. Write the contract first, keep it small enough to read, version it with the code, and review the diff against it before anything else. That's most of the practice, and none of it requires new tooling to start doing tomorrow.
