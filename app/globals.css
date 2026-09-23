@@ -22,6 +22,11 @@
   --color-muted: #6b6b6b; /* ~5.3:1 on white — WCAG AA for normal text */
   --color-faint: #767676; /* ~4.5:1 on white — WCAG AA minimum for normal text */
   --color-divider: #cfcfcf;
+  /* The underline on the contact form's fields. `divider` is ~1.6:1, fine for
+     a decorative rule but not for the only thing marking out a form control —
+     WCAG 1.4.11 wants 3:1 for that. This is ~3.45:1 and still lighter than
+     `faint`, so the fields keep the design's hairline look. */
+  --color-field: #8a8a8a;
   --color-surface: #ffffff;
   --color-overlay: rgb(10 32 26 / 32%); /* command palette backdrop */
 
