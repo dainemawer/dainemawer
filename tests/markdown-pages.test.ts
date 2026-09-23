@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { contact } from "@/lib/contact";
 import {
+  buildContactMarkdown,
   buildNotFoundMarkdown,
   buildPostMarkdown,
   buildTopicMarkdown,
@@ -103,6 +105,40 @@ describe("buildTopicMarkdown", () => {
   });
 });
 
+describe("buildContactMarkdown", () => {
+  const doc = buildContactMarkdown();
+
+  it("leads with a contactable address, not just a form", () => {
+    assert.match(doc, /^# Contact — /);
+    assert.ok(doc.includes(site.email));
+  });
+
+  it("carries every reason and its prompt from lib/contact", () => {
+    for (const reason of contact.reasons) {
+      assert.ok(doc.includes(reason.label), `missing reason: ${reason.label}`);
+      assert.ok(doc.includes(reason.hint), `missing hint: ${reason.label}`);
+    }
+  });
+
+  // The HTML page's form can't be submitted by a client reading markdown,
+  // so the twin has to point that client at the equivalent route.
+  it("tells a non-browser client to use email instead of the form", () => {
+    assert.ok(doc.includes("also carries a form"));
+    assert.ok(doc.includes(`${site.url}/contact`));
+  });
+
+  it("says plainly what isn't on offer", () => {
+    assert.ok(doc.includes(contact.notTaking));
+  });
+
+  it("clears the 500-character floor agents check trust pages against", () => {
+    assert.ok(
+      doc.length > 500,
+      `contact document is only ${doc.length} characters`,
+    );
+  });
+});
+
 describe("resolveMarkdownDocument", () => {
   it("serves the homepage index for no segments and for /index.md", () => {
     for (const segments of [[], ["index"]]) {
@@ -129,6 +165,7 @@ describe("resolveMarkdownDocument", () => {
       ["uses", "# Uses — Daine Mawer"],
       ["now", "# Now — Daine Mawer"],
       ["privacy", "# Privacy — Daine Mawer"],
+      ["contact", "# Contact — Daine Mawer"],
       ["agents", "# Agent and developer resources — Daine Mawer"],
     ] as const) {
       const doc = resolveMarkdownDocument([slug]);

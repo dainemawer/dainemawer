@@ -1,5 +1,6 @@
 import { about } from "./about";
 import { agents } from "./agents";
+import { contact } from "./contact";
 import type { PostContent } from "./mdx";
 import { getPostContent } from "./mdx";
 import { now } from "./now";
@@ -223,6 +224,48 @@ export function buildNowMarkdown(): string {
   return [...lines, ...footer("/now")].join("\n");
 }
 
+export function buildContactMarkdown(): string {
+  const lines = [
+    `# Contact — ${site.name}`,
+    "",
+    `> ${contact.dek}`,
+    "",
+    contact.meta.join(" · "),
+    "",
+    contact.summary,
+    "",
+    "## What to write about",
+    "",
+  ];
+
+  for (const reason of contact.reasons) {
+    lines.push(`- **${reason.label}** — ${reason.hint}`);
+  }
+
+  lines.push(
+    "",
+    "## Not taking",
+    "",
+    `${contact.notTaking} ${contact.clientAccess.lead} [${contact.clientAccess.label}](${contact.clientAccess.href})`,
+    "",
+    "## Direct",
+    "",
+  );
+
+  for (const item of contact.elsewhere) {
+    lines.push(`- [${item.label}](${item.href})`);
+  }
+
+  // The HTML page carries a form; a client reading the markdown twin has no
+  // way to submit one, so it gets told the equivalent route explicitly.
+  lines.push(
+    "",
+    `The HTML page at ${url("/contact")} also carries a form. It delivers to ${site.email}, so email is the equivalent and simpler route for a non-browser client.`,
+  );
+
+  return [...lines, ...footer("/contact")].join("\n");
+}
+
 export function buildPrivacyMarkdown(): string {
   const lines = [
     `# Privacy — ${site.name}`,
@@ -319,6 +362,7 @@ const STATIC_PAGES: Record<string, () => string> = {
   uses: buildUsesMarkdown,
   now: buildNowMarkdown,
   privacy: buildPrivacyMarkdown,
+  contact: buildContactMarkdown,
   agents: buildAgentsMarkdown,
 };
 

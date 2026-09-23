@@ -1,4 +1,5 @@
 import { about } from "@/lib/about";
+import { contact } from "@/lib/contact";
 import { toPlainText } from "@/lib/inline-markdown";
 import type { PostContent } from "@/lib/mdx";
 import type { Post } from "@/lib/posts";
@@ -33,6 +34,7 @@ function contactPoint() {
     "@type": "ContactPoint",
     contactType: "editorial",
     email: site.email,
+    url: `${site.url}/contact`,
     availableLanguage: "English",
   };
 }
@@ -116,6 +118,31 @@ export function profilePageSchema() {
       description: about.summary,
       knowsAbout: about.writesAbout.map((topic) => topic.label),
       sameAs: Object.values(site.social),
+    },
+  };
+}
+
+// The contact page's own node. `mainEntity` is the Organization inlined
+// rather than left as a bare `{"@id": ...}` pointer, for the same reason
+// profilePageSchema inlines its Person: an agent that reads this one script
+// to answer "how do I contact them" should find the answer here, not a
+// reference it has to resolve against another node on the page.
+export function contactPageSchema() {
+  return {
+    "@type": "ContactPage",
+    "@id": `${site.url}/contact#contact`,
+    url: `${site.url}/contact`,
+    name: `Contact ${site.name}`,
+    description: contact.dek,
+    isPartOf: { "@id": websiteId },
+    mainEntity: {
+      "@type": "Organization",
+      "@id": organizationId,
+      name: site.name,
+      url: site.url,
+      email: site.email,
+      address: postalAddress(),
+      contactPoint: contactPoint(),
     },
   };
 }
