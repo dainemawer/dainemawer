@@ -71,8 +71,17 @@ export function FooterElsewhere() {
               </div>
             ))}
           </nav>
-          <div className="text-xs text-faint">
-            {site.name} — {site.tagline}. © {new Date().getFullYear()}
+          <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-faint">
+            <span>
+              {site.name} — {site.tagline}. © {new Date().getFullYear()}
+            </span>
+            <span className="text-divider">|</span>
+            <a
+              href="/privacy"
+              className="hover:text-ink focus-visible:text-ink"
+            >
+              Privacy
+            </a>
           </div>
         </div>
       </MetaRow>

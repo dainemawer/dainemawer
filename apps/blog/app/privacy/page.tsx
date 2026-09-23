@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Logo } from "@/components/logo";
 import { MetaRow } from "@/components/meta-row";
 import { PageShell } from "@/components/page-shell";
 import { privacySections, privacyUpdated } from "@/lib/privacy";
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <PageShell sidebar={<Logo />}>
+    <PageShell sidebar={null}>
       <div className="mx-auto max-w-content">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Privacy" }]}

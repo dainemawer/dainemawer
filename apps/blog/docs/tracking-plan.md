@@ -29,6 +29,10 @@ Tools: Google Tag Manager (container) + Google Analytics 4 (a tag inside that co
 | `newsletter_signup_submitted` | Form submitted, passes client validation | — | `subscribe-modal.tsx` | Not wired |
 | `newsletter_signup_succeeded` | Provider confirms the subscription | — | `subscribe-modal.tsx` | Not wired — provider itself is still a TODO stub |
 | `newsletter_signup_failed` | Client validation fails | `reason: "invalid_email"` | `subscribe-modal.tsx` | Not wired |
+| `contact_form_submitted` | Contact form submitted, passes client validation | `reason` (`speaking` / `post` / `correction` / `other`) | `contact-form.tsx` | Wired |
+| `contact_form_succeeded` | Provider accepts the message | `reason` | `contact-form.tsx` | Wired |
+| `contact_form_failed` | Client validation or the request fails | `reason` (`missing_name` / `invalid_email` / `message_too_short` / `rate_limited` / `provider_error` / `network_error`) | `contact-form.tsx` | Wired |
+| `contact_email_copied` | "Copy" clicked beside the address | — | `copy-email.tsx` | Wired |
 | `command_palette_opened` | ⌘K or the Search trigger clicked | `source: "shortcut" \| "click"` | `search-trigger.tsx`, `command-palette-context.tsx` | Not wired |
 | `site_search` | Query entered in the command palette (debounced, not per keystroke) | `search_term`, `result_count` | `command-palette.tsx` | Not wired |
 | `code_block_copied` | "Copy" clicked on a code sample | `post_slug` | `code-block.tsx` | Not wired |
