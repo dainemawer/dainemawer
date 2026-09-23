@@ -1,0 +1,68 @@
+---
+title: AI Is Forking the Engineering Manager Role Into Two Jobs
+dek: Middle management is flattening industry-wide. What survives of engineering management is splitting into two tracks that need almost opposite skills.
+date: '2026-09-23'
+topics:
+  - staff-engineering
+  - engineering-management
+  - ai
+shortAnswer: AI has absorbed the coordination, reporting, and scheduling work middle managers used to own, and Gartner expects a fifth of organizations to cut over half their middle-management layer by the end of 2026. What survives splits into two paths, a technical lead-manager role coding daily for a small team, and an expanded people-manager role running many teams at once.
+takeaways:
+  - Gartner predicts a fifth of organizations will use AI to flatten their structure by the end of 2026, cutting more than half their current middle-management layer, and engineering orgs are following the same curve.
+  - AI absorbed the busywork that used to justify a manager for every handful of engineers, status reporting, scheduling, workflow tracking, and what's left splits into two roles needing almost opposite skills.
+  - "The tech lead manager path returns to writing code daily while managing a small team. LeadDev's 2026 survey of 600 engineering leaders found the share of EMs doing hands-on technical work rose from about 20% to 35% in a single year."
+  - The expanded multi-team EM path drops hands-on coding almost entirely and takes on a wider span of control instead, coaching and cross-team leadership across domains the manager may not know the codebase for.
+  - Pick a track deliberately before your org assigns one by attrition. Drifting into whichever role absorbs the most of your week erodes the technical depth the TLM path needs and the coaching depth the EM path needs, at the same time.
+faq:
+  - question: Is AI going to eliminate engineering manager jobs?
+    answer: Not outright, but it is flattening the layer around them. Gartner predicts that through 2026, a fifth of organizations will use AI to flatten their structure and cut more than half of existing middle-management roles. For engineering specifically, the job isn't disappearing so much as splitting into two narrower ones, a technical lead-manager role and an expanded, people-focused EM role.
+  - question: What is a tech lead manager (TLM) role?
+    answer: A senior engineer who codes daily and carries a lighter management load, usually for one small team. It's a return to a role that existed before engineering management professionalized into a full-time, largely non-technical job, now reappearing because AI handles enough of the coordination work that a working engineer can absorb the rest.
+  - question: How is AI changing the engineering manager job in 2026?
+    answer: It's absorbing the reporting, scheduling, and status-tracking work that used to require a manager for every six to eight engineers, which is widening how many people or teams one manager can oversee. Some managers respond by going deeper into hands-on technical work with a smaller team. Others respond by taking on more teams and dropping the technical side almost entirely. Both are rational adaptations to the same shift.
+needsRewrite: false
+---
+
+Gartner's prediction for 2026 is specific: a fifth of organizations will use AI to flatten their structure, cutting more than half their existing middle-management positions. Block is already an example of it in practice. The company cut roughly 4,000 of its 10,000 roles in early 2026, and CEO Jack Dorsey framed the restructuring as permanent, replacing the traditional manager layer with a three-role model of individual contributors, directly responsible individuals, and player-coaches.
+
+Engineering teams aren't exempt from that pressure, but the shape it takes there is more specific than "fewer managers." AI didn't remove the need for engineering management. It absorbed the half of the job that was never really about engineering, status reporting, scheduling, workflow tracking, the coordination overhead that used to justify one manager for every six to eight engineers. What's left doesn't shrink evenly. It splits into two different jobs, and they're pulling in opposite directions.
+
+## Name what AI actually took over
+
+Before the split makes sense, it helps to be specific about what disappeared. An engineering manager's week used to be a mix of two things that got bundled together mostly by convenience: technical judgment (is this architecture sound, does this PR fit our conventions) and coordination overhead (status updates, sprint ceremonies, cross-team scheduling, chasing down blockers).
+
+AI is good at the second category and still weak at the first. A tool that drafts a status update from commit history, flags a stalled ticket, or schedules around three calendars doesn't need judgment, it needs pattern-matching against structured data, which is exactly what these systems do well. That's the part of the job getting automated first and fastest, which is also why the effect shows up as a widening span of control rather than an even reduction across the board. LeadDev's reporting on this found that Google removed 35% of the managers who were leading teams of fewer than three people, and that Amazon raised its engineer-to-manager ratio by 15% over the same stretch. Fewer people are needed to hold the coordination layer together, so the org charts are getting shorter.
+
+## The two paths the remaining role splits into
+
+Once the coordination work stops requiring a dedicated person, what's left of "engineering manager" doesn't converge on one redesigned job. It forks, because the two halves of the old role scale in opposite directions.
+
+**The tech lead manager (TLM) path** goes back to writing code daily while managing a small team, usually the same team whose work they're contributing to. This isn't a new invention, it's the return of a role that existed before engineering management became a full-time, largely non-technical career track. It's viable again because AI now carries enough of the reporting and scheduling load that a working engineer can absorb what's left without it eating the whole week. LeadDev's 2026 survey of 600 engineering leaders backs up how fast this is moving: the share of EMs doing hands-on technical work rose from about 20% to 35% in twelve months. That's not a fringe pattern, it's a fifth of the surveyed population moving in the same direction inside a single year.
+
+**The expanded multi-team EM path** goes the other way. It drops hands-on coding almost entirely and takes on a much wider span of control instead, several small teams across different product areas rather than one team closely. This version of the role leans hard into coaching, cross-team alignment, and organizational judgment that doesn't depend on knowing any one codebase intimately. It's the direct beneficiary of AI absorbing coordination work: a manager who isn't tracking that work by hand can plausibly oversee more of it at once, which is exactly the wider ratio Google and Amazon are reporting.
+
+Neither path is a downgrade. They're specializations of a job that used to average the two together, and averaging is exactly what stops making sense once the coordination half gets automated out.
+
+## Why picking a lane matters more than staying flexible
+
+The instinct to stay generalist, a bit technical, a bit people-focused, worked when the job was one thing. It stops working once the job is two things pulling against each other, because the skills that make someone good at one path actively atrophy time spent on the other.
+
+A TLM who spends a quarter mostly in meetings loses the technical currency the role depends on: [reviewing AI-generated code well requires staying sharp enough to catch the version that looks clean but solves the wrong problem](/reviewing-ai-generated-code), and that instinct doesn't survive on autopilot. An expanded multi-team EM who keeps trying to review code across teams they don't work in daily is spending scarce time on technical depth that was never going to be deep enough to matter, instead of the coaching and cross-team judgment that's actually scaling with their span of control.
+
+This is also where the flattening trend carries a real cost worth naming rather than waving away. Gartner's own prediction pairs the middle-management cuts with a warning: atrophy of critical-thinking skills from over-relying on AI is serious enough that half of organizations are expected to require AI-free skills assessments by the end of 2026. The same risk shows up in how a flatter org trains its next generation of managers. Fewer middle managers means fewer people whose whole job was modeling judgment for someone earlier in their career, which is the same gap already showing up in [how junior engineers learn without the boilerplate work that used to teach them](/keeping-the-junior-pipeline-alive). A flatter structure doesn't just change who reports to whom. It changes who's around to absorb what the org charts used to make someone's explicit job.
+
+## What to actually do with this
+
+If you're deciding which path fits, the honest test isn't which one sounds more appealing. It's which skill you'd rather keep sharp under time pressure, because time pressure is exactly when a generalist attempt at both collapses into neither.
+
+For the TLM path: protect real coding time on the calendar the same way you'd protect an on-call rotation, and treat staying current with the codebase as a job requirement, not a nostalgia project. The smaller team size is the tradeoff that makes this sustainable. Don't let the team grow past what one working engineer can actually stay close to.
+
+For the expanded EM path: stop treating "I used to code" as a credential that still applies, and invest instead in the domain-agnostic parts of the job, coaching, [what actually keeps individual contributors engaged across a wider set of teams](/motivate-individual-contributors), and reading team health signals you can't get from a dashboard. The wider span of control only pays off if the coordination overhead genuinely stays automated. It reappears fast if a manager tries to manually track five teams the way they used to track one.
+
+For an org deciding how to structure this instead of an individual navigating it: decide deliberately which teams need a TLM and which need an expanded EM, rather than letting the split happen by attrition as managers each drift toward whichever half of the old job they personally preferred. The org chart that results from a deliberate choice looks different, and holds up better under review, than one that results from nobody deciding.
+
+## The shift underneath both paths
+
+Neither fork of this role is really new. The TLM existed before management professionalized into its own track, and the multi-team EM is closer to a director role than most companies would have called it two years ago. What's new is that AI made both viable at the same time, by removing the coordination overhead that used to force a choice between doing one job adequately or the other job not at all.
+
+That's worth sitting with past the immediate question of which path to pick. The flattening Gartner is describing isn't a one-time cut. It's a standing bet that coordination work stays automated well enough that the remaining managers can specialize instead of generalize. If that bet holds, the split described here is the shape engineering management settles into. If it doesn't, and the coordination work quietly creeps back onto someone's desk, the two paths collapse back toward the averaged-out job they came from, just with fewer people left to do it.
