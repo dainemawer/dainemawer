@@ -18,37 +18,11 @@ export const metadata: Metadata = {
   },
 };
 
-// The design's left rail: the direct routes, sticky alongside the form. The
-// first is the address itself; the rest are the profiles that let someone
-// verify this is a real person before writing.
-function DirectNav() {
-  return (
-    <nav
-      aria-label="Direct"
-      className="flex flex-col gap-3.5 md:sticky md:top-10 md:self-start"
-    >
-      <div className="text-faint text-xs">Direct</div>
-      {contact.elsewhere.map((item) => (
-        <a
-          key={item.href}
-          href={item.href}
-          className="text-ink text-sm transition-opacity duration-140 ease-out hover:opacity-60 focus-visible:opacity-60"
-          {...(item.href.startsWith("http")
-            ? { target: "_blank", rel: "me noreferrer" }
-            : {})}
-        >
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
 export default function ContactPage() {
   return (
     <>
       <JsonLd schema={contactPageSchema()} />
-      <PageShell sidebar={<DirectNav />}>
+      <PageShell sidebar={null}>
         <div className="mx-auto max-w-content">
           <Breadcrumb
             items={[{ label: "Home", href: "/" }, { label: "Contact" }]}

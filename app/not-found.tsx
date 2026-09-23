@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Logo } from "@/components/logo";
 import { PageShell } from "@/components/page-shell";
 
 export const metadata: Metadata = {
@@ -11,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <PageShell sidebar={<Logo />}>
+    <PageShell sidebar={null}>
       <div className="mx-auto max-w-content">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Not found" }]}

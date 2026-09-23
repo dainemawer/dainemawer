@@ -7,9 +7,67 @@ import { trackEvent } from "@/lib/analytics";
 import { formatPostDate } from "@/lib/format";
 import type { Post } from "@/lib/posts";
 import {
+  buildSearchEntries,
+  filterSearchEntries,
+  SEARCH_GROUPS,
+  type SearchEntry,
+} from "@/lib/search";
+import {
   useCommandPaletteOpen,
   useSetCommandPaletteOpen,
 } from "./command-palette-context";
+
+// One result row. Renders an <a> for the route-handler endpoints and a
+// <Link> for real pages, so a click behaves the same way Enter does — the
+// keyboard path goes through `select`, and this keeps the pointer path from
+// quietly diverging from it.
+function PaletteOption({
+  entry,
+  selected,
+  onHover,
+  onChoose,
+}: {
+  entry: SearchEntry;
+  selected: boolean;
+  onHover: () => void;
+  onChoose: () => void;
+}) {
+  const shared = {
+    id: `command-palette-option-${entry.id}`,
+    role: "option" as const,
+    "aria-selected": selected,
+    onMouseEnter: onHover,
+    tabIndex: -1,
+    className: `grid grid-cols-1 gap-x-5 gap-y-0.5 rounded-md p-2 text-left sm:grid-cols-result sm:items-baseline sm:gap-y-0 ${selected ? "bg-ink/5" : ""}`,
+  };
+
+  const body = (
+    <>
+      <div className="text-xs text-faint sm:text-right">{entry.meta}</div>
+      <div className="flex flex-col gap-0.5">
+        <div className="font-medium text-base text-ink tracking-tight text-pretty">
+          {entry.label}
+        </div>
+        <div className="text-muted text-sm text-pretty">
+          {entry.description}
+        </div>
+      </div>
+    </>
+  );
+
+  if (entry.external) {
+    return (
+      <a href={entry.href} onClick={onChoose} {...shared}>
+        {body}
+      </a>
+    );
+  }
+  return (
+    <Link href={entry.href} onClick={onChoose} {...shared}>
+      {body}
+    </Link>
+  );
+}
 
 export function CommandPalette({ posts }: { posts: Post[] }) {
   const open = useCommandPaletteOpen();
@@ -20,13 +78,29 @@ export function CommandPalette({ posts }: { posts: Post[] }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return posts;
-    return posts.filter((post) =>
-      `${post.title} ${post.dek}`.toLowerCase().includes(q),
-    );
-  }, [posts, query]);
+  const entries = useMemo(
+    () => buildSearchEntries(posts, formatPostDate),
+    [posts],
+  );
+
+  const results = useMemo(
+    () => filterSearchEntries(entries, query),
+    [entries, query],
+  );
+
+  // Sliced back into display groups, but every entry keeps the index it has
+  // in `results` — the cursor stays one flat number, so ↑↓ walk straight
+  // across a group boundary with no special casing.
+  const grouped = useMemo(
+    () =>
+      SEARCH_GROUPS.map((group) => ({
+        group,
+        items: results
+          .map((entry, index) => ({ entry, index }))
+          .filter((row) => row.entry.group === group),
+      })).filter((section) => section.items.length > 0),
+    [results],
+  );
 
   // Debounced so a search event fires once the user stops typing, not on
   // every keystroke.
@@ -69,9 +143,15 @@ export function CommandPalette({ posts }: { posts: Post[] }) {
     setCursor(0);
   }
 
-  function select(slug: string) {
+  function select(entry: SearchEntry) {
     close();
-    router.push(`/${slug}`);
+    // The feeds, llms.txt and the markdown twins are route handlers rather
+    // than React routes, so there's nothing for the client router to render.
+    if (entry.external) {
+      window.location.href = entry.href;
+      return;
+    }
+    router.push(entry.href);
   }
 
   return (
@@ -91,21 +171,21 @@ export function CommandPalette({ posts }: { posts: Post[] }) {
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label="Search writing"
+        aria-label="Search this site"
         className="flex max-h-palette w-full max-w-155 flex-col overflow-hidden rounded-palette bg-surface p-4 pb-5 shadow-palette outline-none sm:p-6"
       >
         <div className="flex items-baseline gap-3">
           <input
             ref={inputRef}
             role="combobox"
-            aria-label="Search writing"
+            aria-label="Search this site"
             aria-expanded="true"
             aria-haspopup="listbox"
             aria-controls="command-palette-listbox"
             aria-autocomplete="list"
             aria-activedescendant={
               results[cursor]
-                ? `command-palette-option-${results[cursor].slug}`
+                ? `command-palette-option-${results[cursor].id}`
                 : undefined
             }
             value={query}
@@ -127,10 +207,10 @@ export function CommandPalette({ posts }: { posts: Post[] }) {
                     : 0,
                 );
               } else if (event.key === "Enter" && results[cursor]) {
-                select(results[cursor].slug);
+                select(results[cursor]);
               }
             }}
-            placeholder="Search writing"
+            placeholder="Search articles, pages and endpoints"
             className="flex-1 rounded-md border-none bg-transparent text-md text-ink outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-ink/15"
           />
           <span className="font-mono text-2xs text-faint">esc</span>
@@ -142,32 +222,34 @@ export function CommandPalette({ posts }: { posts: Post[] }) {
           aria-label="Search results"
           className="mt-5 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain"
         >
-          {results.map((post, index) => (
-            <Link
-              key={post.slug}
-              id={`command-palette-option-${post.slug}`}
-              role="option"
-              aria-selected={index === cursor}
-              href={`/${post.slug}`}
-              onClick={close}
-              onMouseEnter={() => setCursor(index)}
-              tabIndex={-1}
-              className={`grid grid-cols-1 gap-x-5 gap-y-0.5 rounded-md p-2 text-left sm:grid-cols-result sm:items-baseline sm:gap-y-0 ${index === cursor ? "bg-ink/5" : ""}`}
+          {grouped.map((section) => (
+            // biome-ignore lint/a11y/useSemanticElements: ARIA allows only `option` and `group` as children of role="listbox", so role="group" on a div is the correct construct here; the suggested <fieldset> carries form semantics and is not valid in that position.
+            <div
+              key={section.group}
+              role="group"
+              aria-label={section.group}
+              className="flex flex-col gap-5"
             >
-              <div className="text-xs text-faint sm:text-right">
-                {formatPostDate(post.date)}
+              {/* aria-hidden because the group's accessible name already
+                  carries this; leaving it exposed makes a screen reader
+                  announce the heading twice per section. */}
+              <div aria-hidden="true" className="text-2xs text-faint">
+                {section.group}
               </div>
-              <div className="flex flex-col gap-0.5">
-                <div className="text-base font-medium tracking-tight text-ink text-pretty">
-                  {post.title}
-                </div>
-                <div className="text-sm text-muted text-pretty">{post.dek}</div>
-              </div>
-            </Link>
+              {section.items.map(({ entry, index }) => (
+                <PaletteOption
+                  key={entry.id}
+                  entry={entry}
+                  selected={index === cursor}
+                  onHover={() => setCursor(index)}
+                  onChoose={() => select(entry)}
+                />
+              ))}
+            </div>
           ))}
           {results.length === 0 && (
             <div className="text-md text-faint">
-              Nothing here — try “sticky”, “storybook”, “estimation”.
+              Nothing here — try “sticky”, “storybook”, “uses”, “rss”.
             </div>
           )}
         </div>

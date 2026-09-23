@@ -33,7 +33,6 @@ export const footerNav = [
       { label: "Speaking", href: "/about#speaking" },
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
-      { label: "Privacy", href: "/privacy" },
     ],
   },
   {

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Logo } from "@/components/logo";
 import { PageShell } from "@/components/page-shell";
 
 export default function RouteError({
@@ -17,7 +16,7 @@ export default function RouteError({
   }, [error]);
 
   return (
-    <PageShell sidebar={<Logo />}>
+    <PageShell sidebar={null}>
       <div className="mx-auto max-w-content">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Error" }]}

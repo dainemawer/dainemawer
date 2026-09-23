@@ -21,7 +21,7 @@ const ERROR_COPY: Record<string, string> = {
 // is a dedicated token rather than `divider` because the underline is the
 // only thing marking the control out (see app/globals.css).
 const fieldClass =
-  "w-full border-field border-b bg-transparent py-2 text-ink text-md outline-none placeholder:text-faint focus-visible:border-ink focus-visible:ring-0";
+  "w-full border-field border-b bg-transparent py-2 text-ink text-md outline-none placeholder:text-faint focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-ink/15";
 const labelClass = "text-faint text-sm sm:pt-2 sm:text-right";
 // Matches MetaRow's own grid so the form's rows line up with the label
 // column used by every other row on the page.
@@ -140,7 +140,7 @@ export function ContactForm() {
               // The selected option is underlined as well as darkened: the
               // design signalled it with opacity alone, which is both a
               // colour-only cue (WCAG 1.4.1) and, at 0.32, unreadable.
-              className={`cursor-pointer underline-offset-6 transition-colors duration-140 ease-out hover:text-ink focus-within:ring-2 focus-within:ring-ink/15 ${
+              className={`cursor-pointer underline-offset-6 transition-colors duration-140 ease-out hover:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/15 ${
                 reason === item.value
                   ? "text-ink underline decoration-ink"
                   : "text-muted no-underline"
