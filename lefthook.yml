@@ -6,7 +6,7 @@ pre-commit:
       run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
     lint-mdx:
-      glob: "content/posts/*.mdx"
+      glob: "apps/blog/content/posts/*.mdx"
       run: pnpm exec remark --quiet --frail {staged_files}
 
 commit-msg:

@@ -91,6 +91,12 @@ export const agents = {
       description: "The homepage article index, as Markdown.",
     },
     {
+      label: "contact.md",
+      href: "/contact.md",
+      description:
+        "Who publishes this site, how to reach a human, and what's worth writing about.",
+    },
+    {
       label: "sitemap.xml",
       href: "/sitemap.xml",
       description: "Every canonical URL, with last-modified dates.",

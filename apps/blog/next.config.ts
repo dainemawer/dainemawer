@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -51,6 +52,11 @@ const cspHeader = `
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
+  // The pnpm lockfile lives at the monorepo root, one level up from this
+  // app — without this, Next infers the wrong root from the topmost
+  // lockfile it finds and warns (or mis-traces serverless output) since
+  // moving into apps/blog.
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   async headers() {
     return [
       {

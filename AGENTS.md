@@ -1,30 +1,25 @@
 # Agent Guide
 
-Working conventions for this repo. This section is hand-maintained — only the block below it is auto-managed by `next dev`.
+Working conventions for this repo — a pnpm + Turborepo monorepo.
+
+## Layout
+
+- `apps/blog` — the Next.js blog ([dainemawer.com](https://www.dainemawer.com)). See its own [AGENTS.md](./apps/blog/AGENTS.md) for blog-specific conventions (Markdown content negotiation, this repo's customized Next.js).
+- `packages/*` — shared packages, reserved for a future client portal app. Empty for now.
 
 ## Package manager
 
-This project uses **pnpm** exclusively. Do not use `npm` or `yarn` — there is no `package-lock.json` or `yarn.lock`, only `pnpm-lock.yaml`. Run `corepack enable` if `pnpm` isn't already available; the pinned version is in `package.json`'s `packageManager` field.
+This project uses **pnpm** + **Turborepo** exclusively. Do not use `npm` or `yarn` — there is no `package-lock.json` or `yarn.lock`, only `pnpm-lock.yaml`. Run `corepack enable` if `pnpm` isn't already available; the pinned version is in the root `package.json`'s `packageManager` field.
 
-- `pnpm install` — install dependencies
-- `pnpm dev` — start the dev server
-- `pnpm build` — production build
-- `pnpm lint` — run Biome checks (code files only — see `.remarkrc.mjs` for MDX prose)
-- `pnpm lint:mdx` — lint `content/posts/*.mdx` prose with remark (headings, lists, links)
-- `pnpm test` — run the unit tests in `tests/` (`node --test` via `tsx`, no other runner)
-- `pnpm format` — apply Biome formatting
+- `pnpm install` — install dependencies for every workspace package
+- `pnpm dev` — start every app's dev server (`turbo run dev`)
+- `pnpm build` — production build for every app (`turbo run build`)
+- `pnpm lint` — run Biome checks across the whole repo (code files only — see each app's `.remarkrc.mjs` for MDX prose)
+- `pnpm lint:mdx` — lint each app's MDX prose with remark (`turbo run lint:mdx`)
+- `pnpm test` — run each app's unit tests (`turbo run test`)
+- `pnpm format` — apply Biome formatting across the whole repo
 
-## Markdown content negotiation
-
-Every page is served as HTML or Markdown from the same canonical URL, per [acceptmarkdown.com](https://acceptmarkdown.com). The moving parts:
-
-- `lib/content-negotiation.ts` — `Accept` parsing (q-values, specificity, `q=0`), `Vary` merging, path mapping. Pure, and unit-tested.
-- `proxy.ts` — rewrites a page request to its Markdown twin when `text/markdown` wins, returns 406 when the client accepts neither, and passes RSC/Server Function traffic through untouched.
-- `app/md/[[...path]]/route.ts` — the single Markdown handler, reached three ways: the negotiation rewrite, the public `/:slug.md` rewrites in `next.config.ts`, and directly.
-- `lib/markdown-pages.ts` — builds the Markdown for every route, including the 404 body.
-- `lib/agents.ts` — the when-to-use guidance and endpoint list shared by `/agents`, `/agents.md` and `llms.txt`.
-
-Adding a page means adding it to `lib/markdown-pages.ts` (and `app/sitemap.ts`), or agents get the 404 document for it.
+Scope a command to one app with `pnpm --filter <name> <script>` (e.g. `pnpm --filter blog dev`) or `turbo run build --filter=blog`. App names match their `package.json` `name` field, not the directory (`blog`, not `apps/blog`).
 
 ## Commits
 
@@ -34,7 +29,7 @@ Commit messages must follow [Conventional Commits](https://www.conventionalcommi
 
 Git hooks are managed by [Lefthook](https://github.com/evilmartians/lefthook) (`lefthook.yml`), installed automatically via the `prepare` script on `pnpm install`:
 
-- `pre-commit` — runs Biome against staged code files and remark against staged `content/posts/*.mdx` files
+- `pre-commit` — runs Biome against staged code files (repo-wide) and remark against staged `apps/blog/content/posts/*.mdx` files
 - `commit-msg` — validates the commit message against Conventional Commits
 
 Do not bypass hooks (`--no-verify`) unless explicitly instructed to.
@@ -62,13 +57,3 @@ Skills installed via [skills.sh](https://www.skills.sh) live in `.agents/skills/
 | `ai-seo` | Optimizing content to be cited/surfaced by AI search engines (AI Overviews, ChatGPT, Perplexity). |
 | `writing-guidelines` | Reviewing blog post prose, voice, and tone against the writing handbook. |
 | `best-practices` | General security, compatibility, and code quality review. |
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->

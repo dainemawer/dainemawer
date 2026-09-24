@@ -1,10 +1,10 @@
-export const privacyUpdated = "2026-09-05";
+export const privacyUpdated = "2026-09-23";
 
 export const privacySections: { id: string; label: string; body: string }[] = [
   {
     id: "overview",
     label: "Overview",
-    body: "This site is run by Daine Mawer, published independently of any employer. It collects the minimum data needed to understand readership and let visitors subscribe to new posts — no accounts, no comments, no data sold to anyone.",
+    body: "This site is run by Daine Mawer, published independently of any employer. It collects the minimum data needed to understand readership and let visitors subscribe to new posts, and let them send a message — no accounts, no comments, no data sold to anyone.",
   },
   {
     id: "analytics",
@@ -20,6 +20,11 @@ export const privacySections: { id: string; label: string; body: string }[] = [
     id: "newsletter",
     label: "Newsletter",
     body: "If you subscribe, your email address is stored only to deliver new-post notifications and is passed to the third-party email service used to send them. It is never shared for any other purpose. Every email includes an unsubscribe link, which removes your address immediately.",
+  },
+  {
+    id: "contact-form",
+    label: "Contact form",
+    body: "Submitting the form on the contact page sends your name, email address, what the message is about, and the message itself to a personal inbox, delivered through the same third-party email service the newsletter uses. It's used to reply to you and nothing else: it is never added to the mailing list, never passed to anyone, and never used to build a profile. Messages are kept as long as the correspondence is useful and deleted on request. Analytics records only that a submission happened and which category it was filed under — never your name, address or the contents of the message.",
   },
   {
     id: "hosting",
