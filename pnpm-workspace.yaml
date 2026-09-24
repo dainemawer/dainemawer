@@ -3,8 +3,12 @@ packages:
   - packages/*
 
 allowBuilds:
+  '@prisma/engines': true
   esbuild: true
   lefthook: true
+  prisma: true
 onlyBuiltDependencies:
+  - '@prisma/engines'
   - esbuild
   - lefthook
+  - prisma

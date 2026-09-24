@@ -1,0 +1,160 @@
+// MVP schema for the client portal — see the "Data model" and "Phasing"
+// sections of the technical spec. SLA/e-signature is deferred (vendor not
+// chosen yet), so there's no SLA model here.
+//
+// User/Session/Account/Verification are intentionally absent: once
+// packages/auth wires up Better Auth, its own CLI generates those models
+// into this file (extended with role/clientId as additional fields) rather
+// than us hand-maintaining a schema that has to stay in sync with it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 moved the connection URL out of here and into prisma.config.ts
+// (for the CLI) plus a driver adapter (for the runtime client) — see both
+// in this package. `provider` is still declared here; `url` is not.
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum RequestStatus {
+  SUBMITTED
+  ESTIMATED
+  APPROVED
+  IN_PROGRESS
+  DONE
+}
+
+enum BugSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SizeTier {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects Project[]
+
+  @@map("clients")
+}
+
+model Project {
+  id        String        @id @default(cuid())
+  clientId  String
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  status    ProjectStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  milestones     Milestone[]
+  changeRequests ChangeRequest[]
+  bugReports     BugReport[]
+  invoices       Invoice[]
+
+  @@index([clientId])
+  @@map("projects")
+}
+
+model Milestone {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  dueDate   DateTime?
+  done      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+model ChangeRequest {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  status      RequestStatus @default(SUBMITTED)
+  sizeTier    SizeTier?
+  estimate    Estimate?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([projectId])
+  @@map("change_requests")
+}
+
+model BugReport {
+  id            String        @id @default(cuid())
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String
+  severity      BugSeverity   @default(MEDIUM)
+  screenshotUrl String?
+  status        RequestStatus @default(SUBMITTED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([projectId])
+  @@map("bug_reports")
+}
+
+// One-to-one with ChangeRequest: the formula-derived draft the site owner
+// confirms before a client ever sees a number (see "Real-time cost
+// estimation" in the spec).
+model Estimate {
+  id              String        @id @default(cuid())
+  changeRequestId String        @unique
+  changeRequest   ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  hours           Decimal
+  amount          Decimal
+  confirmed       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("estimates")
+}
+
+// Mirrors a Stripe invoice; this table is never the source of truth for
+// payment state, Stripe is (see "Invoicing" in the spec).
+model Invoice {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  amount          Decimal
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([projectId])
+  @@map("invoices")
+}
