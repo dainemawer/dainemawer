@@ -2,10 +2,11 @@
 // sections of the technical spec. SLA/e-signature is deferred (vendor not
 // chosen yet), so there's no SLA model here.
 //
-// User/Session/Account/Verification are intentionally absent: once
-// packages/auth wires up Better Auth, its own CLI generates those models
-// into this file (extended with role/clientId as additional fields) rather
-// than us hand-maintaining a schema that has to stay in sync with it.
+// User/Session/Account/Verification live in Neon's own `neon_auth` schema
+// (Managed Better Auth) — not modeled here, and not something we introspect
+// or migrate. UserProfile below is our own extension table, joined by id to
+// whatever the neon_auth user id is, since Managed Auth doesn't support
+// custom fields on its user model.
 
 generator client {
   provider = "prisma-client-js"
@@ -59,8 +60,30 @@ model Client {
   updatedAt DateTime @updatedAt
 
   projects Project[]
+  profiles UserProfile[]
 
   @@map("clients")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+// Extends the neon_auth user with what this app actually needs to know:
+// which side of the fence they're on, and (for a client) which tenant.
+// `id` is not generated here — it's set to match the neon_auth user's id
+// when the profile row is created (e.g. on first sign-in), never on its own.
+model UserProfile {
+  id        String   @id
+  role      Role     @default(CLIENT)
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@map("user_profiles")
 }
 
 model Project {
