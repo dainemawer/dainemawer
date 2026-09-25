@@ -5,7 +5,8 @@ Working conventions for this repo — a pnpm + Turborepo monorepo.
 ## Layout
 
 - `apps/blog` — the Next.js blog ([dainemawer.com](https://www.dainemawer.com)). See its own [AGENTS.md](./apps/blog/AGENTS.md) for blog-specific conventions (Markdown content negotiation, this repo's customized Next.js).
-- `packages/*` — shared packages, reserved for a future client portal app. Empty for now.
+- `apps/portal` — the client portal (project status, change requests, estimates, invoicing). Still a bare shell — see its own [AGENTS.md](./apps/portal/AGENTS.md).
+- `packages/db` — Prisma schema and client for the portal's data, on Neon Postgres. See the technical spec's "Data model" section for the entities.
 
 ## Package manager
 
