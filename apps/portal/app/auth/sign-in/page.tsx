@@ -5,18 +5,34 @@ import { authClient } from "@/lib/auth/client";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"magic-link" | "password">("password");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleMagicLinkSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
     setStatus("sending");
     try {
+      // Must be absolute: verification happens on Neon's hosted auth
+      // domain, not ours, so a relative path can't be resolved against
+      // our origin — it gets treated as relative to Neon's own domain
+      // instead, and the post-verify redirect 404s there.
+      //
+      // NOTE (2026-09-26): Magic Link is temporarily unusable — Neon's
+      // beta SDK (@neondatabase/auth 0.5.0-beta) never sets the session
+      // challenge cookie its own cross-origin verifier exchange depends
+      // on, so clicking the emailed link never establishes a local
+      // session no matter what. Confirmed via curl: the sign-in POST
+      // response carries no Set-Cookie at all. Password sign-in below is
+      // the working path until Neon fixes this upstream.
       const { error } = await authClient.signIn.magicLink({
         email,
-        callbackURL: "/dashboard",
+        callbackURL: `${window.location.origin}/dashboard`,
       });
       if (error) {
         setStatus("error");
@@ -25,9 +41,25 @@ export default function SignInPage() {
       }
       setStatus("sent");
     } catch (caught) {
-      // The SDK throws (rather than resolving to { error }) for some
-      // failure modes — e.g. a 404 when the Magic Link plugin isn't
-      // enabled on the branch yet.
+      setStatus("error");
+      setErrorMessage(
+        caught instanceof Error ? caught.message : "Something went wrong.",
+      );
+    }
+  }
+
+  async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("sending");
+    try {
+      const { error } = await authClient.signIn.email({ email, password });
+      if (error) {
+        setStatus("error");
+        setErrorMessage(error.message ?? "Something went wrong.");
+        return;
+      }
+      window.location.href = "/dashboard";
+    } catch (caught) {
       setStatus("error");
       setErrorMessage(
         caught instanceof Error ? caught.message : "Something went wrong.",
@@ -56,32 +88,90 @@ export default function SignInPage() {
         <p style={styles.eyebrow}>Portal</p>
         <h1 style={styles.heading}>Sign in</h1>
         <p style={styles.subtext}>Enter your email to access your project.</p>
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label} htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@company.com"
-            style={styles.input}
-          />
+
+        {mode === "password" ? (
+          <form onSubmit={handlePasswordSubmit} style={styles.form}>
+            <label style={styles.label} htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@company.com"
+              style={styles.input}
+            />
+            <label style={styles.label} htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              style={styles.input}
+            />
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              style={styles.button}
+            >
+              {status === "sending" ? "Signing in…" : "Sign in"}
+            </button>
+            {status === "error" && (
+              <p style={styles.error} role="alert">
+                {errorMessage}
+              </p>
+            )}
+          </form>
+        ) : (
+          <form onSubmit={handleMagicLinkSubmit} style={styles.form}>
+            <label style={styles.label} htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@company.com"
+              style={styles.input}
+            />
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              style={styles.button}
+            >
+              {status === "sending" ? "Sending…" : "Email me a sign-in link"}
+            </button>
+            {status === "error" && (
+              <p style={styles.error} role="alert">
+                {errorMessage}
+              </p>
+            )}
+          </form>
+        )}
+
+        <p style={styles.footnote}>
           <button
-            type="submit"
-            disabled={status === "sending"}
-            style={styles.button}
+            type="button"
+            onClick={() => {
+              setMode(mode === "password" ? "magic-link" : "password");
+              setStatus("idle");
+              setErrorMessage("");
+            }}
+            style={styles.linkButton}
           >
-            {status === "sending" ? "Sending…" : "Email me a sign-in link"}
+            {mode === "password"
+              ? "Use a sign-in link instead"
+              : "Use a password instead"}
           </button>
-          {status === "error" && (
-            <p style={styles.error} role="alert">
-              {errorMessage}
-            </p>
-          )}
-        </form>
+        </p>
         <p style={styles.footnote}>
           Access is by invitation. Need help?{" "}
           <a href="mailto:hello@dainemawer.com" style={styles.link}>
@@ -160,7 +250,16 @@ const styles: Record<string, React.CSSProperties> = {
   footnote: {
     color: "#767676",
     fontSize: "0.84375rem",
-    marginTop: "3rem",
+    marginTop: "1rem",
+  },
+  linkButton: {
+    background: "none",
+    border: "none",
+    padding: 0,
+    color: "#111111",
+    textDecoration: "underline",
+    cursor: "pointer",
+    fontSize: "inherit",
   },
   link: {
     color: "#111111",

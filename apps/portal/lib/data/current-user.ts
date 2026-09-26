@@ -26,15 +26,21 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
   });
 
   if (!profile) {
+    // upsert, not findUnique-then-create: the dashboard layout and page
+    // both call this concurrently on a first-ever sign-in, and a plain
+    // create() races — whichever loses hits a unique-constraint error on
+    // id. upsert makes the losing call a no-op update instead of a crash.
     const fallbackClient = await prisma.client.findFirst({
       orderBy: { createdAt: "asc" },
     });
-    profile = await prisma.userProfile.create({
-      data: {
+    profile = await prisma.userProfile.upsert({
+      where: { id: session.user.id },
+      create: {
         id: session.user.id,
         role: "CLIENT",
         clientId: fallbackClient?.id ?? null,
       },
+      update: {},
     });
   }
 
