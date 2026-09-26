@@ -1,6 +1,5 @@
 import { getCurrentUserContext } from "@/lib/data/current-user";
 import { getMilestones } from "@/lib/data/milestones";
-import { colors } from "@/lib/tokens";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
@@ -14,41 +13,31 @@ function formatDate(date: Date | null) {
 export default async function TimelinePage() {
   const { project } = await getCurrentUserContext();
   if (!project) {
-    return <p style={{ color: colors.muted }}>No project assigned yet.</p>;
+    return <p className="text-md text-muted">No project assigned yet.</p>;
   }
 
   const milestones = await getMilestones(project.id);
 
   return (
     <div>
-      <p style={{ color: colors.faint, margin: 0 }}>{project.name}</p>
-      <h1 style={{ color: colors.ink, margin: "0.5rem 0 2rem" }}>Timeline</h1>
+      <p className="m-0 text-faint text-xs">{project.name}</p>
+      <h1 className="my-2 mb-8 text-2xl text-ink">Timeline</h1>
 
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      <ul className="m-0 list-none p-0">
         {milestones.map((milestone) => (
           <li
             key={milestone.id}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "6.25rem 1fr",
-              gap: "1rem",
-              padding: "1rem 0",
-              borderBottom: `1px solid ${colors.divider}`,
-            }}
+            className="grid grid-cols-meta gap-4 border-divider border-b py-4"
           >
-            <span style={{ color: colors.faint }}>
-              {formatDate(milestone.dueDate)}
-            </span>
+            <span className="text-faint">{formatDate(milestone.dueDate)}</span>
             <div>
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-              >
-                <span style={{ fontFamily: "monospace", color: colors.muted }}>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-muted">
                   {milestone.done ? "●" : "○"}
                 </span>
-                <strong style={{ color: colors.ink }}>{milestone.title}</strong>
+                <strong className="text-ink">{milestone.title}</strong>
               </div>
-              <p style={{ color: colors.muted, margin: "0.25rem 0 0" }}>
+              <p className="mt-1 text-muted">
                 {milestone.done ? "complete" : "planned"}
               </p>
             </div>

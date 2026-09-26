@@ -1,8 +1,49 @@
-:root {
-  color-scheme: light dark;
+@import "tailwindcss";
+
+/*
+ * Design tokens duplicated from apps/blog/app/globals.css — same Claude
+ * Design source ("Minimal blog design"), reused verbatim rather than
+ * hand-rolled approximations, since the Portal mockup's measured styles
+ * (nav text, body text, stat numbers, sidebar width) match the blog's
+ * tokens exactly. Move to a shared packages/ui if a third app needs them.
+ *
+ * `--color-error` has no blog equivalent — the portal's own addition for
+ * form/auth error text, still held to the same ~4.5:1 AA floor.
+ */
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* Colors */
+  --color-ink: #111111;
+  --color-muted: #6b6b6b; /* ~5.3:1 on white — WCAG AA for normal text */
+  --color-faint: #767676; /* ~4.5:1 on white — WCAG AA minimum for normal text */
+  --color-divider: #cfcfcf;
+  --color-surface: #ffffff;
+  --color-error: #b3261e; /* ~5.9:1 on white */
+
+  /* Type scale */
+  --text-xs: 0.84375rem; /* 13.5px - labels, table headers, captions */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.90625rem; /* 14.5px - nav links, meta text, dates */
+  --text-sm--line-height: 1.4;
+  --text-base: 1.0625rem; /* 17px - buttons (mockup measured 16px; consolidated) */
+  --text-base--line-height: 1.55;
+  --text-md: 1.1875rem; /* 19px - body/input text */
+  --text-md--line-height: 1.6;
+  --text-2xl: 1.875rem; /* 30px - h1 / stat numbers */
+  --text-2xl--line-height: 1.2;
+
+  /* Layout constants */
+  --grid-template-columns-shell: 13.25rem 1fr; /* 212px sidebar + content */
+  --grid-template-columns-meta: 6.25rem 1fr; /* 100px label + content row */
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }

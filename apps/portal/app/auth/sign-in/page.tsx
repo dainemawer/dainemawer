@@ -67,13 +67,19 @@ export default function SignInPage() {
     }
   }
 
+  const fieldClassName =
+    "mb-6 w-full border-0 border-b border-divider bg-transparent pt-2 pb-2.5 text-md text-ink outline-none";
+  const labelClassName = "block text-xs text-faint";
+  const buttonClassName =
+    "rounded-lg bg-ink px-6 py-3 text-base font-medium text-surface disabled:opacity-60";
+
   if (status === "sent") {
     return (
-      <main style={styles.main}>
-        <div style={styles.card}>
-          <p style={styles.eyebrow}>Portal</p>
-          <h1 style={styles.heading}>Check your email</h1>
-          <p style={styles.subtext}>
+      <main className="flex min-h-dvh items-center justify-center bg-surface p-8">
+        <div className="w-full max-w-sm">
+          <p className="m-0 text-xs text-faint">Portal</p>
+          <h1 className="my-2 text-2xl text-ink">Check your email</h1>
+          <p className="text-md text-muted">
             We sent a sign-in link to {email}. It works once and expires
             shortly.
           </p>
@@ -83,15 +89,17 @@ export default function SignInPage() {
   }
 
   return (
-    <main style={styles.main}>
-      <div style={styles.card}>
-        <p style={styles.eyebrow}>Portal</p>
-        <h1 style={styles.heading}>Sign in</h1>
-        <p style={styles.subtext}>Enter your email to access your project.</p>
+    <main className="flex min-h-dvh items-center justify-center bg-surface p-8">
+      <div className="w-full max-w-sm">
+        <p className="m-0 text-xs text-faint">Portal</p>
+        <h1 className="my-2 text-2xl text-ink">Sign in</h1>
+        <p className="mb-8 text-md text-muted">
+          Enter your email to access your project.
+        </p>
 
         {mode === "password" ? (
-          <form onSubmit={handlePasswordSubmit} style={styles.form}>
-            <label style={styles.label} htmlFor="email">
+          <form onSubmit={handlePasswordSubmit} className="flex flex-col">
+            <label className={labelClassName} htmlFor="email">
               Email
             </label>
             <input
@@ -101,9 +109,9 @@ export default function SignInPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@company.com"
-              style={styles.input}
+              className={fieldClassName}
             />
-            <label style={styles.label} htmlFor="password">
+            <label className={labelClassName} htmlFor="password">
               Password
             </label>
             <input
@@ -113,24 +121,24 @@ export default function SignInPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="••••••••"
-              style={styles.input}
+              className={fieldClassName}
             />
             <button
               type="submit"
               disabled={status === "sending"}
-              style={styles.button}
+              className={buttonClassName}
             >
               {status === "sending" ? "Signing in…" : "Sign in"}
             </button>
             {status === "error" && (
-              <p style={styles.error} role="alert">
+              <p className="mt-3 text-xs text-error" role="alert">
                 {errorMessage}
               </p>
             )}
           </form>
         ) : (
-          <form onSubmit={handleMagicLinkSubmit} style={styles.form}>
-            <label style={styles.label} htmlFor="email">
+          <form onSubmit={handleMagicLinkSubmit} className="flex flex-col">
+            <label className={labelClassName} htmlFor="email">
               Email
             </label>
             <input
@@ -140,24 +148,24 @@ export default function SignInPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@company.com"
-              style={styles.input}
+              className={fieldClassName}
             />
             <button
               type="submit"
               disabled={status === "sending"}
-              style={styles.button}
+              className={buttonClassName}
             >
               {status === "sending" ? "Sending…" : "Email me a sign-in link"}
             </button>
             {status === "error" && (
-              <p style={styles.error} role="alert">
+              <p className="mt-3 text-xs text-error" role="alert">
                 {errorMessage}
               </p>
             )}
           </form>
         )}
 
-        <p style={styles.footnote}>
+        <p className="mt-4 text-xs text-faint">
           <button
             type="button"
             onClick={() => {
@@ -165,16 +173,16 @@ export default function SignInPage() {
               setStatus("idle");
               setErrorMessage("");
             }}
-            style={styles.linkButton}
+            className="border-0 bg-transparent p-0 text-xs text-ink underline"
           >
             {mode === "password"
               ? "Use a sign-in link instead"
               : "Use a password instead"}
           </button>
         </p>
-        <p style={styles.footnote}>
+        <p className="mt-4 text-xs text-faint">
           Access is by invitation. Need help?{" "}
-          <a href="mailto:hello@dainemawer.com" style={styles.link}>
+          <a href="mailto:hello@dainemawer.com" className="text-ink">
             hello@dainemawer.com
           </a>
         </p>
@@ -182,86 +190,3 @@ export default function SignInPage() {
     </main>
   );
 }
-
-// Inline for now — packages/ui (the shared design system) doesn't exist
-// yet. Colors match apps/blog/app/globals.css exactly: #111 ink, #6b6b6b
-// muted (~5.3:1), #767676 is the AA floor (~4.5:1) and nothing here goes
-// lighter than that.
-const styles: Record<string, React.CSSProperties> = {
-  main: {
-    minHeight: "100dvh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#ffffff",
-    padding: "2rem",
-  },
-  card: {
-    width: "100%",
-    maxWidth: "24rem",
-  },
-  eyebrow: {
-    color: "#767676",
-    fontSize: "0.84375rem",
-    margin: 0,
-  },
-  heading: {
-    color: "#111111",
-    fontSize: "1.875rem",
-    margin: "0.5rem 0",
-  },
-  subtext: {
-    color: "#6b6b6b",
-    fontSize: "1.0625rem",
-    margin: "0 0 2rem",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5rem",
-  },
-  label: {
-    color: "#767676",
-    fontSize: "0.84375rem",
-  },
-  input: {
-    padding: "0.75rem 0",
-    border: "none",
-    borderBottom: "1px solid #cfcfcf",
-    fontSize: "1rem",
-    color: "#111111",
-    outline: "none",
-    marginBottom: "1.5rem",
-    background: "transparent",
-  },
-  button: {
-    padding: "0.75rem 1rem",
-    background: "#111111",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "0.375rem",
-    fontSize: "1rem",
-    cursor: "pointer",
-  },
-  error: {
-    color: "#b3261e",
-    fontSize: "0.84375rem",
-  },
-  footnote: {
-    color: "#767676",
-    fontSize: "0.84375rem",
-    marginTop: "1rem",
-  },
-  linkButton: {
-    background: "none",
-    border: "none",
-    padding: 0,
-    color: "#111111",
-    textDecoration: "underline",
-    cursor: "pointer",
-    fontSize: "inherit",
-  },
-  link: {
-    color: "#111111",
-  },
-};

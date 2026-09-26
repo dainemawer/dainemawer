@@ -1,4 +1,4 @@
-import { prisma } from "db";
+import { Prisma, prisma } from "db";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 
@@ -26,22 +26,38 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
   });
 
   if (!profile) {
-    // upsert, not findUnique-then-create: the dashboard layout and page
-    // both call this concurrently on a first-ever sign-in, and a plain
-    // create() races — whichever loses hits a unique-constraint error on
-    // id. upsert makes the losing call a no-op update instead of a crash.
+    // The dashboard layout and page both call this concurrently on a
+    // first-ever sign-in. upsert() alone still isn't race-safe here —
+    // Prisma's Postgres upsert is a SELECT-then-INSERT/UPDATE, not a
+    // single atomic statement, so both calls can find no row and both
+    // attempt the create; the loser hits a P2002 unique-constraint error
+    // on id instead of falling back to the row the winner just inserted.
+    // Catch that specific error and re-read the now-existing row.
     const fallbackClient = await prisma.client.findFirst({
       orderBy: { createdAt: "asc" },
     });
-    profile = await prisma.userProfile.upsert({
-      where: { id: session.user.id },
-      create: {
-        id: session.user.id,
-        role: "CLIENT",
-        clientId: fallbackClient?.id ?? null,
-      },
-      update: {},
-    });
+    try {
+      profile = await prisma.userProfile.upsert({
+        where: { id: session.user.id },
+        create: {
+          id: session.user.id,
+          role: "CLIENT",
+          clientId: fallbackClient?.id ?? null,
+        },
+        update: {},
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        profile = await prisma.userProfile.findUniqueOrThrow({
+          where: { id: session.user.id },
+        });
+      } else {
+        throw error;
+      }
+    }
   }
 
   const project = profile.clientId

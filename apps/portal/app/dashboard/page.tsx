@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getCurrentUserContext } from "@/lib/data/current-user";
 import { getOverviewData } from "@/lib/data/overview";
-import { colors } from "@/lib/tokens";
 
 export default async function OverviewPage() {
   const { project } = await getCurrentUserContext();
@@ -9,8 +8,8 @@ export default async function OverviewPage() {
   if (!project) {
     return (
       <div>
-        <h1>Overview</h1>
-        <p style={{ color: colors.muted }}>
+        <h1 className="text-2xl text-ink">Overview</h1>
+        <p className="text-md text-muted">
           No project is assigned to your account yet. Reach out to Daine to get
           set up.
         </p>
@@ -23,61 +22,48 @@ export default async function OverviewPage() {
 
   return (
     <div>
-      <p style={{ color: colors.faint, margin: 0 }}>Overview</p>
-      <h1 style={{ color: colors.ink, margin: "0.5rem 0" }}>{project.name}</h1>
-      <p style={{ color: colors.muted }}>
+      <p className="m-0 text-faint text-xs">Overview</p>
+      <h1 className="my-2 text-2xl text-ink">{project.name}</h1>
+      <p className="text-md text-muted">
         {milestoneProgress.completed} of {milestoneProgress.total} milestones
         complete.{" "}
-        <Link href="/dashboard/timeline" style={{ color: colors.ink }}>
+        <Link href="/dashboard/timeline" className="text-ink underline">
           Full timeline →
         </Link>
       </p>
 
-      <div style={{ display: "flex", gap: "3rem", margin: "2rem 0" }}>
+      <div className="my-8 flex gap-12">
         <div>
-          <strong style={{ fontSize: "1.5rem", color: colors.ink }}>
-            {openChangeRequests}
-          </strong>{" "}
-          <span style={{ color: colors.muted }}>change requests open</span>
+          <strong className="text-2xl text-ink">{openChangeRequests}</strong>{" "}
+          <span className="text-muted">change requests open</span>
         </div>
         <div>
-          <strong style={{ fontSize: "1.5rem", color: colors.ink }}>
-            {openBugReports}
-          </strong>{" "}
-          <span style={{ color: colors.muted }}>bug reports open</span>
+          <strong className="text-2xl text-ink">{openBugReports}</strong>{" "}
+          <span className="text-muted">bug reports open</span>
         </div>
       </div>
 
-      <p style={{ color: colors.faint, marginBottom: "0.5rem" }}>
-        Need something?
-      </p>
-      <div style={{ display: "flex", gap: "1.5rem", marginBottom: "2rem" }}>
+      <p className="mb-2 text-faint text-xs">Need something?</p>
+      <div className="mb-8 flex gap-6">
         <Link
           href="/dashboard/change-requests/new"
-          style={{ color: colors.ink }}
+          className="text-ink underline"
         >
           Submit a change request →
         </Link>
-        <Link href="/dashboard/bug-reports/new" style={{ color: colors.ink }}>
+        <Link href="/dashboard/bug-reports/new" className="text-ink underline">
           Report a bug →
         </Link>
       </div>
 
-      <p style={{ color: colors.faint, marginBottom: "0.5rem" }}>Activity</p>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      <p className="mb-2 text-faint text-xs">Activity</p>
+      <ul className="m-0 list-none p-0">
         {activity.map((item) => (
           <li
             key={item.id}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "6.25rem 1fr",
-              gap: "1rem",
-              padding: "0.5rem 0",
-              borderBottom: `1px solid ${colors.divider}`,
-              color: colors.muted,
-            }}
+            className="grid grid-cols-meta gap-4 border-divider border-b py-2 text-muted"
           >
-            <span style={{ color: colors.faint }}>
+            <span className="text-faint">
               {item.updatedAt.toLocaleDateString("en-GB", {
                 day: "2-digit",
                 month: "2-digit",

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { NavLink } from "@/components/nav-link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { getCurrentUserContext } from "@/lib/data/current-user";
-import { colors } from "@/lib/tokens";
 
 export default async function DashboardLayout({
   children,
@@ -12,45 +11,21 @@ export default async function DashboardLayout({
   const { email } = await getCurrentUserContext();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100dvh",
-        background: colors.surface,
-      }}
-    >
-      <aside
-        style={{
-          width: "13rem",
-          flexShrink: 0,
-          padding: "2rem 1.5rem",
-          borderRight: `1px solid ${colors.divider}`,
-          display: "flex",
-          flexDirection: "column",
-          gap: "2rem",
-        }}
-      >
-        <strong style={{ color: colors.ink }}>D-M</strong>
-        <nav
-          style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
-        >
+    <div className="grid min-h-dvh grid-cols-1 bg-surface md:grid-cols-shell">
+      <aside className="flex flex-col gap-8 border-divider border-b px-6 py-8 md:border-r md:border-b-0">
+        <strong className="text-ink">D-M</strong>
+        <nav className="flex flex-col gap-3 text-sm">
           <NavLink href="/dashboard">Overview</NavLink>
           <NavLink href="/dashboard/change-requests">Change requests</NavLink>
           <NavLink href="/dashboard/bug-reports">Bug reports</NavLink>
           <NavLink href="/dashboard/timeline">Timeline</NavLink>
         </nav>
-        <div
-          style={{
-            marginTop: "auto",
-            fontSize: "0.84375rem",
-            color: colors.faint,
-          }}
-        >
-          <p style={{ margin: "0 0 0.5rem" }}>{email}</p>
+        <div className="mt-auto text-xs text-faint">
+          <p className="m-0 mb-2">{email}</p>
           <SignOutButton />
         </div>
       </aside>
-      <main style={{ flex: 1, padding: "3rem" }}>{children}</main>
+      <main className="p-8 md:p-12">{children}</main>
     </div>
   );
 }

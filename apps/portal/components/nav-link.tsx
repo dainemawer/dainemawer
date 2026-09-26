@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { colors } from "@/lib/tokens";
 
 export function NavLink({
   href,
@@ -18,11 +17,11 @@ export function NavLink({
   return (
     <Link
       href={href}
-      style={{
-        color: active ? colors.ink : colors.faint,
-        fontWeight: active ? 600 : 400,
-        textDecoration: "none",
-      }}
+      className={
+        active
+          ? "font-semibold text-ink no-underline"
+          : "text-faint no-underline"
+      }
     >
       {children}
     </Link>

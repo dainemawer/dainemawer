@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
-import { colors } from "@/lib/tokens";
 
 export function SignOutButton() {
   const router = useRouter();
@@ -17,15 +16,7 @@ export function SignOutButton() {
     <button
       type="button"
       onClick={handleClick}
-      style={{
-        background: "none",
-        border: "none",
-        padding: 0,
-        color: colors.faint,
-        cursor: "pointer",
-        textDecoration: "underline",
-        fontSize: "inherit",
-      }}
+      className="border-0 bg-transparent p-0 text-faint text-inherit underline"
     >
       Sign out
     </button>

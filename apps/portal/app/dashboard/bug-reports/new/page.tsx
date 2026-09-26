@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createBugReport } from "@/lib/actions/bug-reports";
-import { colors } from "@/lib/tokens";
 
 const SEVERITIES = [
   { value: "LOW", label: "low", hint: "Cosmetic. Nothing is blocked." },
@@ -24,26 +23,19 @@ const SEVERITIES = [
 export default function NewBugReportPage() {
   return (
     <div>
-      <p style={{ color: colors.faint, margin: 0 }}>
-        <Link href="/dashboard/bug-reports" style={{ color: colors.faint }}>
+      <p className="m-0 text-faint text-xs">
+        <Link href="/dashboard/bug-reports" className="text-faint">
           Bug reports
         </Link>{" "}
         / New
       </p>
-      <h1 style={{ color: colors.ink, margin: "0.5rem 0" }}>Report a bug</h1>
-      <p style={{ color: colors.muted, marginBottom: "2rem" }}>
+      <h1 className="my-2 text-2xl text-ink">Report a bug</h1>
+      <p className="mb-8 text-md text-muted">
         Tell us what went wrong and where.
       </p>
 
-      <form action={createBugReport} style={{ maxWidth: "32rem" }}>
-        <label
-          htmlFor="title"
-          style={{
-            display: "block",
-            color: colors.faint,
-            marginBottom: "0.25rem",
-          }}
-        >
+      <form action={createBugReport} className="max-w-lg">
+        <label htmlFor="title" className="mb-1 block text-faint text-xs">
           Title
         </label>
         <input
@@ -51,26 +43,10 @@ export default function NewBugReportPage() {
           name="title"
           required
           placeholder="e.g. Contact form sends twice"
-          style={{
-            width: "100%",
-            padding: "0.5rem 0",
-            border: "none",
-            borderBottom: `1px solid ${colors.divider}`,
-            marginBottom: "1.5rem",
-            fontSize: "1rem",
-            background: "transparent",
-            color: colors.ink,
-          }}
+          className="mb-6 w-full border-0 border-b border-divider bg-transparent pt-2 pb-2.5 text-md text-ink outline-none"
         />
 
-        <label
-          htmlFor="description"
-          style={{
-            display: "block",
-            color: colors.faint,
-            marginBottom: "0.25rem",
-          }}
-        >
+        <label htmlFor="description" className="mb-1 block text-faint text-xs">
           What happened
         </label>
         <textarea
@@ -79,32 +55,15 @@ export default function NewBugReportPage() {
           required
           rows={4}
           placeholder="Which page were you on? What did you expect, and what happened instead?"
-          style={{
-            width: "100%",
-            padding: "0.5rem 0",
-            border: "none",
-            borderBottom: `1px solid ${colors.divider}`,
-            marginBottom: "1.5rem",
-            fontSize: "1rem",
-            fontFamily: "inherit",
-            background: "transparent",
-            color: colors.ink,
-          }}
+          className="mb-6 w-full border-0 border-b border-divider bg-transparent pt-2 pb-2.5 font-sans text-md text-ink outline-none"
         />
 
-        <fieldset style={{ border: "none", padding: 0, marginBottom: "2rem" }}>
-          <legend style={{ color: colors.faint, marginBottom: "0.5rem" }}>
-            How bad is it?
-          </legend>
+        <fieldset className="mb-8 border-0 p-0">
+          <legend className="mb-2 text-faint text-xs">How bad is it?</legend>
           {SEVERITIES.map((severity, index) => (
             <label
               key={severity.value}
-              style={{
-                display: "flex",
-                gap: "0.75rem",
-                alignItems: "baseline",
-                padding: "0.5rem 0",
-              }}
+              className="flex items-baseline gap-3 py-2"
             >
               <input
                 type="radio"
@@ -112,25 +71,15 @@ export default function NewBugReportPage() {
                 value={severity.value}
                 defaultChecked={index === 1}
               />
-              <span style={{ fontFamily: "monospace", color: colors.ink }}>
-                {severity.label}
-              </span>
-              <span style={{ color: colors.muted }}>{severity.hint}</span>
+              <span className="font-mono text-ink">{severity.label}</span>
+              <span className="text-muted">{severity.hint}</span>
             </label>
           ))}
         </fieldset>
 
         <button
           type="submit"
-          style={{
-            padding: "0.75rem 1.5rem",
-            background: colors.ink,
-            color: colors.surface,
-            border: "none",
-            borderRadius: "0.375rem",
-            fontSize: "1rem",
-            cursor: "pointer",
-          }}
+          className="rounded-lg bg-ink px-6 py-3 text-base font-medium text-surface"
         >
           Send report
         </button>

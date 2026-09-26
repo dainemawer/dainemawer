@@ -1,5 +1,3 @@
-import { colors } from "@/lib/tokens";
-
 // Plain monospace text, no ticks — matches what the design mockup actually
 // shipped for severity (unlike status/estimate, which both fill a bar).
 export function SeverityLabel({
@@ -8,7 +6,7 @@ export function SeverityLabel({
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 }) {
   return (
-    <span style={{ fontFamily: "monospace", color: colors.muted }}>
+    <span className="font-mono text-muted text-sm">
       {severity.toLowerCase()}
     </span>
   );

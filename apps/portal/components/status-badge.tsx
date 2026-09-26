@@ -1,5 +1,3 @@
-import { colors } from "@/lib/tokens";
-
 const STAGES = [
   "SUBMITTED",
   "ESTIMATED",
@@ -16,7 +14,7 @@ export function StatusBadge({ status }: { status: (typeof STAGES)[number] }) {
   const label = status.toLowerCase().replace("_", " ");
 
   return (
-    <span style={{ fontFamily: "monospace", color: colors.muted }}>
+    <span className="font-mono text-muted text-sm">
       {ticks} {label}
     </span>
   );
