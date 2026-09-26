@@ -14,7 +14,8 @@
       "!dist",
       "!build",
       "!.agents",
-      "!.claude/skills"
+      "!.claude/skills",
+      "!.claude/worktrees"
     ]
   },
   "formatter": {
