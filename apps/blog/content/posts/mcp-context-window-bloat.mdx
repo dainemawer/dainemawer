@@ -1,0 +1,63 @@
+---
+title: Your MCP Servers Are Burning Your Agent's Context Window
+dek: Tool definitions load into context before an agent does anything. Code execution and progressive disclosure are how teams are getting that budget back.
+date: '2026-09-28'
+topics:
+  - ai
+  - staff-engineering
+shortAnswer: Every MCP server you connect loads its full tool schema into context before an agent reads anything, and a typical five-server setup burns 30,000-60,000 tokens on definitions alone. Tool-selection accuracy also degrades as the list grows. Code execution and progressive disclosure fix both by loading only the tools a task actually needs.
+takeaways:
+  - "A single MCP tool definition costs 100-500+ tokens depending on schema verbosity. An open issue against the MCP spec puts the average closer to 1,000 tokens per tool once a rich parameter schema is involved."
+  - "Five connected servers averaging 30 tools each means 150 tool definitions loaded before the agent reads a single user message, 30,000 to 60,000 tokens spent on metadata alone."
+  - "More tools doesn't just cost tokens, it costs accuracy. The RAG-MCP research project measured tool-selection accuracy falling from a 43% baseline to under 14% as the number of available tools grew."
+  - "Anthropic's own engineering team rebuilt a Google Drive-to-Salesforce workflow using code execution instead of direct tool calls and cut token usage from 150,000 to 2,000, a 98.7% reduction, by having the agent write code that calls MCP servers as APIs instead of loading every definition into context up front."
+  - "Cap connected servers around 5-7 as a starting point, and treat a new one as a bill that shows up in every request from then on, not a one-time setup cost."
+faq:
+  - question: Why is my AI agent using so many tokens with MCP?
+    answer: Every MCP server you connect exposes its tools by sending their full schemas into the context window before the agent does anything else. A modest setup of five servers with 30 tools each adds up to 150 tool definitions and 30,000-60,000 tokens spent before the agent has read a single file or user message.
+  - question: How many MCP servers can you connect before performance degrades?
+    answer: Industry consensus in 2026 puts the practical ceiling around 5-7 connected servers. Past that, tool-selection accuracy drops sharply. The RAG-MCP research project measured accuracy falling from a 43% baseline to under 14% as the number of available tools grew, a threefold degradation.
+  - question: What is code execution with MCP?
+    answer: A pattern, formalized by Anthropic's engineering team in late 2025, where an agent writes code that calls MCP servers as ordinary APIs inside a sandbox, instead of loading every tool's full definition into context and passing intermediate results back through the model. It only loads the specific tool definitions a task needs, which is why Anthropic's own before-and-after example dropped from 150,000 tokens to 2,000.
+  - question: Does adding more MCP tools make an agent worse at picking the right one?
+    answer: Yes. It's not just a token cost, it's an accuracy cost. As the number of tools an agent has to choose from grows, correctly selecting the right one gets measurably harder, independent of how good the underlying model is. The fix is loading fewer tools per task, not a smarter model.
+needsRewrite: false
+---
+
+MCP had a good year. Since Anthropic introduced it in late 2024, adoption has gone from novelty to default: the protocol was donated to the Linux Foundation's Agentic AI Foundation in December 2025, and one analysis of MCP servers counted a 232% increase in six months. Most teams running an AI coding agent now have several connected without thinking much about it, a filesystem server, a database server, a ticketing integration, a search tool, each one adding value on its own.
+
+The problem shows up once you've connected more than a couple. It's not a bug in any individual server. It's what happens to a context window when every server's full tool catalog loads before the agent does anything at all.
+
+## The tool definitions load before anything else happens
+
+An MCP server doesn't wait to be asked before it costs you tokens. Connecting one means its tools' full schemas, names, descriptions, parameter types, get sent into context at the start of the session, whether the agent ends up using any of them or not.
+
+A single tool definition runs anywhere from a few dozen tokens for something minimal to several hundred for one with a rich parameter schema. An [open issue against the MCP spec](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/2808) puts the realistic average closer to 1,000 tokens per tool once you account for how verbose most descriptions actually are in practice. A typical production setup, five servers averaging 30 tools each, works out to 150 tool definitions and 30,000-60,000 tokens spent on metadata before the agent has read a single file or user message. Cloudflare's engineering team went further in a February 2026 write-up, disclosing that their internal MCP exposure totaled roughly 1.17 million tokens of tool definitions across every server they had connected, well past any usable context window.
+
+## More tools also means worse tool selection
+
+Token cost is the visible problem. The less visible one is that a longer tool list doesn't just get more expensive, it gets harder to use correctly. The RAG-MCP research project measured tool-selection accuracy falling from a 43% baseline to under 14% as the number of available tools grew, a threefold degradation. The agent isn't getting worse at reasoning. It's choosing from a longer, noisier list, and that list itself becomes the bottleneck, independent of which model is doing the choosing.
+
+This is the part teams tend to miss when debugging a flaky agent. A run that picks the wrong tool, or hesitates between two similar-looking ones, often isn't a prompting problem or a model problem. It's an artifact of how many tools were competing for that decision in the first place, the same way [handing too many agents too much work in parallel degrades the judgment behind any one of them](/wip-limits-for-ai-agents).
+
+## Code execution: treat MCP servers like APIs, not context
+
+The fix that's gained the most traction since late 2025 is code execution. Instead of loading every connected server's full tool catalog into context and routing every intermediate result back through the model, the agent writes code that calls MCP servers directly, inside a sandbox, the way it would call any other API.
+
+Anthropic's own engineering team demonstrated the effect by rebuilding a Google Drive-to-Salesforce workflow this way. The direct-tool-call version consumed roughly 150,000 tokens moving data between the two systems and passing it through the model at each step. The code-execution version, where the agent wrote a script that called both APIs and only pulled in the tool definitions it actually needed for that task, dropped to about 2,000 tokens, a 98.7% reduction. Independent tests since then have found similar gains at different scales: one benchmark measured accuracy improving from 58% at 96 tools to 92.8% at 508 tools once code execution replaced direct calls, and Cloudflare reported a 99.9% token reduction on a 2,500-endpoint API using the same pattern under the name Code Mode.
+
+The mechanism in both cases is the same. The agent only pays the token cost of the tool definitions it uses for a given task, not the entire catalog of everything you've ever connected.
+
+## Progressive disclosure works too, and asks less of your setup
+
+Code execution is the bigger structural fix, but it means giving an agent a sandbox to run code in, which isn't always the easiest change to make first. A lighter-weight alternative that ships the same idea is progressive disclosure: the agent searches for relevant tools by name or description before loading their full definitions, rather than having every tool's complete schema resident in context from the start of the session.
+
+Anthropic's Tool Search Tool and similar approaches from other vendors work this way. They don't eliminate the underlying tool sprawl, they just defer the cost until a tool is actually a candidate for use, which is often enough to bring a bloated setup back under control without restructuring how your agent calls anything.
+
+## What to actually do about this
+
+Audit what a fresh session actually costs before adding another server. Most agent tooling will show you the token count consumed by tool definitions at session start; if you haven't looked at that number in a while, it's probably higher than you'd guess. Treat a new MCP server as a recurring cost on every request from then on, not a one-time integration.
+
+Cap connected servers around 5-7 as a starting point, the range most teams found workable before tool-selection accuracy started degrading in the research above. If you're past that and can't reasonably disconnect anything, adopt progressive disclosure first since it requires the least rearchitecting, and move to code execution for the servers or workflows where token cost is the dominant expense.
+
+None of this is really new advice, dressed in new terminology. It's the same lesson as [reviewing an agent's actual output instead of trusting a green check](/reviewing-ai-generated-code): don't assume a system built on good intentions stays cheap and accurate by default. Measure what it's actually costing you, and cut what isn't earning its place in context.
