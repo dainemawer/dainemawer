@@ -1,0 +1,138 @@
+---
+title: The Temporal API Is Here. Here's How to Actually Start Using It
+dek: JavaScript's Date object finally has a real replacement, and it's usable in production sooner than you'd think.
+date: '2026-09-25'
+topics:
+  - javascript
+shortAnswer: Temporal is JavaScript's replacement for Date, reaching Stage 4 in March 2026 and shipping unflagged in Chrome 144+, Firefox 139+, and Node.js 26. It fixes Date's mutability and timezone bugs with immutable types like PlainDate and ZonedDateTime. Safari hasn't shipped it yet, so pair it with the official polyfill for public-facing work.
+takeaways:
+  - "Temporal replaces one object with several specific ones: PlainDate, PlainTime, ZonedDateTime, Instant, and Duration, each modeling a distinct kind of time instead of forcing everything through one ambiguous Date."
+  - "Every Temporal object is immutable. Temporal.PlainDate.from('2026-09-25').add({ days: 7 }) returns a new object; the original is never mutated, unlike Date's setters."
+  - "ZonedDateTime carries its IANA timezone with it, so arithmetic across a DST boundary is handled correctly instead of silently drifting by an hour."
+  - "Node.js 26 (May 2026) ships Temporal unflagged. Browser support is Chrome 144+ and Firefox 139+; Safari hasn't shipped it even in Technology Preview, so public-facing code still needs the @js-temporal/polyfill."
+  - "Migrate at boundaries, not all at once: convert incoming date values to Temporal as soon as they enter your code, do all the arithmetic and comparison in Temporal, and convert back to Date only where a library still demands it."
+faq:
+  - question: Is the Temporal API ready to use in production?
+    answer: On the server, yes, if you're on Node.js 26 or later, which shipped Temporal unflagged in May 2026. In the browser, it depends on your audience. Chrome and Firefox support it natively as of 2026, but Safari doesn't yet, so browser-facing code needs the official @js-temporal/polyfill until WebKit ships it.
+  - question: What's actually wrong with JavaScript's Date object?
+    answer: "Three things compound into most Date bugs: every setter mutates the object in place instead of returning a new one, there's no built-in concept of a timezone beyond the user's local one and UTC, and the parser accepts an inconsistent set of string formats depending on the engine. Temporal fixes all three with immutable objects, explicit timezone-aware types, and a single ISO 8601 parsing rule."
+  - question: Do I need to migrate away from date-fns or Luxon right now?
+    answer: No. Both are actively maintained and there's no forcing function to rip them out. The practical move is writing new code against Temporal directly and letting existing date-fns or Luxon code age out on its own schedule, rather than a wholesale rewrite.
+needsRewrite: false
+---
+
+JavaScript's `Date` object has been broken in the same specific ways since 1995, borrowed from Java's `java.util.Date`, which Java itself deprecated the same year `Date` shipped. Every workaround the ecosystem has produced since, Moment.js, date-fns, Luxon, Day.js, exists because the language never fixed the actual object. That changed this year. Temporal reached [Stage 4](https://github.com/tc39/proposal-temporal) at the March 2026 TC39 meeting, locking it into the ECMAScript 2026 spec, and it's now landing in runtimes fast enough to be worth planning around, not just reading about.
+
+Here's what actually changed, what the API looks like day to day, and how to start using it without breaking anything for the users on browsers that haven't caught up yet.
+
+## What was actually wrong with Date
+
+Three specific problems compound into most of the date bugs you've debugged:
+
+**Every setter mutates in place.** `date.setDate(date.getDate() + 7)` doesn't return a new date, it mutates the one you already had a reference to, anywhere else in your code. Pass a `Date` into a function that "just reads it" and you have no guarantee it comes back unchanged.
+
+**There's no real timezone model.** `Date` only understands two things: the environment's local timezone and UTC. There's no way to represent "2pm in Johannesburg" as data if the code is running on a server in another timezone, without manually tracking an offset yourself and getting it wrong the first time a DST transition crosses your calculation.
+
+**Parsing is inconsistent.** `new Date("2026-09-25")` and `new Date("09/25/2026")` don't reliably behave the same way across engines, and the ambiguity has been a running source of subtle, environment-specific bugs for as long as the object has existed.
+
+Temporal fixes all three by being a different kind of object entirely: a namespace, similar to `Intl`, containing several immutable, specific types instead of one object trying to be everything.
+
+## The types, and when to reach for each one
+
+Temporal splits "a date" into distinct concepts, because "a date" means different things depending on whether a timezone matters:
+
+- **`Temporal.PlainDate`**: a calendar date with no time or timezone attached. Use it for things like a birthday, a deadline, or a holiday, where "which timezone" doesn't apply.
+- **`Temporal.PlainTime`**: a wall-clock time with no date. A recurring daily alarm, for instance.
+- **`Temporal.ZonedDateTime`**: a specific moment, anchored to an IANA timezone. This is what you want for scheduling, calendar events, or anything where "when" depends on where.
+- **`Temporal.Instant`**: a single point on the UTC timeline, with nanosecond precision. The direct replacement for a Unix timestamp.
+- **`Temporal.Duration`**: a length of time, like "3 days, 4 hours," used for arithmetic rather than a point in time.
+
+You don't instantiate any of them with `new`. Every type is built through static methods instead:
+
+```js
+const deadline = Temporal.PlainDate.from('2026-10-15');
+const meeting = Temporal.ZonedDateTime.from('2026-09-25T14:30[Africa/Johannesburg]');
+const sprint = Temporal.Duration.from({ weeks: 2 });
+```
+
+That constructor restriction is deliberate. It forces every value to go through explicit parsing or explicit field construction, which is most of what closes the "inconsistent parsing" gap from the old `Date` object.
+
+## Immutability changes how you write the arithmetic
+
+Every operation on a Temporal object returns a new object instead of mutating the one you have:
+
+```js
+const today = Temporal.PlainDate.from('2026-09-25');
+const nextWeek = today.add({ days: 7 });
+
+today.toString();    // '2026-09-25', unchanged
+nextWeek.toString();  // '2026-10-02'
+```
+
+That single property removes an entire category of bug: a `Date` passed into a shared utility function, mutated by a `.setMonth()` call somewhere deep inside it, coming back different at the call site with no error and no warning. With Temporal, that's not possible. If a function wants to hand you back a changed value, it has to return it.
+
+## Timezone-aware arithmetic, without doing the math yourself
+
+This is where `ZonedDateTime` earns its name. Adding a day across a daylight saving transition with a plain offset calculation is a well-known way to end up an hour off. `ZonedDateTime` carries its timezone through every operation, so the arithmetic accounts for the transition automatically:
+
+```js
+const beforeDST = Temporal.ZonedDateTime.from(
+  '2026-11-01T00:30[America/New_York]',
+);
+const oneDayLater = beforeDST.add({ days: 1 });
+
+// oneDayLater lands on the correct wall-clock time in New York,
+// accounting for the clocks falling back that night.
+```
+
+Compare that to the equivalent `Date` code, which usually means either pulling in a library specifically to handle this or shipping a bug that only shows up twice a year, in the specific window around a DST change.
+
+## Where this actually runs today
+
+This is the part to check before you reach for it on anything user-facing. As of September 2026, [Node.js 26](https://nodejs.org/en/blog/release/v26.0.0), released May 5, 2026 with V8 14.6, ships Temporal enabled by default, no experimental flag, no `--harmony` switch. If your code runs server-side on a current Node version, it's already available.
+
+Browser support is real but not universal. Chrome 144+ and Firefox 139+ shipped native support earlier in 2026, and Edge and Opera inherit it through Chromium. Safari is the gap: it hasn't shipped Temporal even in Technology Preview, which means any code that has to run in a browser you don't control still needs a fallback.
+
+The TC39 champions maintain a full-spec polyfill, [`@js-temporal/polyfill`](https://github.com/js-temporal/temporal-polyfill), at roughly 56KB minified and gzipped. That's a real cost for a date library, so the practical pattern is loading it conditionally, only for browsers that lack `globalThis.Temporal`, rather than shipping it unconditionally to every visitor.
+
+```js
+if (typeof Temporal === 'undefined') {
+  await import('@js-temporal/polyfill');
+}
+```
+
+## Migrating without a rewrite
+
+You don't need to touch every date in an existing codebase to get value from this, and given the Safari gap, doing that today would be premature anyway. The pattern that holds up:
+
+1. **Convert at the boundary.** When a date value enters your code, from an API response, a database row, a form input, convert it to a Temporal type immediately, rather than passing a raw `Date` or string deeper into the app.
+2. **Do all reasoning in Temporal.** Comparisons, arithmetic, formatting, all of it happens on `Temporal` objects once you're past that boundary.
+3. **Convert back only where something still demands it.** Some libraries and browser APIs still expect a native `Date`. Convert at that specific call site, not earlier.
+
+There's no forcing function to rip out date-fns or Luxon on any particular timeline. Both are actively maintained, and there's a real argument for leaving working code alone. New code is the easier place to start: write it against Temporal directly, and let the existing library calls age out of the codebase on their own schedule as those files get touched anyway.
+
+## The part that's easy to skip: formatting
+
+`Temporal` objects don't have a `.toLocaleDateString()` replacement built the same way `Date` does. Formatting for display goes through `Intl.DateTimeFormat`, which already accepts Temporal objects directly:
+
+```js
+const formatter = new Intl.DateTimeFormat('en-ZA', {
+  dateStyle: 'long',
+});
+
+formatter.format(Temporal.PlainDate.from('2026-09-25'));
+// '25 September 2026'
+```
+
+That's one less API to learn if you've already used `Intl.DateTimeFormat` for locale-aware formatting, which is worth knowing before you go looking for a `Temporal`-specific formatting method that doesn't exist.
+
+## Where this leaves you
+
+Temporal isn't an incremental improvement to `Date`, it's the fix the ecosystem has been building workarounds for since Moment.js first shipped. Reaching for it today makes the most sense on Node.js code, where support already lands unflagged, and on new browser-facing code behind the conditional polyfill above. Everything else, [the same as any newer platform feature with a browser gap](/css-if-function-safely), can wait for Safari to catch up without costing you anything now.
+
+## Further reading
+
+- [MDN: Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal)
+- [TC39: Temporal proposal](https://github.com/tc39/proposal-temporal)
+- [js-temporal/polyfill](https://github.com/js-temporal/temporal-polyfill)
+- [Can I Use: Temporal](https://caniuse.com/temporal)
