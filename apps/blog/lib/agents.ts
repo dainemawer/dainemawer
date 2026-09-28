@@ -1,3 +1,4 @@
+import { POSTS_PER_PAGE } from "./pagination";
 import { site } from "./site";
 
 export type AgentResource = {
@@ -58,6 +59,10 @@ export const agents = {
     {
       label: "Explicit .md URLs",
       body: `Append \`.md\` to any path — ${site.url}/index.md, ${site.url}/about.md, ${site.url}/<article-slug>.md. Useful for clients that send no Accept header at all.`,
+    },
+    {
+      label: "Paginated lists",
+      body: `The HTML homepage and topic pages show ${POSTS_PER_PAGE} articles per page (${site.url}/page/2, ${site.url}/topics/<topic>/page/2). Their Markdown twins at ${site.url}/index.md and ${site.url}/topics/<topic>.md are not paginated — each lists every article in one response.`,
     },
     {
       label: "Whole-site text",

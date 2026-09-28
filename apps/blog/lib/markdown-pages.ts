@@ -4,17 +4,24 @@ import { contact } from "./contact";
 import type { PostContent } from "./mdx";
 import { getPostContent } from "./mdx";
 import { now } from "./now";
+import type { PageSlice } from "./pagination";
+import { pagePath, paginate, parsePageParam } from "./pagination";
 import type { Post } from "./posts";
-import { getAllPosts, getPostBySlug } from "./posts";
+import { getAllPosts, getPostBySlug, getPostsByTopic } from "./posts";
 import { privacySections, privacyUpdated } from "./privacy";
 import { site } from "./site";
 import { getTopicBySlug, topics } from "./topics";
 import { usesReviewedOn, usesSections } from "./uses";
 
-export type MarkdownDocument = { body: string; status: 200 | 404 };
+export type MarkdownDocument = {
+  body: string;
+  status: 200 | 404;
+  /** Neighbouring pages of a paginated index, as site paths — sent as `Link` rel=prev/next. */
+  pagination?: { previous?: string; next?: string };
+};
 
 /** Absolute URL for the markdown twin of a site path. */
-function mdUrl(path: string): string {
+export function mdUrl(path: string): string {
   return path === "/" ? `${site.url}/index.md` : `${site.url}${path}.md`;
 }
 
@@ -49,7 +56,7 @@ export function buildHomeMarkdown(posts: Post[]): string {
     "",
     `> ${site.role} at ${site.company.name}, based in ${site.location}. Frontend engineering, web performance, JavaScript, CSS, and engineering management.`,
     "",
-    "This is the Markdown representation of the homepage: a reverse-chronological index of every article. Each link below points at the article's Markdown twin.",
+    "This is the Markdown representation of the homepage: a reverse-chronological index of every article. Each link below points at the article's Markdown twin. The HTML homepage is paginated; this index is not — every article is listed here.",
     "",
     "## Articles",
     "",
@@ -120,6 +127,86 @@ export function buildPostMarkdown(post: Post, content: PostContent): string {
   }
 
   return [...lines, ...footer(`/${post.slug}`)].join("\n");
+}
+
+// A later page of a paginated index. The HTML page it mirrors shows only
+// this slice, so the twin does too, but it leads with a pointer to the
+// complete index — one fetch there beats walking every page.
+function paginatedListing({
+  title,
+  dek,
+  basePath,
+  completeIndex,
+  slice,
+}: {
+  title: string;
+  dek: string;
+  basePath: string;
+  completeIndex: string;
+  slice: PageSlice<Post>;
+}): string {
+  const { page, totalPages, offset, items } = slice;
+  const lines = [
+    `# ${title} — page ${page} of ${totalPages}`,
+    "",
+    `> ${dek}`,
+    "",
+    `Articles ${offset + 1}–${offset + items.length}, newest first. This is one page of a paginated list; the complete index is at ${completeIndex}.`,
+    "",
+    "## Articles",
+    "",
+  ];
+
+  for (const post of items) lines.push(...postLine(post));
+
+  lines.push("", "## Pages", "");
+  lines.push(`- Newer: ${mdUrl(pagePath(basePath, page - 1))}`);
+  if (page < totalPages) {
+    lines.push(`- Older: ${mdUrl(pagePath(basePath, page + 1))}`);
+  }
+  lines.push(`- Complete index: ${completeIndex}`);
+
+  return [...lines, ...footer(pagePath(basePath, page))].join("\n");
+}
+
+export function buildHomePageMarkdown(slice: PageSlice<Post>): string {
+  return paginatedListing({
+    title: site.name,
+    dek: `${site.role} at ${site.company.name}, based in ${site.location}.`,
+    basePath: "/",
+    completeIndex: mdUrl("/"),
+    slice,
+  });
+}
+
+export function buildTopicPageMarkdown(
+  topic: { slug: string; name: string; dek: string },
+  slice: PageSlice<Post>,
+): string {
+  const basePath = `/topics/${topic.slug}`;
+  return paginatedListing({
+    title: `${topic.name} — ${site.name}`,
+    dek: topic.dek,
+    basePath,
+    completeIndex: mdUrl(basePath),
+    slice,
+  });
+}
+
+function neighbours(basePath: string, slice: PageSlice<Post>) {
+  return {
+    previous: pagePath(basePath, slice.page - 1),
+    next:
+      slice.page < slice.totalPages
+        ? pagePath(basePath, slice.page + 1)
+        : undefined,
+  };
+}
+
+/** Page 2 or later of `items`, or undefined — page 1 is the unpaginated index. */
+function laterPage(items: Post[], param: string) {
+  const page = parsePageParam(param);
+  return page && page > 1 ? paginate(items, page) : undefined;
 }
 
 export function buildTopicMarkdown(
@@ -391,6 +478,35 @@ export function resolveMarkdownDocument(segments: string[]): MarkdownDocument {
     const content = post ? getPostContent(slug) : undefined;
     if (post && content) {
       return { body: buildPostMarkdown(post, content), status: 200 };
+    }
+  }
+
+  if (segments.length === 2 && segments[0] === "page") {
+    const slice = laterPage(getAllPosts(), segments[1]);
+    if (slice) {
+      return {
+        body: buildHomePageMarkdown(slice),
+        status: 200,
+        pagination: neighbours("/", slice),
+      };
+    }
+  }
+
+  if (
+    segments.length === 4 &&
+    segments[0] === "topics" &&
+    segments[2] === "page"
+  ) {
+    const topic = getTopicBySlug(segments[1]);
+    const slice = topic
+      ? laterPage(getPostsByTopic(topic.slug), segments[3])
+      : undefined;
+    if (topic && slice) {
+      return {
+        body: buildTopicPageMarkdown(topic, slice),
+        status: 200,
+        pagination: neighbours(`/topics/${topic.slug}`, slice),
+      };
     }
   }
 

@@ -28,8 +28,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: site.name, template: `%s — ${site.name}` },
-  description:
-    "Frontend engineering, web performance, JavaScript, CSS, and engineering management, written by Daine Mawer.",
+  description: site.description,
   alternates: {
     canonical: "/",
     types: {

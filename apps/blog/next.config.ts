@@ -96,10 +96,33 @@ const nextConfig: NextConfig = {
         source: "/topics/:topic.md",
         destination: "/md/topics/:topic",
       },
+      {
+        // …and for the later pages of each paginated index.
+        source: "/page/:page.md",
+        destination: "/md/page/:page",
+      },
+      {
+        source: "/topics/:topic/page/:page.md",
+        destination: "/md/topics/:topic/page/:page",
+      },
     ];
   },
   async redirects() {
     return [
+      // Page 1 of a paginated index is the index itself (lib/pagination.ts),
+      // so its /page/1 alias is folded into it rather than served twice.
+      { source: "/page/1", destination: "/", permanent: true },
+      { source: "/page/1.md", destination: "/index.md", permanent: true },
+      {
+        source: "/topics/:topic/page/1",
+        destination: "/topics/:topic",
+        permanent: true,
+      },
+      {
+        source: "/topics/:topic/page/1.md",
+        destination: "/topics/:topic.md",
+        permanent: true,
+      },
       // Old site used /articles/<slug>; this one is flat. One entry per
       // migrated post, old slug -> new (often shortened) slug.
       {
