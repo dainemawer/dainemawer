@@ -16,6 +16,8 @@ export const site = {
     country: "ZA",
   },
   tagline: "Staff Engineer, Web Applications at Fueled, Cape Town",
+  description:
+    "Frontend engineering, web performance, JavaScript, CSS, and engineering management, written by Daine Mawer.",
   url: "https://www.dainemawer.com",
   email: "hello@dainemawer.com",
   social: {

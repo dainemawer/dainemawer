@@ -6,9 +6,11 @@ import {
   buildNotFoundMarkdown,
   buildPostMarkdown,
   buildTopicMarkdown,
+  buildTopicPageMarkdown,
   resolveMarkdownDocument,
 } from "@/lib/markdown-pages";
 import type { PostContent } from "@/lib/mdx";
+import { laterPages, POSTS_PER_PAGE, paginate } from "@/lib/pagination";
 import type { Post } from "@/lib/posts";
 import { getAllPosts } from "@/lib/posts";
 import { site } from "@/lib/site";
@@ -194,6 +196,77 @@ describe("resolveMarkdownDocument", () => {
       const doc = resolveMarkdownDocument(["topics", topic.slug]);
       assert.equal(doc.status, 200, `${topic.slug} should resolve`);
       assert.ok(doc.body.startsWith(`# ${topic.name} — ${site.name}`));
+    }
+  });
+
+  it("serves the later homepage pages as slices with neighbour links", () => {
+    const all = getAllPosts();
+    const pages = laterPages(all.length);
+    assert.ok(pages.length > 0, "expected more than one page of posts");
+    for (const page of pages) {
+      const doc = resolveMarkdownDocument(["page", String(page)]);
+      assert.equal(doc.status, 200, `page ${page} should resolve`);
+      const slice = all.slice(
+        (page - 1) * POSTS_PER_PAGE,
+        page * POSTS_PER_PAGE,
+      );
+      for (const listed of slice) {
+        assert.ok(doc.body.includes(`${site.url}/${listed.slug}.md`));
+      }
+      assert.ok(doc.body.includes(`Complete index: ${site.url}/index.md`));
+      assert.equal(
+        doc.pagination?.previous,
+        page === 2 ? "/" : `/page/${page - 1}`,
+      );
+    }
+    const last = pages.at(-1);
+    assert.equal(
+      resolveMarkdownDocument(["page", String(last)]).pagination?.next,
+      undefined,
+    );
+  });
+
+  it("serves a topic's later pages when it has more than one", () => {
+    const posts = Array.from({ length: 12 }, (_, index) => ({
+      ...post,
+      slug: `post-${index}`,
+    }));
+    const slice = paginate(posts, 2);
+    assert.ok(slice);
+    const body = buildTopicPageMarkdown(topics[0], slice);
+    assert.match(
+      body,
+      new RegExp(`^# ${topics[0].name} — ${site.name} — page 2 of 2`),
+    );
+    assert.ok(body.includes("post-11.md"));
+    assert.ok(!body.includes("post-9.md"));
+    assert.ok(body.includes(`Newer: ${site.url}/topics/${topics[0].slug}.md`));
+    assert.ok(!body.includes("Older:"));
+  });
+
+  it("keeps the homepage index complete rather than paginated", () => {
+    const { body, pagination } = resolveMarkdownDocument([]);
+    assert.equal(pagination, undefined);
+    assert.match(body, /The HTML homepage is paginated; this index is not/);
+  });
+
+  it("404s page 1, page 0, malformed and out-of-range pages", () => {
+    const beyond = String(laterPages(getAllPosts().length).length + 2);
+    for (const segments of [
+      ["page", "1"],
+      ["page", "0"],
+      ["page", "02"],
+      ["page", "abc"],
+      ["page", beyond],
+      ["topics", topics[0].slug, "page", "1"],
+      ["topics", topics[0].slug, "page", "99"],
+      ["topics", "not-a-topic", "page", "2"],
+    ]) {
+      assert.equal(
+        resolveMarkdownDocument(segments).status,
+        404,
+        segments.join("/"),
+      );
     }
   });
 

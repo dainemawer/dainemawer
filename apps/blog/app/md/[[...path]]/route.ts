@@ -1,5 +1,5 @@
 import { NEGOTIATED_HEADER } from "@/lib/content-negotiation";
-import { resolveMarkdownDocument } from "@/lib/markdown-pages";
+import { mdUrl, resolveMarkdownDocument } from "@/lib/markdown-pages";
 import { site } from "@/lib/site";
 
 // The markdown representation of every page. Three ways in, one handler:
@@ -23,7 +23,7 @@ export async function GET(
 ) {
   const { path } = await ctx.params;
   const segments = path ?? [];
-  const { body, status } = resolveMarkdownDocument(segments);
+  const { body, status, pagination } = resolveMarkdownDocument(segments);
 
   // Served from the canonical URL via Accept negotiation rather than
   // from an explicit .md path. Next strips `Vary: Accept` from the HTML
@@ -44,10 +44,16 @@ export async function GET(
   });
 
   if (status === 200) {
-    headers.set(
-      "Link",
-      `<${site.url}${canonicalFor(segments)}>; rel="canonical"`,
-    );
+    const links = [`<${site.url}${canonicalFor(segments)}>; rel="canonical"`];
+    // Neighbouring pages point at their Markdown twins, so a client
+    // walking a paginated index stays in the representation it asked for.
+    if (pagination?.previous) {
+      links.push(`<${mdUrl(pagination.previous)}>; rel="prev"`);
+    }
+    if (pagination?.next) {
+      links.push(`<${mdUrl(pagination.next)}>; rel="next"`);
+    }
+    headers.set("Link", links.join(", "));
   }
 
   return new Response(body, { status, headers });

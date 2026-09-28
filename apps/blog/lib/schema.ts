@@ -161,6 +161,46 @@ export function breadcrumbListSchema(
   };
 }
 
+// One page of an article listing — the homepage or a topic index, page 1
+// or later. Each page is its own CollectionPage with its own canonical URL
+// (not a fragment of page 1), and ItemList positions carry on from the
+// previous page, so position 11 is the eleventh-newest article wherever
+// it's read from.
+export function collectionPageSchema({
+  path,
+  name,
+  description,
+  posts,
+  offset,
+}: {
+  path: string;
+  name: string;
+  description: string;
+  posts: Post[];
+  offset: number;
+}) {
+  const url = path === "/" ? site.url : `${site.url}${path}`;
+  return {
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    url,
+    name,
+    description,
+    inLanguage: "en",
+    isPartOf: { "@id": websiteId },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListOrder: "https://schema.org/ItemListOrderDescending",
+      itemListElement: posts.map((post, index) => ({
+        "@type": "ListItem",
+        position: offset + index + 1,
+        url: `${site.url}/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
+}
+
 export function articleSchema(post: Post, content: PostContent) {
   const url = `${site.url}/${post.slug}`;
   const keywords = post.topics
