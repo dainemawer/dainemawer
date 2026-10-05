@@ -20,7 +20,7 @@ faq:
   - question: What is npm trusted publishing and should I use it?
     answer: Trusted publishing lets a CI workflow publish to npm using short-lived, workflow-scoped OIDC credentials instead of a long-lived npm token stored as a secret. GitHub made it generally available in July 2025. If your package publishes from CI, it's worth adopting, since a credential that expires in minutes and never touches disk can't be exfiltrated the way a static token can.
   - question: How do I protect my project from a supply chain attack right now?
-    answer: Start with the installs you don't control: pin every dependency behind a committed lockfile, run installs with --ignore-scripts where the build allows it, and add a scanning tool that checks resolved versions against a known-compromised-package feed. None of those require a rewrite, and together they cover most of how these worms actually get in.
+    answer: Start with the installs you don't control. Pin every dependency behind a committed lockfile, run installs with --ignore-scripts where the build allows it, and add a scanning tool that checks resolved versions against a known-compromised-package feed. None of those require a rewrite, and together they cover most of how these worms actually get in.
 needsRewrite: false
 ---
 
