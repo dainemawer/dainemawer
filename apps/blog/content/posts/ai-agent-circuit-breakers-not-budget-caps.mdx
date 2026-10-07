@@ -1,0 +1,74 @@
+---
+title: Your AI Coding Agents Need a Circuit Breaker, Not a Lower Budget Cap
+dek: Uber and Microsoft both capped per-engineer AI spending in 2026 after burning through annual budgets in months. A smaller number doesn't stop one run from looping for hours. An execution pattern borrowed from site reliability engineering does.
+date: '2026-10-07'
+topics:
+  - ai
+  - staff-engineering
+shortAnswer: Uber burned through its 2026 AI coding budget in four months; Microsoft canceled Claude Code licenses after costs hit $2,000 per engineer monthly. Gartner expects AI coding costs to exceed developer salaries by 2028. A dollar cap catches the bill afterward. Circuit breakers, iteration limits, budget ceilings, failure thresholds, stop the run itself.
+takeaways:
+  - "Uber gave roughly 5,000 engineers access to Claude Code in December 2025. Adoption climbed from 32% to 84% in four months, and the company burned through its entire annual AI coding budget in the same stretch, capping spend at $1,500 per engineer per month in response."
+  - "Microsoft's Experiences and Devices division, the team behind Windows and Microsoft 365, reached 84-95% adoption and per-user costs of $500-$2,000 a month, then canceled most of its internal Claude Code licenses effective June 30, 2026."
+  - "Gartner expects AI coding costs to exceed the average developer's own salary by 2028. Its own analyst's conclusion is blunt: token discipline won't emerge from developer choice alone, since developers optimize for speed and convenience, not cost."
+  - An agent run that's gone wrong doesn't throw an error. It keeps producing plausible-looking steps for as long as its budget and your patience hold out, and a monthly dollar cap only catches that after the fact.
+  - Borrow the circuit breaker pattern from site reliability engineering instead. Enforce iteration limits, budget ceilings, and failure thresholds inline, in the layer actually executing each step, not as a prompt instruction the model can drift past once a task runs long.
+faq:
+  - question: Why did Uber and Microsoft cut back on AI coding tools in 2026?
+    answer: Both hit the same wall from different directions. Uber gave about 5,000 engineers access to Claude Code in December 2025, adoption reached 84% within four months, and the company exhausted its entire annual AI coding budget in that window. Microsoft's Experiences and Devices division saw similar adoption and per-user costs up to $2,000 a month, and canceled most of its internal licenses in response. Neither cut was about the tools underperforming. It was about token-based pricing scaling faster than anyone had budgeted for.
+  - question: What is an AI agent circuit breaker?
+    answer: A pattern borrowed from site reliability engineering, originally popularized for distributed systems by tools like Netflix's Hystrix, applied to agent execution instead of service calls. It stops a run automatically once it crosses a threshold decided in advance, a step count, a budget ceiling, a run of consecutive failures, rather than relying on someone noticing mid-run or a bill arriving weeks later.
+  - question: How do you stop an AI coding agent from running up a huge bill?
+    answer: Set a hard iteration or step limit on any task before it starts, most agent CLIs and orchestration layers already expose one. Pair that with a per-task budget ceiling, not just a per-engineer monthly one, and a failure threshold, a handful of consecutive tool errors or a dropping confidence score, that forces a human check-in instead of another retry. The enforcement needs to sit in the harness executing each step, not in a prompt the model can drift past.
+  - question: Is a monthly AI spending cap enough to control agent costs?
+    answer: No, on its own it's a lagging indicator. A monthly cap tells an organization, after the fact, that a run or a team went over budget. It does nothing while that run is actually looping, which is where the cost and the risk both come from. A circuit breaker enforced inline catches the problem while it's still a single expensive run, not after it's become a line item in next quarter's budget review.
+needsRewrite: false
+---
+
+Uber capped its engineers' agentic coding spend at $1,500 a month in mid-2026. Microsoft pulled most of its internal Claude Code licenses from the division behind Windows, Microsoft 365, and Teams around the same time. Neither company ran out of money because the tools stopped working. They ran out because the tools kept working, for hours longer than anyone intended, at a token price nobody had budgeted for.
+
+That distinction matters. An AI coding agent doesn't usually fail by crashing. It fails by doing exactly what it was told, indefinitely, because nobody told it when to stop. A dollar cap set at the end of the month catches that bill a month after the fact. What actually stops a single run from eating an afternoon of compute is a pattern borrowed from site reliability engineering, not a lower number on a dashboard: the circuit breaker.
+
+## The 2026 budget reckoning
+
+Uber gave roughly 5,000 engineers access to Claude Code in December 2025. By April 2026, adoption inside the company had climbed from 32% to 84%, and Uber had burned through its entire annual budget for AI coding tools in four months. CTO Praveen Neppali Naga told The Information the company was "back to the drawing board." President and COO Andrew Macdonald was blunter about the payoff, saying of the connection between rising AI spend and new consumer-facing features, "that link is not there yet." The response was a hard per-engineer cap: $1,500 a month on agentic coding tools like Cursor and Claude Code.
+
+Microsoft's Experiences and Devices division, the team behind Windows, Microsoft 365, Outlook, and Teams, ran a similar rollout and hit the same wall. After six months at 84-95% adoption among thousands of engineers, per-user API costs landed between $500 and $2,000 a month. Microsoft canceled the majority of its internal Claude Code licenses effective June 30, 2026, and redirected engineers to a flatter-priced alternative.
+
+Gartner's read on the trend, published that same June, is blunter still. The firm expects AI coding costs to exceed the average developer's own salary by 2028, driven by the shift from seat-based licensing to consumption-based token pricing. Gartner analyst Nitish Tyagi's conclusion names the actual failure point directly: "token discipline will not emerge through developer choice alone, as developers tend to optimize for speed and convenience over cost efficiency." Without something enforcing a limit, nothing does.
+
+## A monthly cap doesn't fix how agents actually fail
+
+Both companies' first move was the obvious one: lower the number. It's also the wrong layer to fix the problem at. A monthly spending cap is a lagging indicator. It confirms, after the fact, that something ran too long or too wide. It does nothing while that something is actually running.
+
+The uncomfortable detail in both stories is that neither required a bug. [An agent working through a vague or open-ended task](/wip-limits-for-ai-agents) doesn't error out when it goes in circles. It keeps producing plausible-looking steps, each one a reasonable action on its own, for as long as its context budget and your patience hold out. Nothing in that loop looks wrong from inside a single tool call. It only looks wrong once you zoom out to the invoice, by which point the run is already over.
+
+That's a reliability problem with a reliability answer, and it's one most teams running production services already know by a different name.
+
+## Circuit breakers, borrowed from systems you already trust
+
+A circuit breaker, in the sense Netflix popularized with Hystrix over a decade ago, trips a service off once it starts failing past a threshold, instead of letting every downstream caller keep retrying into something already struggling. The same idea applies almost unchanged to an agent run: stop it automatically once it crosses a threshold decided on in advance, rather than relying on someone noticing mid-run, or an invoice arriving weeks later.
+
+The difference between a circuit breaker and the dollar caps both Uber and Microsoft reached for first is where the check happens. A spending cap is enforced after usage is reported, often batched, often a day or more behind. A circuit breaker is enforced inline, before the next step runs, by the same system executing the agent, not by a finance dashboard watching from the outside.
+
+## The four boundaries worth enforcing
+
+Most of the production patterns teams converged on through 2026 enforce the same four checks, regardless of which framework or vendor sits underneath:
+
+- **Iteration limits.** A hard cap on how many steps or tool calls a single task can take before it's forced to stop and hand control back, independent of whether it's making progress.
+- **Budget ceilings.** A dollar or token limit enforced at the infrastructure layer, checked before each step executes, not a number glanced at in a billing dashboard once a run has already finished.
+- **Failure thresholds.** A count of consecutive errors or retries, or a confidence score dropping past a line, that trips the breaker the same way a rising error rate trips one in a traditional service.
+- **Scope enforcement.** A permission boundary on what the agent can touch at all, so a looping run is bounded in what it can affect, not just in how long it can keep going.
+
+None of these are exotic. They're the same four things worth wanting on any automated system making repeated calls against a metered resource. What's new is that the resource is an LLM API, the calls look like plausible code changes instead of obviously malformed requests, and the person who'd normally notice a service degrading is reading a diff instead of a dashboard.
+
+## Where the enforcement has to live
+
+The mistake worth naming directly: a circuit breaker written as a prompt instruction, "stop after 10 steps," isn't a circuit breaker. It's a suggestion the model can drift past the same way it drifts past any other instruction once a task runs long enough. The enforcement has to sit outside the model's own reasoning, in the harness or orchestration layer actually executing each step, so a run gets killed regardless of how confident the agent sounds about continuing.
+
+That's also why a monthly spending cap feels like a fix and isn't one. It limits the organization's total exposure eventually, but it does nothing for the single run that's three hours into a problem it can't solve. By the time that run hits the cap, the cost, in tokens spent and in the hours an engineer now has to spend [reviewing whatever it produced](/reviewing-ai-generated-code), is already sunk.
+
+## What to actually do about this
+
+Start smaller than a platform migration. Most agent CLIs and orchestration layers already expose a max-steps or max-turns setting; if it isn't set explicitly, there's no breaker running today. Pair that with a per-task budget ceiling, not just a per-engineer monthly one, so a single run has a hard stop before it becomes a story in a postmortem. Add a failure threshold, three consecutive tool errors or a dropping confidence score is a reasonable starting point, that forces a human check-in instead of another retry.
+
+None of this requires the governance platforms now being sold around exactly this problem, though they exist for a reason once an org runs enough agents to need one. It requires treating an agent run the way any other automated process with a metered cost and an unbounded failure mode gets treated: give it a boundary before it starts, not a bill after it finishes.
