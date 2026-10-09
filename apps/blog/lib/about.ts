@@ -1,6 +1,6 @@
 export const about = {
   summary:
-    "I'm a Staff Engineer, Web Applications, working across TypeScript, React Native, Expo and Next.js — mobile and web treated as one discipline rather than two teams. I write about the parts of the job that don't fit in a ticket: performance as a measurement discipline, architecture that survives a second team, and estimation that holds up in front of a client. Most of what I publish comes out of production work rather than side projects.",
+    "I'm a Staff Engineer, Web Applications, working across TypeScript, React Native, Expo and Next.js — mobile and web treated as one discipline rather than two teams. I write about the parts of the job that don't fit in a ticket: shipping React Native, Expo and Next.js as one body of work, architecture that survives a second team, estimation that holds up in front of a client, and what AI agents change about all of it. Most of what I publish comes out of production work rather than side projects.",
   work: [
     {
       period: "2022 — now",
@@ -25,18 +25,14 @@ export const about = {
     "Gtac",
     "Ayaland",
   ],
-  speaking: [
-    {
-      venue: "WordCamp",
-      topic: "Core Web Vitals for real sites, not lab scores.",
-    },
-    { venue: "Meetups", topic: "Estimation as a design constraint." },
-  ],
+  speaking: [{ venue: "Meetups", topic: "Estimation as a design constraint." }],
   writesAbout: [
-    { label: "Performance", href: "/topics/performance" },
+    { label: "AI", href: "/topics/ai" },
     { label: "JavaScript", href: "/topics/javascript" },
-    { label: "CSS", href: "/topics/css" },
     { label: "Engineering Management", href: "/topics/engineering-management" },
+    { label: "Staff Engineering", href: "/topics/staff-engineering" },
+    { label: "CSS", href: "/topics/css" },
+    { label: "Performance", href: "/topics/performance" },
   ],
   verify: [
     { label: "GitHub", href: "https://github.com/dainemawer" },

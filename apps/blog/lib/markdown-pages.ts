@@ -61,7 +61,7 @@ export function buildHomeMarkdown(posts: Post[]): string {
   const lines = [
     `# ${site.name}`,
     "",
-    `> ${site.role} at ${site.company.name}, based in ${site.location}. Frontend engineering, web performance, JavaScript, CSS, and engineering management.`,
+    `> ${site.role} at ${site.company.name}, based in ${site.location}. React Native, Expo, Next.js, TypeScript, AI-assisted engineering, and engineering management.`,
     "",
     "This is the Markdown representation of the homepage: a reverse-chronological index of every article. Each link below points at the article's Markdown twin. The HTML homepage is paginated; this index is not — every article is listed here.",
     "",
