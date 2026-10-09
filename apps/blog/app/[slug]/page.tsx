@@ -7,16 +7,19 @@ import remarkGfm from "remark-gfm";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { DirectionalTransition } from "@/components/directional-transition";
 import { JsonLd } from "@/components/json-ld";
+import { KeepReading } from "@/components/keep-reading";
 import { getMdxComponents } from "@/components/mdx-components";
 import { MetaRow } from "@/components/meta-row";
 import { PageShell } from "@/components/page-shell";
 import { ReadingProgress } from "@/components/reading-progress";
 import { ShareLinks } from "@/components/share-links";
+import { SubscribeCta } from "@/components/subscribe-cta";
 import { Toc } from "@/components/toc";
 import { formatArticleDate } from "@/lib/format";
 import { renderInlineText } from "@/lib/inline-markdown";
 import { getPostContent } from "@/lib/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/posts";
+import { getRelatedPosts } from "@/lib/related";
 import { articleSchema, faqPageSchema } from "@/lib/schema";
 import { site } from "@/lib/site";
 import { getTopicBySlug } from "@/lib/topics";
@@ -72,6 +75,7 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
   const published = formatArticleDate(post.date);
   const updated = post.updated ? formatArticleDate(post.updated) : undefined;
   const topic = post.topics[0] ? getTopicBySlug(post.topics[0]) : undefined;
+  const related = getRelatedPosts(post, getAllPosts());
 
   return (
     <>
@@ -162,21 +166,6 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
                 components={getMdxComponents(slug)}
                 options={{ mdxOptions }}
               />
-
-              {content.related && (
-                <aside
-                  aria-label="Related article"
-                  className="my-6.5 grid grid-cols-1 gap-x-12 gap-y-1 text-muted text-sm sm:grid-cols-meta sm:items-baseline sm:gap-y-0"
-                >
-                  <div className="text-faint sm:text-right">Related</div>
-                  <Link
-                    href={content.related.href}
-                    className="hover:text-ink focus-visible:text-ink"
-                  >
-                    {content.related.label}
-                  </Link>
-                </aside>
-              )}
             </div>
 
             {content.takeaways.length > 0 && (
@@ -215,29 +204,13 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
               </div>
             )}
 
-            <nav
-              aria-label="Post navigation"
-              className="mt-19 grid grid-cols-2 gap-x-12 text-sm text-muted"
-            >
-              {content.prev && (
-                <Link
-                  href={content.prev.href}
-                  transitionTypes={["sequence-prev"]}
-                  className="hover:text-ink focus-visible:text-ink"
-                >
-                  {content.prev.label}
-                </Link>
-              )}
-              {content.next && (
-                <Link
-                  href={content.next.href}
-                  transitionTypes={["sequence-next"]}
-                  className="text-right hover:text-ink focus-visible:text-ink"
-                >
-                  {content.next.label}
-                </Link>
-              )}
-            </nav>
+            <div className="mt-18">
+              <SubscribeCta postSlug={slug} />
+            </div>
+
+            <div className="mt-18">
+              <KeepReading fromSlug={slug} posts={related} />
+            </div>
           </div>
         </PageShell>
       </DirectionalTransition>

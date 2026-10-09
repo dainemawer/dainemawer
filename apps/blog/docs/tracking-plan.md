@@ -4,6 +4,8 @@ Tools: Google Tag Manager (container) + Google Analytics 4 (a tag inside that co
 
 ## What's left for you to do
 
+Every event in the table below is wired in code. The only thing between this site and data in GA4 is the container: nothing is sent until `NEXT_PUBLIC_GTM_ID` is set.
+
 1. Create a GTM container at tagmanager.google.com — copy the container ID (`GTM-XXXXXXX`).
 2. Create a GA4 property, then add a "GA4 Configuration" tag inside GTM pointing at it, firing on "All Pages".
 3. Set `NEXT_PUBLIC_GTM_ID` to that container ID in `.env.local` and in Vercel's Production + Preview env vars.
@@ -25,21 +27,22 @@ Tools: Google Tag Manager (container) + Google Analytics 4 (a tag inside that co
 
 | Event | Trigger | Properties | Component | Status |
 |---|---|---|---|---|
-| `newsletter_modal_opened` | Subscribe modal opens | `location` (nav / inline CTA) | `subscribe-modal-context.tsx` | Not wired |
-| `newsletter_signup_submitted` | Form submitted, passes client validation | — | `subscribe-modal.tsx` | Not wired |
-| `newsletter_signup_succeeded` | Provider confirms the subscription | — | `subscribe-modal.tsx` | Not wired — provider itself is still a TODO stub |
-| `newsletter_signup_failed` | Client validation fails | `reason: "invalid_email"` | `subscribe-modal.tsx` | Not wired |
+| `newsletter_modal_opened` | Subscribe modal opens | `location` (`nav` / `article_end`), `post_slug` (article_end only) | `utility-bar.tsx`, `subscribe-cta.tsx` | Wired |
+| `newsletter_signup_submitted` | Form submitted, passes client validation | — | `subscribe-modal.tsx` | Wired |
+| `newsletter_signup_succeeded` | Provider confirms the subscription | — | `subscribe-modal.tsx` | Wired |
+| `newsletter_signup_failed` | Client validation fails | `reason: "invalid_email"` | `subscribe-modal.tsx` | Wired |
 | `contact_form_submitted` | Contact form submitted, passes client validation | `reason` (`speaking` / `post` / `correction` / `other`) | `contact-form.tsx` | Wired |
 | `contact_form_succeeded` | Provider accepts the message | `reason` | `contact-form.tsx` | Wired |
 | `contact_form_failed` | Client validation or the request fails | `reason` (`missing_name` / `invalid_email` / `message_too_short` / `rate_limited` / `provider_error` / `network_error`) | `contact-form.tsx` | Wired |
 | `contact_email_copied` | "Copy" clicked beside the address | — | `copy-email.tsx` | Wired |
-| `command_palette_opened` | ⌘K or the Search trigger clicked | `source: "shortcut" \| "click"` | `search-trigger.tsx`, `command-palette-context.tsx` | Not wired |
-| `site_search` | Query entered in the command palette (debounced, not per keystroke) | `search_term`, `result_count` | `command-palette.tsx` | Not wired |
-| `code_block_copied` | "Copy" clicked on a code sample | `post_slug` | `code-block.tsx` | Not wired |
-| `topic_filter_selected` | A topic is clicked | `topic` | `app/topics/[topic]/page.tsx` | Not wired |
-| `outbound_link_clicked` | GitHub / LinkedIn / Bluesky / employer link clicked | `destination` | `footer-elsewhere.tsx`, about page | Not wired |
-| `feed_link_clicked` | RSS / JSON Feed / Sitemap link clicked | `feed_type` | `footer-elsewhere.tsx` | Not wired |
+| `command_palette_opened` | ⌘K or the Search trigger clicked | `source: "shortcut" \| "click"` | `search-trigger.tsx`, `command-palette-context.tsx` | Wired |
+| `site_search` | Query entered in the command palette (debounced, not per keystroke) | `search_term`, `result_count` | `command-palette.tsx` | Wired |
+| `code_block_copied` | "Copy" clicked on a code sample | `post_slug` | `code-block.tsx` | Wired |
+| `topic_filter_selected` | A topic is clicked | `topic` | `app/topics/[topic]/page.tsx` | Wired |
+| `outbound_link_clicked` | GitHub / LinkedIn / Bluesky / employer link clicked | `destination` | `footer-elsewhere.tsx`, about page | Wired |
+| `feed_link_clicked` | RSS / JSON Feed / Sitemap link clicked | `feed_type` | `footer-elsewhere.tsx` | Wired |
 | `article_shared` | A share link (X / Bluesky / LinkedIn) clicked on an article | `platform`, `url` | `share-links.tsx` | Wired |
+| `related_article_clicked` | A "Keep reading" link at the end of an article is clicked | `from_slug`, `to_slug`, `position` | `keep-reading.tsx` | Wired |
 | `article_link_copied` | "Copy link" clicked on an article | `url` | `share-links.tsx` | Wired |
 
 `archive_year_selected` (the homepage year filter) is deliberately left off — it's a plain `<Link>` navigation to `/?year=`, so GA4 already captures it as a pageview with no extra event needed.
