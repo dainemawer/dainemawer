@@ -40,6 +40,13 @@ const pages: Omit<SearchEntry, "group" | "external">[] = [
     meta: "/contact",
   },
   {
+    id: "page-til",
+    label: "TIL",
+    description: "Short notes on things I learned this week.",
+    href: "/til",
+    meta: "/til",
+  },
+  {
     id: "page-uses",
     label: "Uses",
     description: "The desk, the editor, and what's actually running on it.",

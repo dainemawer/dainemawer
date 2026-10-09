@@ -1,0 +1,16 @@
+---
+title: pnpm --filter takes the package name, not the directory
+date: '2026-10-09'
+tags:
+  - pnpm
+---
+
+In a pnpm workspace, `pnpm --filter` matches the `name` field in a package's `package.json`, not the folder it lives in.
+
+In this repo the blog lives in `apps/blog`, but its package is called `blog`:
+
+```bash
+pnpm --filter blog dev
+```
+
+`pnpm --filter apps/blog dev` matches nothing and quietly does nothing, which is easy to mistake for a hung dev server.

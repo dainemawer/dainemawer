@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { SearchTrigger } from "./search-trigger";
 import { useSetSubscribeModalOpen } from "./subscribe-modal-context";
@@ -9,6 +10,10 @@ export function UtilityBar() {
 
   return (
     <div className="flex h-6 items-baseline justify-end gap-2 text-sm text-muted">
+      <Link href="/til" className="hover:text-ink focus-visible:text-ink">
+        TIL
+      </Link>
+      <span className="text-divider">|</span>
       <SearchTrigger />
       <span className="text-divider">|</span>
       <button
