@@ -10,6 +10,13 @@ import type { Post } from "./posts";
 import { getAllPosts, getPostBySlug, getPostsByTopic } from "./posts";
 import { privacySections, privacyUpdated } from "./privacy";
 import { site } from "./site";
+import type { Til, TilContent } from "./til";
+import {
+  getAllTils,
+  getTilBySlug,
+  getTilContent,
+  TIL_DESCRIPTION,
+} from "./til";
 import { getTopicBySlug, topics } from "./topics";
 import { usesReviewedOn, usesSections } from "./uses";
 
@@ -79,6 +86,7 @@ export function buildHomeMarkdown(posts: Post[]): string {
       "Work history, speaking, and how to verify who's writing this.",
     ],
     ["Uses", "/uses", "The hardware and software behind the articles."],
+    ["TIL", "/til", "Short notes on things I learned this week."],
     ["Now", "/now", "What has my attention this month."],
     [
       "Agents",
@@ -292,6 +300,44 @@ export function buildUsesMarkdown(): string {
   return [...lines, ...footer("/uses")].join("\n");
 }
 
+export function buildTilIndexMarkdown(
+  entries: { til: Til; content: TilContent }[],
+): string {
+  const lines = [
+    `# Today I Learned — ${site.name}`,
+    "",
+    `> ${TIL_DESCRIPTION}`,
+    "",
+    `${entries.length} note${entries.length === 1 ? "" : "s"}, newest first. Each is complete here; the link under its title is its own page.`,
+    "",
+  ];
+
+  for (const { til, content } of entries) {
+    lines.push(
+      `## ${til.title}`,
+      "",
+      `Published ${til.date}. ${mdUrl(`/til/${til.slug}`)}`,
+      "",
+      content.rawBody.trim(),
+      "",
+    );
+  }
+
+  return [...lines, ...footer("/til")].join("\n");
+}
+
+export function buildTilMarkdown(til: Til, content: TilContent): string {
+  const tags = til.tags.length > 0 ? ` — ${til.tags.join(", ")}` : "";
+  return [
+    `# ${til.title}`,
+    "",
+    `Published ${til.date}${tags}`,
+    "",
+    content.rawBody.trim(),
+    ...footer(`/til/${til.slug}`),
+  ].join("\n");
+}
+
 export function buildNowMarkdown(): string {
   const lines = [
     `# Now — ${site.name}`,
@@ -451,6 +497,13 @@ const STATIC_PAGES: Record<string, () => string> = {
   privacy: buildPrivacyMarkdown,
   contact: buildContactMarkdown,
   agents: buildAgentsMarkdown,
+  til: () =>
+    buildTilIndexMarkdown(
+      getAllTils().flatMap((til) => {
+        const content = getTilContent(til.slug);
+        return content ? [{ til, content }] : [];
+      }),
+    ),
 };
 
 /**
@@ -478,6 +531,14 @@ export function resolveMarkdownDocument(segments: string[]): MarkdownDocument {
     const content = post ? getPostContent(slug) : undefined;
     if (post && content) {
       return { body: buildPostMarkdown(post, content), status: 200 };
+    }
+  }
+
+  if (segments.length === 2 && segments[0] === "til") {
+    const til = getTilBySlug(segments[1]);
+    const content = til ? getTilContent(til.slug) : undefined;
+    if (til && content) {
+      return { body: buildTilMarkdown(til, content), status: 200 };
     }
   }
 

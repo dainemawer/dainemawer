@@ -92,6 +92,11 @@ const nextConfig: NextConfig = {
         destination: "/md/:slug",
       },
       {
+        // …and for each TIL entry (the /til index is covered by /:slug.md).
+        source: "/til/:slug.md",
+        destination: "/md/til/:slug",
+      },
+      {
         // Same reasoning one level down, for the topic indexes.
         source: "/topics/:topic.md",
         destination: "/md/topics/:topic",
