@@ -1,0 +1,86 @@
+---
+title: Hardening Your JavaScript Stack Against the Next npm Supply Chain Worm
+dek: Shai-Hulud showed the pattern. Here's the concrete playbook for keeping a self-replicating worm out of your dependency tree.
+date: '2026-10-05'
+topics:
+  - javascript
+  - staff-engineering
+shortAnswer: Self-replicating npm worms like Shai-Hulud spread by stealing publish tokens and republishing infected versions into every package a maintainer owns. Datadog tracked the second wave to 796 packages across 1,092 versions in November 2025. Defend with locked installs, OIDC-based publishing instead of long-lived tokens, scoped CI secrets, and automated dependency scanning.
+takeaways:
+  - Install from a committed lockfile with npm ci or pnpm install --frozen-lockfile, never npm install, so a worm's freshly published patch version can't slip into a build unreviewed.
+  - Move package publishing to OIDC trusted publishing instead of long-lived npm tokens. A token that doesn't exist on disk can't be stolen from it.
+  - Scope CI credentials per job instead of handing every pipeline step a token with full publish and registry access.
+  - Add automated SCA scanning (Socket, Snyk, or similar) so a newly flagged malicious version gets caught within hours, not at the next dependency audit.
+  - Block install scripts by default. pnpm already does this; npm needs --ignore-scripts or an allowlist, since postinstall is still the easiest place to hide a payload.
+faq:
+  - question: What is the Shai-Hulud npm worm?
+    answer: Shai-Hulud is a self-replicating worm first identified in September 2025 that spreads through npm by stealing a maintainer's publish credentials, then using them to automatically republish infected versions of every other package that maintainer owns, continuing the cycle with each new victim's tokens.
+  - question: Does npm ci protect against malicious package updates?
+    answer: Yes, with a caveat. npm ci installs strictly from the committed lockfile, so it blocks a worm's newly published version from entering a build automatically. It doesn't help if the malicious version was already resolved into that lockfile before the compromise was caught, which is why lockfile pinning needs to be paired with scanning.
+  - question: What is npm trusted publishing and should I use it?
+    answer: Trusted publishing lets a CI workflow publish to npm using short-lived, workflow-scoped OIDC credentials instead of a long-lived npm token stored as a secret. GitHub made it generally available in July 2025. If your package publishes from CI, it's worth adopting, since a credential that expires in minutes and never touches disk can't be exfiltrated the way a static token can.
+  - question: How do I protect my project from a supply chain attack right now?
+    answer: Start with the installs you don't control. Pin every dependency behind a committed lockfile, run installs with --ignore-scripts where the build allows it, and add a scanning tool that checks resolved versions against a known-compromised-package feed. None of those require a rewrite, and together they cover most of how these worms actually get in.
+needsRewrite: false
+---
+
+Open-source maintainers have always had their credentials phished. What changed in the last year is what happens after. A stolen npm token used to mean one compromised package. Now it means a worm: malware that uses that one token to republish itself into every other package the same maintainer owns, and from there into whichever of their users run the next `npm install` without checking what actually changed.
+
+Shai-Hulud, first identified in September 2025, set the pattern. [Datadog's security team tracked a second wave](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/) to 796 unique packages across 1,092 versions by November 2025, pulling in more than 20 million weekly downloads combined. Variants have kept surfacing through 2026, each one reusing the same mechanics: steal tokens, republish, repeat. None of this requires a novel exploit. It requires a developer or a CI runner installing a package whose patch version changed an hour ago and nobody looked at it yet.
+
+The fixes aren't exotic either. Here's what actually closes the gap.
+
+## Why this is a bigger problem than it was two years ago
+
+Transitive dependency depth hasn't changed much, but who's running `npm install` has. An AI coding agent working autonomously on a ticket will add a package, run the install, and move on to the next step without a human reading what just landed in `node_modules`. That's not a flaw in the agent, it's just how the workflow is designed: the agent is optimizing for finishing the task, not for auditing a dependency tree nobody asked it to audit.
+
+A worm doesn't care whether the hands on the keyboard are human. It's counting on the install happening without anyone looking closely at what changed, and an unattended agent running a build loop is a more reliable source of exactly that than a developer who occasionally skims a diff. The defenses below don't change based on who's running the install, which is part of why they're worth having regardless of how much of your pipeline is agent-driven today.
+
+## Install from a lockfile, not a version range
+
+A worm's entire distribution model depends on one thing: someone installing a version that was published after the compromise, without reviewing it. `npm install` with a caret range will happily pick that version up the moment it's published. `npm ci` (or `pnpm install --frozen-lockfile`) won't. It installs exactly what's in the committed lockfile, full stop, and fails the build if package.json and the lockfile disagree.
+
+This is the single highest-leverage change available, and most teams already have the lockfile committed; they just aren't using the command that enforces it. CI should run `npm ci`, not `npm install`, as a hard rule, and that's a one-line change in most workflow files:
+
+```yaml
+- run: npm ci # not npm install
+- run: npm run build
+```
+
+Local development can stay looser, since a developer's machine isn't where a compromised dependency does its damage; the CI pipeline publishing from it is. The same logic applies to an AI agent's sandbox. If it's running builds against a committed lockfile instead of re-resolving ranges, it inherits the same protection without needing to understand why.
+
+Pinning isn't a complete answer on its own. If a malicious version already got resolved into the lockfile before anyone caught it, pinning preserves that version faithfully. It needs pairing with scanning, covered further down, to catch what was already baked in.
+
+## Stop storing npm tokens as secrets
+
+Every long-lived npm token sitting in a CI secret store is a credential a worm can exfiltrate the moment that pipeline's environment is compromised, whether through a malicious dependency, a misconfigured action, or a leaked log line. The fix isn't rotating tokens more often. It's not having a long-lived token to steal.
+
+[npm's trusted publishing](https://github.blog/changelog/2025-07-31-npm-trusted-publishing-with-oidc-is-generally-available/), generally available since July 2025, issues a short-lived, workflow-scoped credential over OIDC at publish time instead. It's tied to the specific repository and workflow that requested it, expires in minutes, and never touches disk as a static secret. If your package publishes from CI at all, this is worth setting up ahead of the next incident, not during it.
+
+## Scope CI credentials to what the job actually needs
+
+A publish token is the obvious target, but any CI job holding broad registry, cloud, or source-control access is a liability if a compromised dependency executes inside it. Give the lint job read access, not a token that can publish. Give the test job no cloud credentials at all. This is the same principle [commit hooks](/leveraging-commitlint) already apply at a smaller scale: narrow what runs automatically to exactly what it needs, nothing adjacent to it.
+
+Least-privilege CI tokens don't stop a compromised dependency from running. They limit what it can do once it has.
+
+## Add automated dependency scanning
+
+Lockfiles and scoped credentials shrink the attack surface. They don't tell you when something you already depend on turns out to be compromised. That's a job for continuous scanning, tools like Socket, Snyk, or Mend check resolved dependency versions against a feed of known-malicious packages and flag a match before or during install, not weeks later during a routine audit.
+
+This matters more for JavaScript than most ecosystems because of transitive depth. A typical frontend project pulls in dependencies of dependencies several layers deep, and a compromised package rarely sits at the top of that tree. Nobody is manually auditing that list on every install. A scanner that runs in CI and on a schedule is what actually catches it in time.
+
+## Block install scripts by default
+
+`postinstall` is still the most common place a worm hides its payload, because it runs automatically, with no prompt, the moment a package installs. pnpm already blocks arbitrary lifecycle scripts unless a package is explicitly allowlisted, which is one of the more underrated reasons to default to it on a new project.
+
+With npm, `--ignore-scripts` does the same job, though it requires checking which packages genuinely need an install step (native bindings are the usual legitimate case) and allowlisting those deliberately rather than leaving the door open for everything.
+
+## Require 2FA on publish, and use npm's own staging checks
+
+Trusted publishing removes the stolen-token path. It doesn't stop someone from publishing a malicious version directly from a compromised maintainer account that still has password-only access. Two-factor authentication on publish closes that remaining gap, and npm has required it for high-download packages for a while now; there's no good reason to leave it optional on anything your team maintains.
+
+npm has also started building malware checks into the registry itself. In September 2026, GitHub extended trusted publishing to support multiple OIDC configurations per package and introduced staged packages, versions that get scanned before they're approved for public installation rather than after. It's a registry-level backstop, not a replacement for the practices above, but it's one more layer between a compromised publish and your lockfile.
+
+## Bringing it together
+
+None of this is about distrusting open source. It's about recognizing that a worm optimized for automatic propagation needs exactly the conditions most JavaScript projects default to: floating version ranges, long-lived tokens, broad CI permissions, and install scripts that run without review. Lock the installs, retire the static tokens, scope what CI can touch, scan what's already resolved, and block scripts that don't need to run. Each one closes a door the next wave is counting on being left open.

@@ -9,6 +9,7 @@ import { pagePath, paginate, parsePageParam } from "./pagination";
 import type { Post } from "./posts";
 import { getAllPosts, getPostBySlug, getPostsByTopic } from "./posts";
 import { privacySections, privacyUpdated } from "./privacy";
+import { getRelatedPosts } from "./related";
 import { site } from "./site";
 import type { Til, TilContent } from "./til";
 import {
@@ -108,7 +109,11 @@ export function buildHomeMarkdown(posts: Post[]): string {
   return [...lines, ...footer("/")].join("\n");
 }
 
-export function buildPostMarkdown(post: Post, content: PostContent): string {
+export function buildPostMarkdown(
+  post: Post,
+  content: PostContent,
+  related: Post[] = [],
+): string {
   const updated = post.updated ? `, updated ${post.updated}` : "";
   const lines = [
     `# ${post.title}`,
@@ -132,6 +137,11 @@ export function buildPostMarkdown(post: Post, content: PostContent): string {
     for (const item of content.faq) {
       lines.push(`### ${item.question}`, "", item.answer, "");
     }
+  }
+
+  if (related.length > 0) {
+    lines.push("", "## Keep reading", "");
+    for (const next of related) lines.push(...postLine(next));
   }
 
   return [...lines, ...footer(`/${post.slug}`)].join("\n");
@@ -530,7 +540,14 @@ export function resolveMarkdownDocument(segments: string[]): MarkdownDocument {
     const post = getPostBySlug(slug);
     const content = post ? getPostContent(slug) : undefined;
     if (post && content) {
-      return { body: buildPostMarkdown(post, content), status: 200 };
+      return {
+        body: buildPostMarkdown(
+          post,
+          content,
+          getRelatedPosts(post, getAllPosts()),
+        ),
+        status: 200,
+      };
     }
   }
 

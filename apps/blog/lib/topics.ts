@@ -35,6 +35,11 @@ export const topics: Topic[] = [
     name: "AI",
     dek: "Agentic coding, review practices, and how AI is reshaping the day-to-day of building software.",
   },
+  {
+    slug: "security",
+    name: "Security",
+    dek: "Supply chain risk, dependency trust, and the vulnerabilities that actually reach production.",
+  },
 ];
 
 export function getTopicBySlug(slug: string): Topic | undefined {

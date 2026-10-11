@@ -1,0 +1,87 @@
+---
+title: 'Shai-Hulud Broke npm''s Trust Model. Here''s the Replacement'
+dek: A self-replicating worm hit 500+ packages by stealing publish tokens. npm's fix removes the tokens instead of trusting them harder.
+date: '2026-09-30'
+topics:
+  - security
+  - javascript
+shortAnswer: In September 2025, the self-replicating Shai-Hulud worm compromised over 500 npm packages by stealing publish tokens and using them to republish trojanized versions. npm's response, rolled out through December 2025, replaces long-lived tokens with OIDC-based trusted publishing, cryptographic provenance, and mandatory FIDO 2FA. Teams should adopt trusted publishing now, not wait for the next worm.
+takeaways:
+  - "Shai-Hulud wasn't a typosquat or a phishing email. It stole real publish tokens from real maintainers and used them to republish trojanized versions of every package it could reach, no command-and-control server required."
+  - "npm's actual fix isn't 'rotate your tokens more often.' It's removing long-lived tokens from the picture entirely, in favor of OIDC trusted publishing that mints a short-lived credential per CI run."
+  - "Provenance attestations prove which pipeline built a package, not that the pipeline itself is honest. That distinction matters more than the checkmark suggests."
+  - "The 2025 ReversingLabs Software Supply Chain Security Report found malicious open-source package detections up 73% year over year, with npm accounting for roughly 90% of them."
+  - "None of this is optional for long. GitHub is deprecating classic tokens and TOTP 2FA for publishing, so the migration is coming whether a team plans for it or gets forced into it."
+faq:
+  - question: What was the Shai-Hulud npm worm?
+    answer: Shai-Hulud was a self-replicating worm first observed on npm on September 14, 2025, starting in the @ctrl/tinycolor package. It stole developer credentials from compromised machines, then used those stolen npm and GitHub tokens to automatically republish trojanized versions of every package the victim maintained. Researchers initially counted 187 affected packages; that number grew past 500 as the worm kept spreading.
+  - question: How do I enable npm trusted publishing?
+    answer: Trusted publishing uses OpenID Connect so a GitHub Actions (or GitLab CI) workflow authenticates to npm directly, without a stored NPM_TOKEN secret. Configure it on the package's npm settings page by linking the specific repository and workflow file allowed to publish, then remove the long-lived token from your CI secrets once the workflow publishes successfully.
+  - question: Does npm provenance stop malicious code from being published?
+    answer: No. Provenance attestations cryptographically prove which repository, workflow, and commit produced a package, so consumers can verify where it came from. They don't verify that the code in that pipeline is safe or that the maintainer's account hasn't been compromised. Provenance answers "did this come from the claimed pipeline," not "should I trust what's in it."
+needsRewrite: false
+---
+
+On September 14, 2025, at 17:58 UTC, a maintainer published what looked like a routine update to `@ctrl/tinycolor`, a small, unremarkable color-manipulation package used deep in a lot of dependency trees. It wasn't routine. Within hours, researchers had traced a self-replicating worm, later named Shai-Hulud, that stole the publishing tokens on a developer's machine and used them to automatically push trojanized versions of every other package that developer controlled. No command-and-control server, no human attacker manually working through a target list. The worm did that part itself.
+
+Researchers counted 187 compromised packages in the first wave. That number kept climbing as the worm kept spreading through freshly stolen tokens, eventually passing 500. It briefly reached packages published under CrowdStrike's own npm namespace before they were pulled. It's the first widely observed self-replicating worm in the npm registry's history, and it's a large part of why 2025's [ReversingLabs Software Supply Chain Security Report](https://www.reversinglabs.com/press-releases/reversinglabs-2026-software-supply-chain-security-report-identifies-73-increase-in-malicious-open-source-packages) found malicious open-source package detections up 73% year over year, with npm alone accounting for roughly 90% of them.
+
+That's the headline. The part worth actually sitting with is how it worked, because it changes what "supply chain security" needs to mean for a team that just runs `npm install` like everyone else.
+
+## The attack didn't need a vulnerability
+
+Shai-Hulud didn't exploit a bug in npm, a flaw in a dependency, or a clever piece of malicious code hidden in a diff. It exploited something much more mundane: developers routinely have long-lived npm publish tokens sitting on their machines, in `.npmrc` files, CI secrets, and shell profiles, because that's how publishing has worked for the better part of two decades.
+
+Once a single machine was compromised, the worm used tools like TruffleHog to scan for those tokens, along with GitHub personal access tokens and cloud credentials sitting nearby. It added a malicious GitHub Actions workflow to exfiltrate whatever it found, then used the stolen npm token to republish every package that maintainer had access to, with the same worm bundled inside. Each new compromised package became a new distribution point. That's the self-replicating part, and it's why this scaled faster than a typical supply chain attack: the attacker's job was done after the first infection. The worm did the propagation.
+
+The failure here isn't a careless maintainer. It's a token model where a single stolen credential grants standing, indefinite permission to publish to the entire npm registry on that person's behalf, with no per-run scope and no expiration forcing a reset. That's the actual thing that needed fixing, and it's what npm and GitHub spent the rest of 2025 rebuilding.
+
+## What replaced the long-lived token
+
+The instinct after an incident like this is usually "rotate more often" or "review token permissions more carefully." That's not what shipped. Instead, [GitHub's response](https://github.blog/security/supply-chain-security/our-plan-for-a-more-secure-npm-supply-chain/), phased in through December 2025, removes the long-lived token from the publishing flow entirely for teams that adopt it.
+
+Trusted publishing uses OpenID Connect so a CI workflow authenticates to npm directly. There's no `NPM_TOKEN` sitting in a secrets store for a worm to find, because there's no persistent token at all. npm validates the identity of the specific GitHub Actions workflow requesting the publish, mints a short-lived, workflow-scoped credential for that single run, and the credential expires the moment the job finishes. Steal the workflow file and you still don't get a standing key to the registry.
+
+Setting it up for a package you maintain looks roughly like this in the workflow that publishes it:
+
+```yaml
+permissions:
+  id-token: write # required for OIDC
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm publish --provenance
+```
+
+The `--provenance` flag is the second half of the fix: npm's CLI automatically generates a provenance attestation for the package, cryptographic proof of the exact repository, workflow, and commit that produced it. Anyone installing the package can verify where it actually came from, not just what the README claims.
+
+For anything still publishing manually, the other half of the announcement matters just as much: GitHub is deprecating classic tokens for npm publishing, capping granular token lifetimes sharply, removing the option to bypass 2FA for local publishing, and phasing out TOTP-based 2FA in favor of FIDO security keys and passkeys. None of that is a suggestion with a distant deadline. It's the direction the whole registry is moving, whether or not a given team has opted in yet.
+
+## What provenance doesn't buy you
+
+It's worth being precise about what this actually solves, because the checkmark next to a provenance-verified package invites more confidence than it's earned. Provenance proves which pipeline produced a package. It doesn't prove the pipeline was honest.
+
+If an attacker compromises the source repository itself, say, by getting a malicious commit merged, or gaining GitHub Actions access some other way, trusted publishing will faithfully generate a provenance attestation for that maliciousness. It'll be cryptographically correct and functionally useless. This is the same gap [reviewing AI-generated code](/reviewing-ai-generated-code) runs into: verifying that something came from where it claims to have come from is not the same task as verifying it's safe to trust. Provenance narrows the attack surface to "compromise the actual pipeline" instead of "steal a token from anywhere," which is a real improvement, not a complete one.
+
+## What to actually do about it this week
+
+For a team that isn't publishing its own packages, the relevant question isn't "should we adopt trusted publishing" so much as "how exposed are we to someone else's compromised token." A few concrete steps that don't require waiting on anyone else:
+
+- Pin dependencies with a committed lockfile, and treat `npm ci` as the only install command CI is allowed to run. A worm that republishes a patch version doesn't reach a build that's locked to an exact, previously audited version.
+- Audit before bumping, not after. A version bump on a package with low download counts or a maintainer who just changed is worth a second look before it merges, the same instinct as reviewing any other unfamiliar diff before trusting it.
+- Get long-lived `NPM_TOKEN` secrets out of CI for anything your team does publish, and move to trusted publishing where the CI platform supports OIDC. GitHub Actions, GitLab CI, and CircleCI all do now.
+- Turn on FIDO-based 2FA for every account with publish access, ahead of npm forcing the TOTP deprecation. Doing it on your own schedule beats doing it during an incident.
+- Run a dependency scanner in CI, not as a replacement for the above, but as the layer that catches what slips past it. Socket, Snyk, and similar tools flag install scripts, new maintainers, and suspicious version jumps before they reach a build.
+
+None of these require a security team. They're the same discipline as [a written PR checklist](/effective-code-reviews) applied one layer down the stack, to the code a team didn't write but ships anyway.
+
+## Bringing it together
+
+Shai-Hulud didn't need a zero-day. It needed a token model built on standing trust with no expiration, and it turned that into a worm that spread itself. npm's response doesn't ask maintainers to be more careful with tokens, it removes the long-lived token from the equation through OIDC-based trusted publishing, backs it with cryptographic provenance, and forces stronger 2FA across the board. That's a real fix, not theater, but it answers "did this come from where it claims to" and not "is it safe." For a team not ready to migrate its own publishing today, the more urgent move is smaller and faster: locked dependencies, audited version bumps, and 2FA turned on before npm turns it on for you.

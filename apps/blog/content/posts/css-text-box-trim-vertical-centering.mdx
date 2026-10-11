@@ -1,0 +1,114 @@
+---
+title: CSS text-box-trim Finally Fixes Vertical Text Centering
+dek: Two small properties trim the invisible space your font adds above and below text, so buttons, tags, and badges align the way the padding math always promised.
+date: '2026-10-02'
+topics:
+  - css
+shortAnswer: "CSS's text-box-trim and text-box-edge properties remove the invisible half-leading space fonts add above and below text, so you can align text to its actual letterforms instead of eyeballing padding. The pairing reached Baseline newly available in August 2026, when Firefox 154 joined Chrome, Edge, and Safari, which had already shipped it."
+takeaways:
+  - "Every font reserves vertical space above the cap height and below the baseline as part of its metrics, half-leading, and that space is why a button's text never looks quite centered no matter how carefully you tune padding."
+  - "text-box-trim (none, trim-start, trim-end, trim-both) says which edge to trim. text-box-edge (cap, ex, text for the top; alphabetic, text for the bottom) says which font metric to trim to. The text-box shorthand sets both in one declaration."
+  - "Baseline's own tracker marks text-box newly available as of Firefox 154's release on August 18, 2026, the release that completed support across Chrome, Edge, Safari, and Firefox."
+  - "Newly available isn't widely available: per Baseline's own 30-month bar, that status is reserved for users who haven't updated in a while. Ship it as a second declaration after your existing padding, not as a replacement for it."
+  - "The clearest wins are the smallest components: buttons, tags, badges, and anything pairing text with an icon, exactly the places a pixel of vertical drift is most visible."
+faq:
+  - question: What does CSS text-box-trim do?
+    answer: It removes the invisible vertical space, half-leading, that a font reserves above and below a line of text as part of its own metrics. Paired with text-box-edge, which specifies which part of the letterform to trim to (cap height, x-height, or the baseline), it lets text align to what you can actually see instead of the font's full line box.
+  - question: Is text-box-trim ready to use in production?
+    answer: "It reached Baseline newly available in August 2026, once Firefox 154 joined Chrome, Edge, and Safari. Newly available means it works in the current version of all four engines, not that every visitor has updated. Pair it with your existing padding as a progressive enhancement rather than your only source of spacing, at least until it's widely available."
+  - question: How do I vertically center text in a button with CSS?
+    answer: "Set text-box-trim: trim-both and text-box-edge: cap alphabetic (or use the text-box shorthand) on the text element, then keep your normal padding. The property trims the font's reserved leading so the capital letters and baseline sit where the padding math expects them to, instead of shifted by whatever space the font happened to reserve."
+needsRewrite: false
+---
+
+Every font ships with more vertical space than the letters it draws. Above the capital letters and below the baseline, the font's own metrics reserve extra room, half-leading, space a type designer built in for stacked lines of body text, not for a single line sitting inside a button. You've worked around it for years without necessarily naming it: nudging a button's `padding-top` by a pixel, adding `line-height: 1` and hoping, or shipping a badge that looks centered in Chrome and one pixel high in Safari.
+
+`text-box-trim` and `text-box-edge` exist to remove that guesswork. They don't change your padding model. They change what the browser considers the top and bottom of the text itself, so the padding you already wrote finally measures from the letters instead of from the font's invisible scaffolding around them.
+
+## The problem these properties solve
+
+A line box in CSS has always been taller than the text that sits inside it. The gap comes from the font file: ascent, descent, and line-gap values baked in by whoever designed the typeface, intended for readable paragraph spacing, not a single line of button text. `line-height: normal` passes that gap straight through. Even `line-height: 1` doesn't remove it entirely, because the font's ascent and descent metrics are still part of what "1" means for that specific font.
+
+That's why swapping a design system's typeface can break every button's vertical alignment without anyone touching a single padding value. The CSS didn't change. The font's internal metrics did, and the layout was always depending on them.
+
+## What text-box-trim and text-box-edge actually do
+
+`text-box-trim` says which edge of that invisible space to cut:
+
+```css
+.label {
+  text-box-trim: trim-both;
+}
+```
+
+Four values: `none` (the default, nothing trimmed), `trim-start` (cuts the space above the text), `trim-end` (cuts the space below), and `trim-both`.
+
+`text-box-edge` says which font metric to trim to, since "the top of the text" isn't one fixed point. For the top edge, you can trim to `cap` (the height of a capital letter), `ex` (the height of a lowercase x), or `text` (the font's own default edge). For the bottom edge, your choices are `alphabetic` (the baseline) or `text`. Most Latin-script interface text pairs `cap` with `alphabetic`, since that's the box a capital letter and a descender-free baseline actually occupy:
+
+```css
+.label {
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+}
+```
+
+The `text-box` shorthand sets both in one line, trim value first, then the edge keywords:
+
+```css
+.label {
+  text-box: trim-both cap alphabetic;
+}
+```
+
+## Before and after, on an actual button
+
+Here's the pattern most design systems have shipped for years, equal padding on every side and a `line-height` tweak that only mostly works:
+
+```css
+.button {
+  padding: 0.75rem 1.25rem;
+  line-height: 1.2;
+}
+```
+
+It looks fine until you set the icon and the label side by side, or until a reviewer zooms in and notices the label sits a pixel lower than the icon's optical center. The fix has usually been trial and error: shave a pixel off `padding-top`, add it back to `padding-bottom`, repeat per font.
+
+With `text-box-trim`, the padding stays symmetrical and the text itself stops carrying the extra space:
+
+```css
+.button {
+  padding: 0.75rem 1.25rem;
+  text-box: trim-both cap alphabetic;
+}
+```
+
+Nothing about the padding model changed. What changed is that the browser now measures the text's box from the capital letters and the baseline, the part you can see, instead of from the font's full reserved line height. The same fix applies to tags, pills, chips, and any single-line label sitting next to a fixed-size icon, which is exactly where a pixel of vertical drift reads as sloppy.
+
+## Browser support, and what "newly available" actually means here
+
+Chrome and Edge have supported `text-box-trim` and `text-box-edge` since version 133, and Safari since 18.2. Firefox shipped it in version 154, released August 18, 2026, which is the release that pushed `text-box` to [Baseline](/what-is-google-baseline) newly available: stable across all four major engines' current versions.
+
+Newly available isn't the same thing as widely available. Baseline reserves that second label for a feature that's held stable for 30 months, specifically because "works in the current version of every engine" still leaves out anyone who hasn't updated recently, and Safari users update on Apple's schedule, not their own. For a visible layout property like this one, that gap matters more than it would for something more easily hidden by a fallback.
+
+The safe pattern is the same one that works for any newer CSS value: keep your existing padding and line-height as the baseline styling, then add `text-box-trim` as an enhancement underneath it.
+
+```css
+.button {
+  padding: 0.75rem 1.25rem;
+  line-height: 1.2;
+  text-box: trim-both cap alphabetic;
+}
+```
+
+A browser that doesn't recognize `text-box` ignores that line entirely and keeps the padding and line-height you already had, the [same fallback-then-enhancement order](/css-custom-properties-fallbacks) CSS has always used for a value some browsers won't parse yet. There's no feature query to write and no branch to maintain. Once a browser does understand `text-box`, it applies on top of, not instead of, what was already there.
+
+## Where it's worth reaching for
+
+This isn't a property you sprinkle across every paragraph on a page; trimming half-leading on body copy just makes multi-line text harder to read, since that reserved space is what keeps stacked lines from feeling cramped. It earns its place specifically where a single line of text sits inside a fixed-height container next to something else that doesn't have a font's invisible padding: buttons, badges, tags, chips, nav links with an icon, table cell labels next to an inline status dot. Anywhere a design review has ever flagged "this looks almost centered" is the exact list of components where `text-box-trim` is worth adding.
+
+## Further reading
+
+- [Chrome for Developers: CSS text-box-trim](https://developer.chrome.com/blog/css-text-box-trim)
+- [MDN: text-box-trim](https://developer.mozilla.org/en-US/docs/Web/CSS/text-box-trim)
+- [MDN: text-box-edge](https://developer.mozilla.org/en-US/docs/Web/CSS/text-box-edge)
+- [web.dev: New to the web platform in August](https://web.dev/blog/web-platform-08-2026)

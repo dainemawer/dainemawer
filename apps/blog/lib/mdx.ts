@@ -11,9 +11,6 @@ export type PostContent = {
   shortAnswer: string;
   takeaways: string[];
   faq: { question: string; answer: string }[];
-  related?: { label: string; href: string };
-  prev?: { label: string; href: string };
-  next?: { label: string; href: string };
   toc: TocItem[];
   rawBody: string;
   needsRewrite: boolean;
@@ -43,9 +40,6 @@ export function getPostContent(slug: string): PostContent | undefined {
     shortAnswer: (data.shortAnswer as string) ?? "",
     takeaways: (data.takeaways as string[]) ?? [],
     faq: (data.faq as PostContent["faq"]) ?? [],
-    related: data.related,
-    prev: data.prev,
-    next: data.next,
     toc: extractToc(content),
     rawBody: content,
     needsRewrite: Boolean(data.needsRewrite),

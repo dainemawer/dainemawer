@@ -1,0 +1,104 @@
+---
+title: Adopting React Compiler Without Breaking Production
+dek: The rollout order that keeps a silent skip from becoming a production regression, lint first, fix what it flags, then clean up the old memoization.
+date: '2026-10-09'
+topics:
+  - javascript
+shortAnswer: "React Compiler reached its stable 1.0 release in October 2025 and automatically memoizes components and values without useMemo, useCallback, or React.memo. Adopting it safely means running its ESLint rule before enabling it, fixing the Rules of React violations it flags, enabling it with a framework config flag, and removing manual memoization only after confirming coverage in React DevTools."
+takeaways:
+  - "React Compiler reached 1.0 in October 2025. It ships as a single flag in Next.js (reactCompiler: true) and is already on by default with eslint-config-expo in SDK 55+, so most of the adoption work is the lint pass, not the flag itself."
+  - "The ESLint plugin surfaces Rules of React violations the compiler needs fixed first. Skip that step and the compiler silently skips over any component it can't safely compile, with no runtime warning that it happened."
+  - "Common skip triggers: a hook called conditionally, a ref read or mutated during render, and state or props mutated directly instead of through their setters."
+  - "React DevTools (5.0+) marks every compiled component with a Memo ✨ badge, a different marker than manually wrapped memo() components. That badge, not the absence of lint errors, is the real way to confirm coverage."
+  - "Remove manual useMemo, useCallback, and memo() in a follow-up pass after verifying coverage and checking production metrics, not in the same change that flips the flag. Deleting memoization can shift effect timing in code that leaned on the old memoized reference."
+faq:
+  - question: Do I still need useMemo and useCallback with React Compiler?
+    answer: "Not for any component it successfully compiles, since it handles that memoization automatically. Keep manual memoization only in components the compiler skips, visible as a missing Memo ✨ badge in React DevTools, or where you've deliberately opted out with a \"use no memo\" directive."
+  - question: Why is React Compiler skipping some of my components?
+    answer: "Almost always a Rules of React violation: a hook called conditionally, a ref read or mutated during render, or state and props mutated directly instead of through their setters. Installing eslint-plugin-react-compiler (or the React Hooks ESLint plugin, which now surfaces the same diagnostics) catches these before you flip the compiler on, instead of discovering them later as a missing badge."
+  - question: Is React Compiler safe to use in production in 2026?
+    answer: "Yes, for most React 17 through 19 codebases built on function components. It reached a stable 1.0 release in October 2025 and already runs in production at Meta and inside frameworks like Next.js and Expo. Codebases with many legacy class components or direct DOM manipulation outside the render cycle need to migrate those patterns to function components first."
+needsRewrite: false
+---
+
+React Compiler passed its first anniversary as a stable release in October 2025. React's own 1.0 announcement, published October 7, 2025, called it "production-ready for both React and React Native," and the framework support has caught up fast since: Next.js exposes it as a single `reactCompiler: true` flag, and Expo's SDK 55 turns its lint rules on by default. The pitch is simple: stop writing `useMemo`, `useCallback`, and `React.memo` by hand, and let the compiler figure out what needs memoizing.
+
+The flag itself takes thirty seconds to add. What actually takes the time, and what determines whether turning it on is a non-event or a production incident, is everything you do before and after flipping it.
+
+## What the compiler is actually doing
+
+React re-renders a component whenever its parent re-renders, by default, whether or not anything the component reads actually changed. Manual memoization has always been the fix: wrap a value in `useMemo`, wrap a function in `useCallback`, wrap a component in `React.memo`, and React skips the recompute or re-render when the inputs are referentially equal to last time.
+
+React Compiler does the same job at build time instead of by hand. It statically analyzes your component and hook functions, figures out which values and JSX trees are safe to cache, and rewrites the code to cache them automatically, no manual wrapping involved. The output isn't a drop-in replacement for your source so much as a build step: your original function in, a version instrumented with its own memoization cache out.
+
+That only works, though, if the compiler can prove a component follows React's actual rules. When it can't prove that, it does the safe thing and leaves the component alone.
+
+## Lint first, flag second
+
+This is the step most adoption guides bury and most incidents trace back to: install the compiler's ESLint integration before you ever add the build plugin.
+
+```bash
+npm install --save-dev eslint-plugin-react-compiler
+```
+
+The compiler's diagnostics are also surfaced through the standard React Hooks ESLint plugin now, so if your project already runs that, you may already be seeing some of these warnings without a separate install. Either way, run lint across the whole codebase before touching the build config. The compiler's actual behavior when it hits code it can't safely transform isn't to throw a build error. It skips that component or hook silently and keeps compiling the rest of your app. A codebase with unaddressed Rules of React violations doesn't fail loudly when you enable the compiler. It just gets a fraction of the benefit you expected, and nothing in your build output tells you which fraction.
+
+Linting first turns that silent gap into a visible list you can work through before the flag is even on.
+
+## What actually trips the compiler up
+
+The violations the lint rule catches are almost always the same handful of patterns, all of them things React already asked you not to do, just not enforced this strictly before:
+
+- **Conditional hook calls.** A `useState` or `useEffect` behind an `if` or inside a loop breaks the compiler's ability to reason about render order statically, the same reason it's always broken React's own hook rules.
+- **Refs read or mutated during render.** `ref.current` is meant to be read in effects and event handlers, not render. The compiler can't treat a value as stable if it might change between when it's read and when the render actually commits.
+- **Direct mutation of props or state.** Pushing onto an array prop or reassigning a field on a state object instead of going through its setter looks fine at runtime in a lot of cases, but it breaks the referential-equality assumption the whole compiler is built on.
+
+None of these are new rules. They're the Rules of React that have always technically applied, just not always enforced, and not always obviously broken in code that otherwise worked. The compiler is the first tool that actually depends on you following them.
+
+## Framework-specific setup gotchas
+
+The flag itself differs slightly by framework, and each has its own order-of-operations trap:
+
+**Next.js** takes a single top-level config flag after installing `babel-plugin-react-compiler`:
+
+```js
+// next.config.ts
+const nextConfig = {
+  reactCompiler: true,
+};
+```
+
+If your Next.js version still has it under `experimental.reactCompiler`, check your version's docs before copying a snippet from elsewhere, since the option moved to the top level as it stabilized.
+
+**Vite**, using `@vitejs/plugin-react`, has a plugin-ordering trap that's easy to miss: the Babel plugin needs to run before the React plugin's own JSX transform, not after. Get the order backwards and the build succeeds, the app runs, and the compiler simply never runs, silently, with no error.
+
+**Expo** bundles the compiler's lint rules into `eslint-config-expo` as of SDK 55, so if you're on that version or later, you may not need to install anything separately. Expo also ships a healthcheck command worth running before enabling the flag on an existing app:
+
+```bash
+npx react-compiler-healthcheck@latest
+```
+
+## Confirming it actually worked
+
+Once the flag is on, don't assume coverage. Confirm it. React DevTools 5.0 and later marks every component the compiler successfully optimized with a small "Memo ✨" badge next to its name in the component tree, a different marker than the one shown for a component you wrapped in `memo()` by hand. No badge means the compiler skipped that component, which sends you back to the lint output to find out why.
+
+This is also the point to pull up the Profiler and compare re-render counts before and after on the screens that actually matter to your app, rather than trusting a general performance claim from somewhere else. Published percentage improvements for React Compiler vary widely across blog posts and aren't independently sourced, so they're not a substitute for measuring your own components.
+
+## The order that keeps this safe
+
+Pulling it together, the rollout order that avoids a silent regression looks like this:
+
+1. Install the ESLint integration and run it across the whole codebase, before touching any build config.
+2. Fix the Rules of React violations it surfaces, or deliberately opt a component out with a `"use no memo"` directive if you're not ready to fix it yet.
+3. Enable the compiler via your framework's flag.
+4. Confirm coverage with the Memo ✨ badge in React DevTools, and profile the screens you actually care about.
+5. Only then, in a separate follow-up change, start removing the manual `useMemo`, `useCallback`, and `memo()` calls the compiler has made redundant.
+
+That last step matters more than it looks. Deleting old memoization in the same change that enables the compiler makes it much harder to tell, if something breaks, whether the cause was the compiler's own behavior or the removal of a memoized reference something else in your codebase was quietly depending on, an effect dependency array included. Separating "enable and verify" from "clean up the old code" gives you a rollback path for each step independently.
+
+## Further reading
+
+- [React docs: React Compiler](https://react.dev/learn/react-compiler)
+- [React docs: the "use memo" directive](https://react.dev/reference/react-compiler/directives/use-memo)
+- [Next.js docs: reactCompiler config](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactCompiler)
+- [Expo docs: React Compiler](https://docs.expo.dev/guides/react-compiler/)
