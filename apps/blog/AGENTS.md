@@ -14,6 +14,23 @@ Every page is served as HTML or Markdown from the same canonical URL, per [accep
 
 Adding a page means adding it to `lib/markdown-pages.ts` (and `app/sitemap.ts`), or agents get the 404 document for it.
 
+## TIL
+
+Short notes live apart from the articles, at `/til` — they never appear in the home feed, pagination, topics, `/rss.xml` or `feed.json`. To add one, create `content/til/<slug>.mdx`:
+
+```mdx
+---
+title: What you learned
+date: '2026-10-09'
+tags:
+  - git
+---
+
+The note. Code fences and inline code work as in posts.
+```
+
+`tags` is optional. That's the whole publish step: merge to `main` and Vercel deploys it. Entries get a page at `/til/<slug>`, a Markdown twin, a sitemap and `llms.txt` entry, and appear in the separate `/til/rss.xml` feed automatically. `content/til` is not covered by `pnpm lint:mdx`, which only lints `content/posts`. Loader: `lib/til.ts`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

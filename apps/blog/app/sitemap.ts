@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { laterPages, pagePath } from "@/lib/pagination";
 import { getAllPosts, getPostsByTopic } from "@/lib/posts";
 import { site } from "@/lib/site";
+import { getAllTils } from "@/lib/til";
 import { topics } from "@/lib/topics";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -9,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: site.url, changeFrequency: "weekly", priority: 1 },
     { url: `${site.url}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${site.url}/contact`, changeFrequency: "yearly", priority: 0.6 },
+    { url: `${site.url}/til`, changeFrequency: "weekly", priority: 0.5 },
     { url: `${site.url}/uses`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${site.url}/now`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${site.url}/agents`, changeFrequency: "monthly", priority: 0.5 },
@@ -45,5 +47,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...topicRoutes, ...paginatedRoutes, ...postRoutes];
+  const tilRoutes: MetadataRoute.Sitemap = getAllTils().map((til) => ({
+    url: `${site.url}/til/${til.slug}`,
+    lastModified: til.date,
+    changeFrequency: "yearly",
+    priority: 0.4,
+  }));
+
+  return [
+    ...staticRoutes,
+    ...topicRoutes,
+    ...paginatedRoutes,
+    ...postRoutes,
+    ...tilRoutes,
+  ];
 }

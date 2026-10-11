@@ -1,6 +1,7 @@
 import { agents } from "./agents";
 import { getAllPosts } from "./posts";
 import { site } from "./site";
+import { getAllTils } from "./til";
 import { topics } from "./topics";
 
 // Format per https://llmstxt.org: H1, blockquote, then free-form markdown
@@ -56,6 +57,13 @@ export function generateLlmsTxt(): string {
     const updated = post.updated ? `, updated ${post.updated}` : "";
     lines.push(`- [${post.title}](${site.url}/${post.slug}.md):`);
     lines.push(`  Published ${post.date}${updated}. ${post.dek}`);
+  }
+
+  lines.push("", "## TIL", "");
+
+  for (const til of getAllTils()) {
+    lines.push(`- [${til.title}](${site.url}/til/${til.slug}.md):`);
+    lines.push(`  Published ${til.date}.`);
   }
 
   lines.push("", "## Developer resources", "");

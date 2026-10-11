@@ -107,9 +107,20 @@ export const agents = {
       description: "Every canonical URL, with last-modified dates.",
     },
     {
+      label: "til.md",
+      href: "/til.md",
+      description:
+        "Short notes on things I learned, each in full. Kept apart from the articles.",
+    },
+    {
       label: "rss.xml",
       href: "/rss.xml",
       description: "RSS 2.0 feed of new articles.",
+    },
+    {
+      label: "til/rss.xml",
+      href: "/til/rss.xml",
+      description: "RSS 2.0 feed of TILs only.",
     },
     {
       label: "feed.json",

@@ -1,0 +1,14 @@
+---
+title: git switch - jumps back to the previous branch
+date: '2026-10-08'
+tags:
+  - git
+---
+
+`git switch -` returns to whichever branch you were on before, the same way `cd -` does for directories.
+
+```bash
+git switch feat/til
+git switch main
+git switch -   # back on feat/til
+```

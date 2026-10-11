@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { SearchTrigger } from "./search-trigger";
 import { useSetSubscribeModalOpen } from "./subscribe-modal-context";
@@ -29,6 +30,10 @@ export function UtilityBar() {
       >
         RSS
       </a>
+      <span className="text-divider">|</span>
+      <Link href="/til" className="hover:text-ink focus-visible:text-ink">
+        TIL
+      </Link>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { toPlainText } from "@/lib/inline-markdown";
 import type { PostContent } from "@/lib/mdx";
 import type { Post } from "@/lib/posts";
 import { site } from "@/lib/site";
+import type { Til } from "@/lib/til";
 import { getTopicBySlug } from "@/lib/topics";
 
 const personId = `${site.url}/#person`;
@@ -253,5 +254,69 @@ export function faqPageSchema(faq: PostContent["faq"]) {
         text: toPlainText(item.answer),
       },
     })),
+  };
+}
+
+// A TIL is a short BlogPosting. It carries no `image` (there's no per-entry
+// OG card) and no `abstract` (there's no short answer — the note is its own
+// summary), but is otherwise the same shape as an article so the same
+// consumers read it the same way.
+export function tilSchema(til: Til, wordCount: number) {
+  const url = `${site.url}/til/${til.slug}`;
+  return {
+    "@type": "BlogPosting",
+    "@id": `${url}#article`,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    url,
+    headline: til.title,
+    datePublished: til.date,
+    dateModified: til.date,
+    inLanguage: "en",
+    wordCount,
+    ...(til.tags.length > 0 ? { keywords: til.tags.join(", ") } : {}),
+    author: {
+      "@type": "Person",
+      "@id": personId,
+      name: site.name,
+      url: site.url,
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": organizationId,
+      name: site.name,
+      url: site.url,
+    },
+    isPartOf: { "@id": websiteId },
+  };
+}
+
+export function tilCollectionSchema({
+  name,
+  description,
+  tils,
+}: {
+  name: string;
+  description: string;
+  tils: Til[];
+}) {
+  const url = `${site.url}/til`;
+  return {
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    url,
+    name,
+    description,
+    inLanguage: "en",
+    isPartOf: { "@id": websiteId },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListOrder: "https://schema.org/ItemListOrderDescending",
+      itemListElement: tils.map((til, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${url}/${til.slug}`,
+        name: til.title,
+      })),
+    },
   };
 }

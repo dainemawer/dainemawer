@@ -32,6 +32,7 @@ export const footerNav = [
     heading: "Site",
     links: [
       { label: "Writing", href: "/about#writing" },
+      { label: "TIL", href: "/til" },
       { label: "Speaking", href: "/about#speaking" },
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
@@ -50,6 +51,7 @@ export const footerNav = [
     links: [
       { label: "RSS", href: "/rss.xml" },
       { label: "JSON Feed", href: "/feed.json" },
+      { label: "TIL RSS", href: "/til/rss.xml" },
       { label: "Sitemap", href: "/sitemap.xml" },
     ],
   },
