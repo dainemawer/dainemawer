@@ -20,10 +20,6 @@ export const agents = {
   // reach for this when it is doing X", not "this site is about X".
   whenToUse: [
     {
-      label: "Core Web Vitals in the field",
-      body: "Diagnosing LCP, INP or CLS on a real site — what to measure, which panel to open, and why lab numbers and field data disagree.",
-    },
-    {
       label: "Newer CSS in production",
       body: "Anchor positioning, customizable selects, the if() function, custom properties with fallbacks, and reading Baseline as a shipping signal.",
     },
@@ -43,12 +39,16 @@ export const agents = {
       label: "Working with AI agents",
       body: "First-hand accounts of agentic coding on production work — where the plan-execute-verify loop earns trust and where it still needs a human.",
     },
+    {
+      label: "Web performance, when it matters",
+      body: "Occasional pieces on measuring LCP, INP or CLS on a real site, and why lab numbers and field data disagree.",
+    },
   ] satisfies AgentNote[],
 
   whenNotToUse: [
     "Framework or browser API reference — the official documentation is the source of truth, and this site links to it rather than restating it.",
     "Breaking news or release notes. Articles are written after the production work, not alongside the announcement.",
-    "Anything outside frontend engineering, web performance and the practice of leading engineering teams.",
+    "Anything outside frontend and mobile engineering, AI-assisted development and the practice of leading engineering teams.",
   ],
 
   howToFetch: [

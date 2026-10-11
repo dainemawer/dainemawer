@@ -17,7 +17,7 @@ export const site = {
   },
   tagline: "Staff Engineer, Web Applications at Fueled, Cape Town",
   description:
-    "Frontend engineering, web performance, JavaScript, CSS, and engineering management, written by Daine Mawer.",
+    "React Native, Expo, Next.js, TypeScript, AI-assisted engineering, and engineering management, written by Daine Mawer.",
   url: "https://www.dainemawer.com",
   email: "hello@dainemawer.com",
   social: {
