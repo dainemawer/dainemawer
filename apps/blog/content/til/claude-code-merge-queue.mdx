@@ -1,0 +1,20 @@
+---
+title: A local merge queue stops parallel Claude Code agents colliding
+date: '2026-10-12'
+tags:
+  - claude-code
+  - git
+---
+
+Run several Claude Code agents at once and they start racing each other: simultaneous pushes, duplicate heavy builds, flaky tests fighting over the same machine.
+
+[claude-code-merge-queue](https://github.com/funador/claude-code-merge-queue) fixes that locally. Each agent works in its own numbered git worktree (a "lane"), and a `land` command rebases and pushes through a first-in-first-out queue, so only one lane pushes at a time. `build-lock -- <cmd>` does the same for builds.
+
+```bash
+npm install --save-dev claude-code-merge-queue
+npx claude-code-merge-queue init
+```
+
+`init` writes the config, a pre-push hook and the `CLAUDE.md` instructions for you.
+
+Worth knowing, per its README: it only works on one machine, and your `checkCommand` is the only gate, because no human reviews what lands.
