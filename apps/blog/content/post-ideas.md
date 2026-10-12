@@ -20,7 +20,6 @@ Everything else in the queue stays for next time.
 
 <!-- - Example: CSS anchor positioning now that Safari shipped it — compare against the old popover + JS approach. -->
 
-- Sharing one TypeScript domain layer (types, validation schemas, API client) between a Next.js app and an Expo app in a pnpm and Turborepo monorepo: what is worth sharing, what never should be, and the Metro and pnpm symlink problems to expect. [slug: shared-typescript-nextjs-expo-monorepo; topics: react-native, javascript; add a `react-native` topic ("React Native & Expo") to lib/topics.ts]
 - Expo Router versus the Next.js App Router, as a translation guide for web developers: layouts, dynamic routes, data loading, deep links and navigation state, and where the mental models stop matching. [topics: react-native]
 - Working out why a React Native screen re-rendered: a debugging workflow using the React DevTools Profiler and the React Compiler, plus a checklist of the usual causes. [topics: react-native, javascript]
 - Shipping React Native when you can't hotfix a binary: EAS Update, staged rollouts, and the line between what can go over the air and what needs a store release. [topics: react-native]

@@ -1,0 +1,83 @@
+---
+title: Sharing a TypeScript Domain Layer Between Next.js and Expo
+dek: What to put in the shared package, what never belongs there, and the pnpm symlink problems Metro still finds a way to resurface.
+date: '2026-10-12'
+topics:
+  - react-native
+  - javascript
+shortAnswer: Share types, validation schemas, and a thin API client between Next.js and Expo in a pnpm workspace package, since none of that touches the DOM or a native module. Keep navigation, storage, and UI separate. The real cost is Metro resolving pnpm's symlinked node_modules, which Expo SDK 54's built-in monorepo support now handles for most setups.
+takeaways:
+  - "Share the domain layer: TypeScript types, a validation schema (Zod or Valibot), and the functions that call your API and parse the response. None of that code touches the DOM or a native module, so it runs unmodified on both platforms."
+  - "Never share navigation, storage, or UI. Expo Router and the Next.js App Router have incompatible mental models, SecureStore and the cookie jar aren't interchangeable, and a shared component library across web and native is its own, much bigger project."
+  - "pnpm installs packages into a content-addressable store and symlinks them into node_modules. Metro historically resolved modules by walking real file paths, not following those links, which is why a shared workspace package would silently resolve to the wrong copy or fail to resolve at all."
+  - "As of Expo SDK 54, expo/metro-config has built-in monorepo support for pnpm, including symlinks, so manual watchFolders and resolver.nodeModulesPaths overrides are no longer needed for most setups, and the old advice to force pnpm's hoisted linker is largely obsolete."
+  - "A workspace package still needs its own package.json, a build step (or exports pointing at source, if both bundlers can handle TypeScript directly), and a tsconfig with paths or project references so each app's editor resolves it without a build."
+faq:
+  - question: What should I actually put in a shared package between Next.js and Expo?
+    answer: Types, a runtime validation schema (Zod or Valibot) for your API responses, and the API client functions that fetch and parse data. All of it is plain TypeScript with no DOM or native dependency, so it runs unchanged in a browser and in Hermes.
+  - question: Why does Metro fail to resolve a shared package in a pnpm monorepo?
+    answer: pnpm keeps every package in a single content-addressable store and links it into each project's node_modules with a symlink, rather than copying files. Metro's resolver has historically worked off real file paths and didn't follow those links by default, so it would either miss the package or walk up to a different, incorrect copy of a dependency.
+  - question: Do I still need to configure watchFolders and nodeModulesPaths for Expo in a pnpm workspace?
+    answer: Not from Expo SDK 54 onward in most cases. expo/metro-config now has built-in monorepo support for pnpm, npm, Yarn, and Bun, including pnpm's symlinked layout. If you're carrying manual watchFolders, resolver.nodeModulesPaths, or disableHierarchicalLookup settings from an older setup, remove them and run expo start --clear once to drop the stale cache.
+  - question: Should I share UI components between a Next.js app and an Expo app?
+    answer: Treat it as a separate, harder project from sharing the domain layer. A button on the web is a DOM element with CSS; a button in Expo is a native-ish view with StyleSheet or NativeWind. Some teams get real value from a shared primitive layer built specifically for that purpose, but bolting it onto a types-and-API-client package is how both ends end up fighting the bundler.
+needsRewrite: false
+---
+
+Next.js and Expo are both running TypeScript, both probably calling the same API, and both need to agree on what a `User` or an `Order` looks like. In a pnpm and Turborepo monorepo, it's tempting to solve that once: a `packages/domain` workspace with your types, your validation schemas, and the functions that fetch and parse your API responses, imported by both apps like any other dependency.
+
+That part works, and it's worth doing. The part that doesn't always work on the first attempt is Metro actually resolving that package, because Metro and pnpm disagree about what a `node_modules` folder is supposed to look like.
+
+## What's actually worth sharing
+
+Keep the boundary narrow and the appeal mostly holds up:
+
+- **Types.** The shapes your API returns and the request bodies you send. Pure TypeScript, erased at compile time, with no platform dependency to accidentally pull in.
+- **Validation schemas.** A Zod or Valibot schema that parses an API response and either returns typed data or throws. This is where the real payoff shows up: your Next.js route handler and your Expo screen validate the same response with the same code, so a backend change that breaks the contract fails loudly in both places during development, not quietly in only one of them in production.
+- **A thin API client.** Functions that take arguments, build a request, call `fetch`, and run the response through your schema. Not a full data-fetching layer. Next.js wants this wrapped in a Server Component or a route handler; Expo wants it wrapped in TanStack Query or whatever you're using for client-side cache and retry. Keep the shared function dumb enough that both wrappers are trivial.
+
+That's close to the natural ceiling. Business logic that's pure computation (pricing rules, date math, permission checks) can go in the same package if it has no side effects, but the moment a function reaches for `localStorage`, `document`, or `expo-secure-store`, it no longer belongs there.
+
+## What never crosses the boundary
+
+A few things look shareable and aren't, and the cost of getting this wrong is higher than the cost of duplicating a small amount of code:
+
+- **Navigation.** The Next.js App Router and Expo Router share a file-based convention and roughly nothing else underneath it. Next.js resolves a route against the server and streams a response; Expo Router resolves a route against a native stack or tab navigator with its own animation and gesture handling. Writing an abstraction that hides this difference just moves the complexity into the abstraction.
+- **Storage and session handling.** A browser has cookies and `localStorage`. Expo has `expo-secure-store` and `AsyncStorage`, with no cookie jar unless you build one. Your shared API client can accept a token as an argument; it shouldn't know where that token lives.
+- **UI.** A shared component library across web and native is a legitimate project some teams take on deliberately, with its own primitives (Tamagui, NativeWind on both sides, or a hand-rolled style abstraction) built for exactly that purpose. It is not something to back into by adding `View` imports to your types package. If a component needs a platform check, it's in the wrong package.
+
+The rule of thumb: if the function's return type depends on whether you're running in a browser or on a device, it stays in the app. If it depends only on the data, it can move to the shared package.
+
+## Why Metro keeps finding this package anyway
+
+This is the part that catches teams even after they've done the split correctly. pnpm doesn't install packages the way npm or Yarn's classic linker does. Every package lands once in a central, content-addressable store, and `node_modules` is built out of symlinks pointing into that store, plus a nested `.pnpm` directory doing the version resolution. It's the reason pnpm installs are fast and disk-efficient, and it's also the reason some bundlers have spent years catching up to it.
+
+Metro's resolver, for a long stretch of its history, worked by walking real file paths rather than following symlinks. Point it at a pnpm-managed `node_modules` and one of two things would happen: it would fail to find your shared workspace package at all, or worse, it would resolve a dependency of that package (say, a specific version of a library your shared code imports) to a different copy than the one pnpm actually linked, because it walked up the directory tree instead of following the link pnpm set up. The second failure mode is the nastier one, since it doesn't throw, it just behaves subtly wrong, and `unstable_enableSymlinks` in `metro.config.js` became the standard, if fragile, fix.
+
+The ecosystem has moved since then. As of Expo SDK 54, `expo/metro-config` ships built-in monorepo support for pnpm, npm, Yarn, and Bun, symlinks included, which means the manual `watchFolders`, `resolver.nodeModulesPaths`, and `resolver.disableHierarchicalLookup` overrides that used to be copy-pasted into every Expo monorepo are no longer necessary for most setups. If you're inheriting a config with those settings from a project started a couple of SDK versions ago, the current guidance is to remove them and run `expo start --clear` once, since a stale Metro cache built under the old config can keep misbehaving even after the config is gone.
+
+Two things are still worth expecting even on a current SDK:
+
+- **Isolated vs. hoisted installs.** pnpm's default, non-hoisted `node_modules` layout is the thing Metro's symlink handling targets. If you're on an older Expo SDK (53 and earlier) and still hitting resolution errors after enabling symlink support, switching pnpm to `node-linker=hoisted` in `.npmrc` remains the blunter, reliable fallback. It gives up some of pnpm's disk and install-speed advantage in exchange for a flat tree that behaves like npm's.
+- **Native modules and EAS builds are a separate failure surface.** Autolinking native dependencies and the EAS build environment don't always follow the same resolution path as the Metro dev server, so a shared package that resolves fine locally can still fail to autolink in a production build. If you hit a `Cannot find module` error specifically in an EAS build and not in development, check the build logs for which install strategy the build server actually used, since it isn't guaranteed to match your local `.npmrc`.
+
+## Wiring the package itself
+
+Once resolution works, the shared package needs the same basic shape every workspace package does:
+
+```json
+{
+  "name": "@repo/domain",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}
+```
+
+Pointing `main` straight at TypeScript source, rather than a compiled `dist`, works as long as both Next.js and Metro are configured to transpile the package instead of expecting pre-built JavaScript. Next.js needs the package name added to `transpilePackages` in `next.config.ts`; Expo's Metro config generally handles workspace TypeScript source without extra configuration, since it already transpiles your app code the same way. If you'd rather ship compiled output (useful once the package grows enough that transpiling it everywhere feels wasteful), add a build step with `tsup` or `tsc` and point both `main` and `types` at the built files instead.
+
+For editor resolution without a build, add the package to your root `tsconfig.json`'s `paths`, or use TypeScript project references if the monorepo is large enough that full-project type checking has started to feel slow. Either way, run `tsc --noEmit` for the shared package in CI on its own, separate from each app's build. A type error inside `@repo/domain` should fail fast in the package that owns it, not get discovered later as a confusing error in whichever app happened to import it first.
+
+## The actual payoff
+
+Done this way, the shared package stays small by design, maybe a few hundred lines of types, schemas, and client functions, and that's the point. It isn't trying to unify two different UI paradigms or two different platform APIs. It's eliminating exactly one failure mode: the backend changing a field name or a response shape, and that change getting caught by a type error or a failed schema parse in both apps at once, instead of shipping silently to one of them first.

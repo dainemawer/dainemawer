@@ -21,6 +21,11 @@ export const topics: Topic[] = [
     dek: "Custom properties, positioning, Baseline and interoperability.",
   },
   {
+    slug: "react-native",
+    name: "React Native & Expo",
+    dek: "Shipping native apps with a web developer's toolchain, and where the two stop behaving the same.",
+  },
+  {
     slug: "engineering-management",
     name: "Engineering Management",
     dek: "Estimation, scoping, team process.",
