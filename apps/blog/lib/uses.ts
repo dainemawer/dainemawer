@@ -4,7 +4,7 @@ export type UsesSection = {
   items: { name: string; description: string }[];
 };
 
-export const usesReviewedOn = "2026-09-06";
+export const usesReviewedOn = "2026-10-13";
 
 export const usesSections: UsesSection[] = [
   {
@@ -12,28 +12,29 @@ export const usesSections: UsesSection[] = [
     label: "Desk",
     items: [
       {
-        name: "MacBook Pro 16″ M3 Max",
+        name: "MacBook Air 15″ M5",
         description:
-          "36GB. The RAM matters more than the cores when you keep four Chrome profiles and a Docker stack open.",
+          "16GB. Fanless and light enough to carry everywhere, with a screen big enough that the desk setup is a preference, not a requirement.",
       },
       {
-        name: "LG UltraFine 27″",
+        name: "Dell UltraSharp U3225QE",
         description:
-          "Single display, not two. Fewer places for a Slack notification to hide.",
+          "32″ 4K IPS with a Thunderbolt hub. One cable to the laptop carries video, power and every peripheral. Still a single display, not two.",
       },
       {
-        name: "Keychron K3 — brown switches",
-        description: "Low profile, quiet enough for a call I forgot to mute.",
+        name: "Logitech MX Master + MX Keys S",
+        description:
+          "Wireless mouse and keyboard, paired to switch between devices. The scroll wheel is the part I would miss most.",
       },
       {
-        name: "iPhone 15 Pro",
+        name: "iPhone 16 Pro Max",
         description:
           "The on-device test unit. A simulator will lie to you about haptics, camera, and real network conditions.",
       },
       {
-        name: "Pixel 8",
+        name: "Samsung A26",
         description:
-          "Kept next to the iPhone for the same reason — Android is where React Native's cross-platform promise actually gets tested.",
+          "A mid-range Android on purpose. It is closer to what most users carry than a flagship, which is where React Native's cross-platform promise actually gets tested.",
       },
     ],
   },
@@ -42,9 +43,8 @@ export const usesSections: UsesSection[] = [
     label: "Editor",
     items: [
       {
-        name: "VS Code",
-        description:
-          "Vitesse Light, JetBrains Mono at 14px, line height 1.7. Format on save, no exceptions.",
+        name: "Cursor",
+        description: "Dark mode. The AI-assisted editor I work in day to day.",
       },
       {
         name: "Biome",
@@ -52,9 +52,9 @@ export const usesSections: UsesSection[] = [
           "Replaced ESLint and Prettier on new projects. The speed difference is not subtle.",
       },
       {
-        name: "Ghostty + Fish",
+        name: "Ghostty",
         description:
-          "Starship prompt, trimmed to branch and node version only.",
+          "The terminal. Fast, native, and where both Claude sessions live.",
       },
       {
         name: "Xcode + Android Studio",
@@ -65,6 +65,32 @@ export const usesSections: UsesSection[] = [
         name: "Expo CLI / EAS",
         description:
           "The actual dev loop for the React Native work — prebuild, dev client, and OTA updates without a store release.",
+      },
+    ],
+  },
+  {
+    id: "ai",
+    label: "AI",
+    items: [
+      {
+        name: "Two Claude accounts",
+        description:
+          "Work and personal, kept apart and symlinked on my desktop as “claude” and “claude-personal”, each running in its own Ghostty window.",
+      },
+      {
+        name: "Remote control",
+        description:
+          "Both accounts are reachable from my iPhone and Android, so a long-running task does not need me at the desk.",
+      },
+      {
+        name: "Mac Mini",
+        description:
+          "Permanently on, kept awake with Caffeine, for any task that has to keep running while I am away.",
+      },
+      {
+        name: "Tailscale",
+        description:
+          "Device tunnels and access. It is how the phones reach the Mac Mini without exposing anything to the public internet.",
       },
     ],
   },
@@ -101,6 +127,16 @@ export const usesSections: UsesSection[] = [
         name: "This site",
         description:
           "Next.js, self-hosted fonts, deployed on Vercel. No client-side framework on article pages.",
+      },
+      {
+        name: "Vercel",
+        description:
+          "Where this site and most web projects deploy. Preview URLs per branch make review a link, not a checkout.",
+      },
+      {
+        name: "Neon / Supabase",
+        description:
+          "Postgres in both cases. Neon when I only need a database, Supabase when auth and storage come with it.",
       },
       {
         name: "Storybook",
