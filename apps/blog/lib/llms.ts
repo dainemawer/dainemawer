@@ -80,7 +80,7 @@ export function generateLlmsTxt(): string {
     `- [Full archive](${site.url}/index.md):`,
     "  Reverse-chronological index of every article, as Markdown.",
     `- [About](${site.url}/about.md):`,
-    "  Work history, speaking, and how to verify who's writing this.",
+    "  What I write about, and how to verify who's writing this.",
   );
 
   return lines.join("\n");

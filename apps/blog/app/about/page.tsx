@@ -12,7 +12,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Work history, speaking, and how to verify who's actually writing this.",
+    "What I write about, and how to verify who's actually writing this.",
   alternates: {
     canonical: "/about",
     types: { "text/markdown": "/about.md" },
@@ -86,45 +86,6 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-17 flex flex-col gap-10">
-          <MetaRow label="Work">
-            <ul className="flex flex-col gap-5.5 text-base text-ink leading-normal">
-              {about.work.map((item) => (
-                <li
-                  key={item.period}
-                  className="grid grid-cols-1 gap-x-8 gap-y-0.5 sm:grid-cols-subrow sm:items-baseline sm:gap-y-0"
-                >
-                  <div className="text-sm text-muted">{item.period}</div>
-                  <div>{item.description}</div>
-                </li>
-              ))}
-            </ul>
-          </MetaRow>
-
-          <MetaRow id="clients" label="Clients">
-            <ul className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
-              {about.clients.map((client, index) => (
-                <li key={client} className="flex items-baseline gap-x-2">
-                  {index > 0 && <span className="text-divider">|</span>}
-                  <span>{client}</span>
-                </li>
-              ))}
-            </ul>
-          </MetaRow>
-
-          <MetaRow id="speaking" label="Speaking">
-            <ul className="flex flex-col gap-3.5 text-base text-ink leading-normal">
-              {about.speaking.map((item) => (
-                <li
-                  key={item.venue}
-                  className="grid grid-cols-1 gap-x-8 gap-y-0.5 sm:grid-cols-subrow sm:items-baseline sm:gap-y-0"
-                >
-                  <div className="text-sm text-muted">{item.venue}</div>
-                  <div>{item.topic}</div>
-                </li>
-              ))}
-            </ul>
-          </MetaRow>
-
           <MetaRow id="writing" label="Writes about">
             <ul className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
               {about.writesAbout.map((topic, index) => (

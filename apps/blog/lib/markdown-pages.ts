@@ -84,7 +84,7 @@ export function buildHomeMarkdown(posts: Post[]): string {
     [
       "About",
       "/about",
-      "Work history, speaking, and how to verify who's writing this.",
+      "What I write about, and how to verify who's writing this.",
     ],
     ["Uses", "/uses", "The hardware and software behind the articles."],
     ["TIL", "/til", "Short notes on things I learned this week."],
@@ -254,27 +254,7 @@ export function buildAboutMarkdown(): string {
     `> ${site.role} at ${site.company.name}, based in ${site.location}.`,
     "",
     about.summary,
-    "",
-    "## Work",
-    "",
   ];
-
-  for (const entry of about.work) {
-    lines.push(`- **${entry.period}** — ${entry.description}`);
-  }
-
-  lines.push(
-    "",
-    "## Clients",
-    "",
-    about.clients.join(", "),
-    "",
-    "## Speaking",
-    "",
-  );
-  for (const talk of about.speaking) {
-    lines.push(`- **${talk.venue}** — ${talk.topic}`);
-  }
 
   lines.push("", "## Writes about", "");
   for (const topic of about.writesAbout) {

@@ -28,7 +28,7 @@ const pages: Omit<SearchEntry, "group" | "external">[] = [
   {
     id: "page-about",
     label: "About",
-    description: "Work, clients, speaking, and how to verify any of it.",
+    description: "What I write about, and how to verify who's writing it.",
     href: "/about",
     meta: "/about",
   },
