@@ -54,7 +54,7 @@
   --grid-template-columns-shell: 13.25rem 1fr; /* 212px sidebar + content */
   --grid-template-columns-meta: 6.25rem 1fr; /* 100px label + content row, used across detail pages and post lists */
   --grid-template-columns-result: 3.875rem 1fr; /* 62px date + content, command palette results */
-  --grid-template-columns-subrow: 8.125rem 1fr; /* 130px label + content, nested detail rows (About work/speaking, Uses items) */
+  --grid-template-columns-subrow: 8.125rem 1fr; /* 130px label + content, nested detail rows (Uses items) */
   --spacing-content: 58.875rem; /* 942px, prose column max-width */
   --spacing-shell: 82.625rem; /* 1322px, overall page max-width */
   --spacing-palette: 66vh; /* command palette max-height */
