@@ -1,7 +1,6 @@
 "use client";
 
 import { trackEvent } from "@/lib/analytics";
-import { MetaRow } from "./meta-row";
 import { useSetSubscribeModalOpen } from "./subscribe-modal-context";
 
 // The end of an article is when a reader has just decided it was worth their
@@ -11,26 +10,34 @@ export function SubscribeCta({ postSlug }: { postSlug: string }) {
   const setSubscribeOpen = useSetSubscribeModalOpen();
 
   return (
-    <MetaRow label="Subscribe">
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-base text-ink leading-normal text-pretty">
-          New posts by email, when they're published. No spam, unsubscribe
-          anytime.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            trackEvent("newsletter_modal_opened", {
-              location: "article_end",
-              post_slug: postSlug,
-            });
-            setSubscribeOpen(true);
-          }}
-          className="cursor-pointer rounded-md border border-divider px-3 py-1.5 text-ink text-sm transition-colors duration-140 ease-out hover:bg-ink/5 focus-visible:bg-ink/5"
+    <section
+      aria-labelledby="subscribe-cta-heading"
+      className="flex flex-col items-start gap-4 rounded-lg bg-ink/[0.04] px-6 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8"
+    >
+      <div className="flex flex-col gap-1.5">
+        <h2
+          id="subscribe-cta-heading"
+          className="text-lg text-ink tracking-tight"
         >
-          Subscribe
-        </button>
+          New posts by email
+        </h2>
+        <p className="text-base text-muted leading-normal text-pretty">
+          Sent when they're published. No spam, unsubscribe anytime.
+        </p>
       </div>
-    </MetaRow>
+      <button
+        type="button"
+        onClick={() => {
+          trackEvent("newsletter_modal_opened", {
+            location: "article_end",
+            post_slug: postSlug,
+          });
+          setSubscribeOpen(true);
+        }}
+        className="shrink-0 cursor-pointer rounded-md bg-ink px-5 py-2.5 text-sm text-surface transition-opacity duration-140 ease-out hover:opacity-80 focus-visible:opacity-80"
+      >
+        Subscribe
+      </button>
+    </section>
   );
 }

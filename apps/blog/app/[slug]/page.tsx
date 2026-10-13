@@ -169,7 +169,7 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
             </div>
 
             {content.takeaways.length > 0 && (
-              <div id="takeaways" className="mt-18 scroll-mt-10">
+              <div id="takeaways" className="mt-15 scroll-mt-10">
                 <MetaRow label="Takeaways">
                   <ol className="flex list-decimal flex-col gap-3 pl-5.5 text-base text-ink leading-normal text-pretty">
                     {content.takeaways.map((takeaway) => (
@@ -183,28 +183,36 @@ export default async function ArticlePage(props: PageProps<"/[slug]">) {
             )}
 
             {content.faq.length > 0 && (
-              <div id="faq" className="mt-18 scroll-mt-10">
+              <div id="faq" className="mt-12 scroll-mt-10">
                 <MetaRow label="Questions">
-                  <div className="flex flex-col gap-7">
+                  <div className="flex flex-col border-divider border-t">
                     {content.faq.map((item) => (
-                      <div
+                      <details
                         key={item.question}
-                        className="flex flex-col gap-1.5"
+                        className="group border-divider border-b"
                       >
-                        <h3 className="text-base text-ink">
-                          {renderInlineText(item.question)}
-                        </h3>
-                        <p className="text-base text-muted leading-normal text-pretty">
+                        <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-3.5 text-ink [&::-webkit-details-marker]:hidden">
+                          <h3 className="text-base">
+                            {renderInlineText(item.question)}
+                          </h3>
+                          <span
+                            aria-hidden="true"
+                            className="text-faint transition-transform duration-140 ease-out group-open:rotate-45"
+                          >
+                            +
+                          </span>
+                        </summary>
+                        <p className="pb-4 text-base text-muted leading-normal text-pretty">
                           {renderInlineText(item.answer)}
                         </p>
-                      </div>
+                      </details>
                     ))}
                   </div>
                 </MetaRow>
               </div>
             )}
 
-            <div className="mt-18">
+            <div className="mt-20">
               <SubscribeCta postSlug={slug} />
             </div>
 
