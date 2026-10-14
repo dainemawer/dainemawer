@@ -1,0 +1,22 @@
+---
+title: Pi is a minimal coding agent you shape yourself
+date: '2026-10-14'
+tags:
+  - ai
+  - tooling
+---
+
+[Pi](https://pi.dev/) is an open-source, MIT-licensed agent harness from Earendil. It does the same basic job as Claude Code, but the core is deliberately small. Sub-agents, plan mode, permission popups and built-in to-dos aren't included. You add the ones you want through TypeScript extensions, skills, prompt templates or packages installed from npm or git.
+
+That trade is why it's worth a look next to straight Claude Code:
+
+- **Not tied to one vendor.** It talks to 15+ providers (Anthropic, OpenAI, Google, Ollama and more), and you can switch models mid-session.
+- **Sessions are trees.** `/tree` branches from any earlier point in a conversation, so you can try a different approach without losing the first one.
+- **It runs in more places.** Besides the TUI, there's a print/JSON mode for scripts, RPC over stdin/stdout, and an SDK for embedding.
+- **It reads `AGENTS.md`.** Existing project instructions carry over.
+
+```bash
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+```
+
+The catch is the same as the pitch: Claude Code gives you the batteries, and Pi gives you a blank harness and expects you to build what you need.
