@@ -1,0 +1,90 @@
+---
+title: Migrating Off React Native's Legacy Architecture Before Expo SDK 55 Forces It
+dek: SDK 54 is the last version that can still run it. SDK 55 removes the newArchEnabled escape hatch entirely, and a build that tries to opt out just fails.
+date: '2026-10-14'
+topics:
+  - react-native
+shortAnswer: Expo SDK 54 (React Native 0.81) is the last SDK release that supports React Native's Legacy Architecture. SDK 55 removes the `newArchEnabled` option from `app.json` outright, so there is no opt-out left. Migrate on SDK 54 first, with the old architecture still available as a fallback, then move to SDK 55 once the New Architecture is already working.
+takeaways:
+  - "Expo's own SDK 55 upgrade guide confirms SDK 54 and React Native 0.81 are the last release to support the Legacy Architecture. The New Architecture was already the default for new apps since SDK 53, which made this migration look optional for two releases before it stopped being optional at all."
+  - "SDK 55 removes `newArchEnabled` from `app.json` entirely. Setting it to false, or leaving an old config file that still references it, doesn't downgrade you gracefully, the build just fails."
+  - "The upgrade teams are getting burned by isn't the SDK bump itself. It's a native module, a Reanimated version, or in-house native code that was never tested against Fabric and TurboModules, because the old bridge was always there as a fallback until now."
+  - "Expo's own guidance is to treat the SDK upgrade and the architecture switch as two separate steps: get to SDK 54 on a development build first, then flip New Architecture on while you're still one release away from losing the ability to flip it back."
+  - "Other SDK 55 changes worth planning around: the default template moved to the Native Tabs API and an /src/app layout, and Hermes v1 is opt-in through expo-build-properties rather than on by default."
+faq:
+  - question: Do I have to migrate to React Native's New Architecture before upgrading to Expo SDK 55?
+    answer: Yes. Expo SDK 55 removes the Legacy Architecture entirely, along with the newArchEnabled option in app.json that used to let you opt out. If your app, or any native module it depends on, hasn't been verified against Fabric and TurboModules, do that work on SDK 54 before moving to SDK 55.
+  - question: What happens if I set newArchEnabled to false in Expo SDK 55?
+    answer: It doesn't do anything useful. SDK 55 dropped the newArchEnabled field from app.json, so there's no supported way to run the Legacy Architecture on that SDK version. A project still configured for the old bridge will fail to build rather than silently falling back to it.
+  - question: What's the safest order to migrate from React Native's Legacy Architecture to the New Architecture?
+    answer: Upgrade to Expo SDK 54 first on a development build, separate from any architecture change. Then enable the New Architecture while you're still on SDK 54, where the Legacy Architecture remains available as a fallback if something breaks. Only move to SDK 55 once the New Architecture is already working reliably for your app.
+  - question: Which Expo SDK 55 changes besides the architecture switch should I plan for?
+    answer: The default template now ships with the Native Tabs API instead of the older tab navigator, and new projects use an /src/app layout. Hermes v1 is available but opt-in, turned on through the useHermesV1 field in expo-build-properties rather than shipping as the default engine.
+needsRewrite: false
+---
+
+For two SDK releases, skipping React Native's New Architecture migration looked like a reasonable call. Expo SDK 53 made it the default for new projects, but your existing app could keep running the Legacy Architecture by setting `newArchEnabled: false`, and plenty of teams did exactly that while they waited for a slow native dependency to catch up. [Expo's own SDK 55 upgrade guide](https://expo.dev/blog/upgrading-to-sdk-55) confirms that SDK 54, on React Native 0.81, is the last release where that fallback exists. SDK 55 removes `newArchEnabled` from `app.json` outright. There's nothing left to set it to.
+
+That's a different kind of deadline than most framework migrations get. TypeScript 7 shipped a faster compiler and let the old API linger as a compatibility package you could alias to. React Compiler rolled out behind a flag you could leave off indefinitely. The New Architecture migration doesn't get that grace period anymore: once you're on SDK 55, there is no config value, no environment flag, no build setting that brings the old bridge back.
+
+## Why "we'll do it later" ran out
+
+The timeline is worth having straight, because it explains why teams keep getting caught by this later than they expect:
+
+- **SDK 53** made the New Architecture the default for new projects, while existing apps could still opt out.
+- **SDK 54** (React Native 0.81) is the last SDK that can run the Legacy Architecture at all, opt-out included.
+- **SDK 55** (React Native 0.83) removes the opt-out. `newArchEnabled` is gone from `app.json`, and a project still configured around the old bridge simply fails to build.
+
+Each of those felt like a soft deadline on its own. Together, they're a hard one. If your app is still running the Legacy Architecture today, SDK 54 is the only version left where you get to make that switch with a working fallback still installed next to it.
+
+## What actually breaks when you flip the switch
+
+The New Architecture replaces the old asynchronous bridge with Fabric (the new renderer) and TurboModules (synchronous, lazily loaded native modules). Most apps don't fail because of some fundamental incompatibility with that model. They fail because of the long tail of things built on the old bridge that nobody has pointed at Fabric yet:
+
+- **Native modules your app depends on** that haven't published a TurboModule-compatible version, or that detect architecture at runtime and never got the New Architecture code path exercised in practice.
+- **Reanimated and other animation libraries** that reach into the bridge directly for performance reasons, which is exactly the kind of code that needs a major version bump to work under Fabric.
+- **In-house native code**, the view manager or native module someone wrote two years ago and hasn't touched since, written against bridge APIs that the New Architecture doesn't call the same way.
+
+None of this is exotic. It's the same shape as any toolchain migration where the public API everyone uses keeps working, and the unofficial internals everyone built on without ever treating them as an integration point don't: the risk isn't the framework, it's your own dependency graph.
+
+## A migration order that doesn't gamble on your build
+
+Expo's guidance, and the practical experience of teams who've already made the jump, converges on treating this as two separate migrations rather than one SDK bump:
+
+1. **Upgrade to SDK 54 on its own first.** Do this on a development build, before touching architecture settings at all. You want to isolate "did the SDK upgrade break anything" from "did the architecture change break anything," because debugging both at once means you can't tell which one caused a given crash.
+
+2. **Enable the New Architecture while you're still on SDK 54.** This is the step that matters most: SDK 54 is the last version where the Legacy Architecture is one config flag away if something goes wrong. Flip `newArchEnabled: true`, run your full test suite and a manual pass through your app's riskiest flows (anything with heavy native module usage, custom animations, or third-party SDKs), and treat any crash as a blocker, not a known issue to fix later.
+
+3. **Audit dependencies before you assume they're fine.** Check whether every native module you depend on has a New Architecture-compatible release, not just a changelog entry that mentions it. A library can claim support while a specific API you call still routes through legacy-only code internally.
+
+4. **Only move to SDK 55 once the New Architecture already works on SDK 54.** By the time you upgrade again, the architecture switch should be a non-event, because you already did the risky part with a safety net still installed.
+
+```json
+{
+  "expo": {
+    "newArchEnabled": true
+  }
+}
+```
+
+That line only does something on SDK 54 and earlier. Treat getting it to `true` and staying stable there as the actual milestone, not the SDK 55 upgrade itself.
+
+## What else is riding along in SDK 55
+
+The architecture change is the one with a hard deadline, but it's not the only default shifting underneath you. Expo's SDK 55 changelog lists a few other template-level changes worth knowing about before you upgrade, even if none of them force your hand the way the architecture removal does:
+
+- **Native Tabs API** is now what the default template scaffolds for tab navigation, in place of the older JS-driven tab navigator.
+- **The default project layout moved to `/src/app`**, rather than a top-level `/app` directory, for new projects generated from the template.
+- **Hermes v1 is opt-in**, through the `useHermesV1` field in `expo-build-properties`, rather than shipping as the default engine.
+
+None of these need the same urgency as the architecture migration. They're the kind of changes you adopt when you touch the relevant part of your app anyway, not something to schedule a sprint around.
+
+## The planning lesson, not just the technical one
+
+What makes this migration different from a typical dependency bump is that the deadline is attached to a major version number your team will eventually have to take for other reasons, security patches, new API access, continued Expo Go compatibility. You can't indefinitely stay on SDK 54 the way some teams stayed on React Native's old architecture for years past when New Architecture first shipped. At some point SDK 54 itself falls out of support, and the Legacy Architecture goes with it.
+
+The practical move is to stop treating "migrate to New Architecture" as a line item you'll get to eventually, and instead run the dependency audit now, on whatever SDK you're currently on, so you know your real exposure before SDK 54 is the only version where fixing it is low-risk. A native module with no New Architecture support isn't a problem you solve the week you need to ship SDK 55. It's a problem you find a replacement or a patch for while you still have the old bridge to fall back on if the first attempt doesn't work.
+
+## Bringing it together
+
+Expo SDK 54 is the last release where React Native's Legacy Architecture exists at all, opt-out included. SDK 55 removes `newArchEnabled` from `app.json`, so there's no config value left to fall back on if a native dependency isn't ready. Treat the SDK upgrade and the architecture switch as two separate steps, land on SDK 54 first, flip New Architecture on while the fallback still exists, audit your native dependencies before you assume they're compatible, and only move to SDK 55 once the migration is already done. The teams who get surprised by this aren't the ones who ignored the warning. They're the ones who read it as a recommendation instead of a deadline.
