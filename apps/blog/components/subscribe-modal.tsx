@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@vercel/analytics";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -67,6 +68,9 @@ export function SubscribeModal() {
       }
       setStatus("success");
       trackEvent("newsletter_signup_succeeded");
+      // Mirrored to Vercel Analytics so signups can be filtered by the same
+      // UTM source/medium as pageviews there, not only in GA4.
+      track("newsletter_signup_succeeded");
     } catch {
       setStatus("error");
       setErrorReason("network_error");
