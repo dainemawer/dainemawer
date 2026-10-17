@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { utmUrl } from "@/lib/utm";
 
 // Brand mark paths, verified against Simple Icons (viewBox 0 0 24 24,
 // fill="currentColor") rather than hand-drawn — a wrong path silently
@@ -63,12 +64,17 @@ function CheckIcon() {
   );
 }
 
+// Reader shares carry UTM tags (content "share-button") so they show up
+// as their own placement in GA4/Vercel Analytics rather than as direct or
+// referral traffic. "Copy link" stays clean — it's pasted anywhere.
 function shareTargets(title: string, url: string) {
+  const tagged = (channel: "x" | "bluesky" | "linkedin") =>
+    utmUrl(url, channel, { content: "share-button" });
   return [
     {
       key: "x",
       label: "X",
-      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(tagged("x"))}&text=${encodeURIComponent(title)}`,
       icon: ICON_PATHS.x,
     },
     {
@@ -76,13 +82,13 @@ function shareTargets(title: string, url: string) {
       label: "Bluesky",
       // No separate url param on Bluesky's compose intent — the link has
       // to be part of the text itself.
-      href: `https://bsky.app/intent/compose?text=${encodeURIComponent(`${title} ${url}`)}`,
+      href: `https://bsky.app/intent/compose?text=${encodeURIComponent(`${title} ${tagged("bluesky")}`)}`,
       icon: ICON_PATHS.bluesky,
     },
     {
       key: "linkedin",
       label: "LinkedIn",
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(tagged("linkedin"))}`,
       icon: ICON_PATHS.linkedin,
     },
   ];

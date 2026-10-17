@@ -1,0 +1,57 @@
+name: Announce
+
+# Posts newly added articles and TILs to Bluesky (and X, if its secrets are
+# set) once Vercel has deployed them. See apps/blog/scripts/announce.mts.
+# Secrets: BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, and optionally X_API_KEY,
+# X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/blog/content/posts/**
+      - apps/blog/content/til/**
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Announce added content
+        working-directory: apps/blog
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: |
+          # Only files *added* in this push — edits to existing posts never re-announce.
+          added=$(git diff --name-only --diff-filter=A "$BEFORE" "$AFTER" -- content/posts content/til | grep '\.mdx$' || true)
+          status=0
+          for file in $added; do
+            path=$(echo "$file" | sed -E 's#^apps/blog/content/posts/##; s#^apps/blog/content/til/#til/#; s#\.mdx$##')
+            echo "Announcing $path"
+            pnpm announce "$path" || status=1
+          done
+          exit $status
