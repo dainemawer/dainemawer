@@ -11,7 +11,8 @@
     "share": "tsx scripts/share-links.ts",
     "audit:links": "tsx scripts/link-audit.ts",
     "crosspost": "tsx --env-file-if-exists=../../.env.local scripts/crosspost.mts",
-    "announce": "tsx --env-file-if-exists=../../.env.local scripts/announce.mts"
+    "announce": "tsx --env-file-if-exists=../../.env.local scripts/announce.mts",
+    "cfp-scan": "tsx scripts/cfp-scan.mts"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

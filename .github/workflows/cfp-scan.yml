@@ -1,0 +1,51 @@
+name: CFP scan
+
+# Every Monday, opens a GitHub issue listing conferences with open calls for
+# papers that fit the talk topics in apps/blog/docs/growth/pitching.md, and
+# closes last week's. See apps/blog/scripts/cfp-scan.mts.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1" # Mondays 07:00 in Cape Town
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Scan and post
+        working-directory: apps/blog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create cfp --color 5319e7 --description "Weekly open CFP digest" --force
+          previous=$(gh issue list --label cfp --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$previous" ]; then
+            gh issue view "$previous" --json body --jq .body > /tmp/previous.md
+            pnpm -s cfp-scan --previous /tmp/previous.md > /tmp/digest.md
+          else
+            pnpm -s cfp-scan > /tmp/digest.md
+          fi
+          gh issue create --label cfp --title "Open CFPs — week of $(date -u +%Y-%m-%d)" --body-file /tmp/digest.md
+          if [ -n "$previous" ]; then
+            gh issue close "$previous" --comment "Superseded by this week's digest."
+          fi

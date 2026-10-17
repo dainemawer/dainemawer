@@ -19,6 +19,7 @@ How posts get from published to read. The rule behind all of it: **spend half yo
 | `pnpm --filter blog share <slug> [placement]` | Prints a UTM-tagged link for every channel |
 | `pnpm --filter blog crosspost <slug>` | dev.to draft + paste-ready Hashnode/Medium file, canonical set |
 | `pnpm --filter blog announce <slug> --dry-run` | Previews the Bluesky/X auto-post (CI runs it for real on merge) |
+| `pnpm --filter blog cfp-scan` | Open calls for papers that fit your talks (also posted as a GitHub issue every Monday) |
 | `pnpm --filter blog audit:links` | Internal-link report: orphans, unlinked related posts, snippet lengths |
 | Claude Code: "make a distribution kit for `<slug>`" | Drafts every channel's copy for one post (the `distribution-kit` skill) |
 
@@ -36,6 +37,7 @@ Three long posts a week leaves no time to distribute any of them. The new rhythm
 | **Thu** | Publish **post B** | Reddit for A, sub #2, or B, sub #1. Bluesky/X thread from A's takeaways. |
 | **Fri** | Publish **TIL** | LinkedIn post for B. Cross-post last week's best how-to to dev.to/Hashnode. Send the newsletter digest. |
 | **Daily** | — | 15 min replying on Bluesky/LinkedIn to people in your niche. |
+| **Mon** | — | Skim the weekly `cfp` issue; submit to anything ⏰ that fits. |
 | **Monthly** | — | Pitch batch (pitching.md). Run `audit:links`. Review the scorecard. |
 
 **Newsletter digest:** Resend is collecting subscribers, so send them something. A Friday email via Resend Broadcasts: this week's 2 posts and 2 TILs, plus 2–3 sentences of personal note. Subscribers who never hear from you forget why they signed up.

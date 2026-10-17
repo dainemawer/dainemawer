@@ -44,7 +44,9 @@ Check each show is still releasing and still takes guests before pitching. Show 
 
 ## Conference CFPs
 
-Calls for papers for mid-2027 conferences mostly open **between November 2026 and February 2027**, so now is the time. Check **confs.tech/cfp** and **sessionize.com** weekly.
+Calls for papers for mid-2027 conferences mostly open **between November 2026 and February 2027**, so now is the time.
+
+**This is automated:** every Monday at 07:00, `.github/workflows/cfp-scan.yml` opens a GitHub issue labelled `cfp`. It lists open calls from the confs.tech dataset that fit your topics, marked 🆕 (new this week), ⏰ (closes within 14 days) and 📍 (Africa), and closes the previous week's issue. Run it any time from the Actions tab ("Run workflow") or locally with `pnpm --filter blog cfp-scan`. The conferences below aren't reliably in that dataset, so check them by hand, along with **sessionize.com**.
 
 | Conference | Fit | Topic |
 | --- | --- | --- |
