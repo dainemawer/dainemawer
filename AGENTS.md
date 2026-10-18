@@ -57,3 +57,4 @@ Skills installed via [skills.sh](https://www.skills.sh) live in `.agents/skills/
 | `ai-seo` | Optimizing content to be cited/surfaced by AI search engines (AI Overviews, ChatGPT, Perplexity). |
 | `writing-guidelines` | Reviewing blog post prose, voice, and tone against the writing handbook. |
 | `best-practices` | General security, compatibility, and code quality review. |
+| `distribution-kit` | Drafting LinkedIn/Reddit/Bluesky/newsletter copy to promote a post. Repo-authored (not from skills.sh, so not in `skills-lock.json`); playbooks live in `apps/blog/docs/growth/`. |

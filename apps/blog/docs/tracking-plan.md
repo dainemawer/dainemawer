@@ -29,7 +29,7 @@ Every event in the table below is wired in code. The only thing between this sit
 |---|---|---|---|---|
 | `newsletter_modal_opened` | Subscribe modal opens | `location` (`nav` / `article_end`), `post_slug` (article_end only) | `utility-bar.tsx`, `subscribe-cta.tsx` | Wired |
 | `newsletter_signup_submitted` | Form submitted, passes client validation | — | `subscribe-modal.tsx` | Wired |
-| `newsletter_signup_succeeded` | Provider confirms the subscription | — | `subscribe-modal.tsx` | Wired |
+| `newsletter_signup_succeeded` | Provider confirms the subscription (also sent to Vercel Analytics as a custom event) | — | `subscribe-modal.tsx` | Wired |
 | `newsletter_signup_failed` | Client validation fails | `reason: "invalid_email"` | `subscribe-modal.tsx` | Wired |
 | `contact_form_submitted` | Contact form submitted, passes client validation | `reason` (`speaking` / `post` / `correction` / `other`) | `contact-form.tsx` | Wired |
 | `contact_form_succeeded` | Provider accepts the message | `reason` | `contact-form.tsx` | Wired |
@@ -51,6 +51,10 @@ Every event in the table below is wired in code. The only thing between this sit
 
 - **`newsletter_signup_succeeded`** — the one real goal for a content-first blog: growing the list.
 - `code_block_copied` is worth watching as an engagement signal (which posts get used hands-on) but isn't a conversion.
+
+## Campaign tagging (UTM)
+
+GA4 and Vercel Analytics both read `utm_*` parameters from the landing URL, so channel attribution needs no extra events. Source/medium values are defined once in [lib/utm.ts](../lib/utm.ts). Generate tagged links with `pnpm --filter blog share <slug>`, and see [growth/README.md](./growth/README.md). Article share buttons tag their links with `utm_content=share-button`.
 
 ## Privacy
 
