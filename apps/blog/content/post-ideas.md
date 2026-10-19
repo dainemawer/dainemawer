@@ -20,7 +20,6 @@ Everything else in the queue stays for next time.
 
 <!-- - Example: CSS anchor positioning now that Safari shipped it — compare against the old popover + JS approach. -->
 
-- Expo Router versus the Next.js App Router, as a translation guide for web developers: layouts, dynamic routes, data loading, deep links and navigation state, and where the mental models stop matching. [topics: react-native]
 - Working out why a React Native screen re-rendered: a debugging workflow using the React DevTools Profiler and the React Compiler, plus a checklist of the usual causes. [topics: react-native, javascript]
 - Shipping React Native when you can't hotfix a binary: EAS Update, staged rollouts, and the line between what can go over the air and what needs a store release. [topics: react-native]
 - Core Web Vitals instincts applied to a mobile app: which web metrics have a native equivalent (startup time, interaction latency, dropped frames) and how to measure each one. [topics: react-native, performance]
