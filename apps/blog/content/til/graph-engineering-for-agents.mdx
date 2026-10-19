@@ -1,0 +1,19 @@
+---
+title: Graph engineering is designing how agents hand off to each other
+date: '2026-10-19'
+tags:
+  - ai
+  - agents
+---
+
+"Graph engineering" is the newest name in the prompt → context → harness → loop engineering progression. Loop engineering is one agent working toward a goal, with a verifier and a stop condition. Graph engineering connects several of those loops into one system and makes the wiring explicit:
+
+- **Nodes** do the work: an agent, a tool call, a validator or a human approval.
+- **Edges** decide what runs next, including branches, parallel fan-out and retry paths.
+- **Shared state** passes between nodes, so handoffs, budgets and vetoes live in one inspectable place instead of inside a prompt.
+
+A code review system is the standard example: parallel audit agents feed a verifier, failures route to a fixer, and the test suite decides when to stop. [LangGraph](https://langchain-ai.github.io/langgraph/) is the most common way to build one.
+
+The idea isn't new. Workflow engines and DAG schedulers have worked this way for years. The difference is that the nodes are agents that interpret their task instead of following fixed rules, so the structure around them has to do more of the work.
+
+The best short explainer I've found is Louis-François Bouchard's [Graph Engineering vs Loop Engineering: What Actually Changed](https://www.louisbouchard.ai/graph-engineering-explained/). His advice is to start with a single loop and only add a graph when the work forces you to. He also warns that agents checking agents can produce "organized nonsense at scale", so some evidence should come from outside the system, like tests passing. For the patterns underneath (chaining, routing, parallelization, orchestrator-workers), Anthropic's [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) is still the reference I trust.
