@@ -1,0 +1,26 @@
+---
+title: Paperclip runs a team of AI agents like a company
+date: '2026-10-16'
+tags:
+  - ai
+  - tooling
+---
+
+[Paperclip](https://paperclip.ing/) treats a group of AI agents as a company. You set a goal, hire agents into an org chart (CEO, CTO, engineers, marketers), approve the CEO agent's strategy, and watch the work from a dashboard. It looks like a task manager. Underneath, it handles budgets, reporting lines and governance.
+
+The parts that stood out:
+
+- **Bring your own agent.** Claude Code, Codex, Cursor, Gemini CLI, OpenCode, Pi and others can share one org chart. Per the README: "If it can receive a heartbeat, it's hired."
+- **Heartbeats.** Agents wake on a schedule or when they're assigned a ticket, so they don't sit in a loop burning tokens.
+- **Hard budgets.** Each agent gets a monthly spend limit and is paused when it hits it.
+- **You're the board.** Hiring a new agent needs your approval by default, and every ticket keeps a full tool-call trace and an append-only audit log.
+
+What makes it worth more than a bookmark is that [the whole thing is on GitHub](https://github.com/paperclipai/paperclip) under the MIT license. It's a Node.js server and React UI with an embedded Postgres, self-hosted, with no Paperclip account required:
+
+```bash
+npx paperclipai onboard --yes
+```
+
+That matters for teams. You can run it inside your own infrastructure, point it at your own Postgres, and write a custom adapter for an in-house agent instead of waiting for a vendor to support it. And when an agent does something odd, you can read the orchestration code instead of guessing at a black box. With an agent manager, that's what you actually need.
+
+My caveat: a company of agents is only as good as its checks. Budgets and audit logs tell you what happened. Deciding whether the work was any good is still your job.
