@@ -1,0 +1,140 @@
+---
+title: Expo Router for Next.js Developers, a Translation Guide
+dek: The file conventions map almost one to one. Navigation state, data loading and deep links are where the App Router mental model stops working.
+date: '2026-10-19'
+topics:
+  - react-native
+shortAnswer: Expo Router borrows the Next.js App Router's file conventions, so layouts, dynamic segments, route groups and not-found routes translate almost directly. The differences start underneath. A native app keeps a tree of mounted screens instead of one URL, data mostly loads on the client, and deep links can arrive in states your web routes never had to handle.
+takeaways:
+  - "The file conventions translate almost one to one: _layout.tsx for layout.tsx, [id].tsx for [id]/page.tsx, (group) folders for route groups, +not-found.tsx for not-found.tsx and hello+api.ts for route.ts. If you know the App Router, you can read an Expo Router app directory on day one."
+  - "A Next.js layout wraps pages. An Expo Router _layout.tsx usually renders a navigator (Stack, Tabs or a drawer), so the layout decides how screens relate to each other and animate, not only what surrounds them."
+  - "In a stack, the previous screen stays mounted when you push a new one. Effects don't clean up on navigation, useLocalSearchParams and useGlobalSearchParams behave differently, and useFocusEffect replaces a lot of what a page mount used to do."
+  - "On native, data loading is still mostly client-side, usually through TanStack Query or a similar cache. Expo Router's data loaders and server middleware are documented as web features that need static or server output, and middleware does not run during native screen transitions."
+  - "Deep links can land a user several screens deep with no history behind them. unstable_settings.anchor, Stack.Protected and +native-intent.tsx exist to handle those cases, and none of them have a direct App Router equivalent."
+faq:
+  - question: Is Expo Router the same as the Next.js App Router?
+    answer: No. Expo Router copies the App Router's file-based conventions, including layouts, dynamic segments in square brackets and route groups in parentheses, but it is built on React Navigation. Routes resolve to native stack, tab or drawer navigators on device rather than to server-rendered pages, so navigation state, screen lifecycles and data loading all work differently.
+  - question: What is the Expo Router equivalent of layout.tsx in Next.js?
+    answer: A _layout.tsx file in the same directory. The difference is what it renders. A Next.js layout wraps its child pages in shared UI, while an Expo Router layout usually returns a navigator such as Stack or Tabs, which controls how the routes in that folder are presented, animated and kept in memory.
+  - question: How do you load data in an Expo Router screen?
+    answer: On native, fetch on the client, usually with TanStack Query or a similar library for caching and retries, and read route params with useLocalSearchParams. Expo Router's data loaders, which export a loader function and read it with useLoaderData, are documented as a web feature that requires static or server output.
+  - question: Why does my Expo Router screen not unmount when I navigate away?
+    answer: Because a stack navigator keeps earlier screens mounted underneath the current one so the user can go back without a reload. Cleanup in a useEffect only runs when the screen is popped. Use useFocusEffect for work that should start and stop as the screen gains or loses focus.
+  - question: How do I protect routes behind login in Expo Router?
+    answer: Wrap the screens in Stack.Protected with a guard prop driven by your auth state. When the guard is false, navigation to those screens redirects to the anchor route, and their history entries are removed. Server middleware is not a substitute on native, because it never runs during client-side or native screen transitions.
+needsRewrite: false
+---
+
+If you've spent the last few years in the Next.js App Router, opening an Expo Router project feels familiar for about ten minutes. There's an `app` directory (`src/app` in Expo's current templates). There are `_layout.tsx` files, dynamic segments in square brackets and route groups in parentheses. You can guess the URL of most screens from the file tree.
+
+The conventions were borrowed deliberately, and they carry you a long way. The trouble starts when you bring the runtime assumptions along with them. A Next.js route is a URL the server resolves into a page. An Expo Router route is a position in a tree of native navigators that happens to have a URL. Below is the mapping for the parts that translate, followed by the four places where the App Router mental model stops working.
+
+## The file conventions, mapped
+
+Most of the vocabulary carries straight across:
+
+- `app/layout.tsx` is `app/_layout.tsx`. The root layout is also where initialization code goes that would have lived in an `App.tsx` in an older React Native project.
+- `app/blog/page.tsx` is `app/blog/index.tsx`, or `app/blog.tsx`. Expo Router routes are files, not folders with a `page` inside.
+- `app/users/[id]/page.tsx` is `app/users/[id].tsx`, and catch-all `[...slug]` segments work the same way.
+- `app/(marketing)/about/page.tsx` is `app/(marketing)/about.tsx`. Groups in parentheses stay out of the URL in both.
+- `not-found.tsx` is `+not-found.tsx`.
+- `error.tsx` becomes an `ErrorBoundary` export from the route file itself, which receives `error` and a `retry` function.
+- `app/api/hello/route.ts` is `app/hello+api.ts`, an API route that runs on a server you deploy separately.
+- `proxy.ts` (formerly `middleware.ts`) is `+middleware.ts`, with an important caveat covered below.
+
+A few App Router features have no counterpart. Parallel routes (`@slot` folders) and intercepting routes (`(.)photo`) don't exist in Expo Router. The patterns they solve on the web, such as a modal that keeps its own URL, are handled by navigator options instead, like presenting a stack screen as a modal.
+
+The `+` prefix is Expo's marker for special files. Besides the ones above, `+html.tsx` customizes the HTML shell on web and `+native-intent.tsx` rewrites incoming deep links, which matters later.
+
+## Layouts render navigators, not wrappers
+
+In Next.js, a layout wraps its children in shared UI and persists across navigation between sibling pages. It doesn't decide how pages transition. The browser handles history and the page swaps in place.
+
+An Expo Router `_layout.tsx` usually returns a navigator:
+
+```tsx
+import { Stack } from 'expo-router';
+
+export default function Layout() {
+  return <Stack />;
+}
+```
+
+That one line changes how every route in the folder behaves. A `Stack` pushes screens on top of each other with native transitions and a back gesture. `Tabs` keeps several screens alive side by side, and each tab can hold its own stack. A modal is a stack screen with a different `presentation` option. The layout is where you decide what a route *is* in the UI.
+
+The practical habit to build: when you add a folder, decide its navigator first. "Should this be a tab, a pushed screen or a modal?" is the native equivalent of deciding a route's URL structure, and getting it wrong is more expensive to undo.
+
+## Navigation state is a tree, not a URL
+
+On the web, the URL is the state. Reload the page and you get the same screen. Browser history is a flat list of URLs.
+
+In Expo Router, every screen still has a URL, but the real state is a tree. A tab navigator holds a stack per tab, each stack holds a list of mounted screens, and the URL is a projection of whichever screen is focused. That has consequences for everyday code.
+
+**Screens stay mounted.** When you push a new screen onto a stack, the previous one stays in memory so the user can swipe back without a reload. A `useEffect` cleanup on the earlier screen doesn't run until it's popped. Work that should pause when a screen goes into the background, like polling, a camera session or an analytics "page view", belongs in `useFocusEffect` instead.
+
+**There are two kinds of params.** Because several screens with the same dynamic segment can be mounted at once, Expo Router gives you `useLocalSearchParams` and `useGlobalSearchParams`. The local version only updates when the URL matches the current screen. The global version updates on every URL change, including ones meant for other screens, which can re-render background screens for no reason. Default to the local hook. It's the closest match to the `params` a Next.js page receives.
+
+**`push` isn't always what you want.** The router has `push`, `replace` and `back`, which look like `next/navigation`. It also has `navigate`, which either pushes a new screen or unwinds to an existing instance of that route already on the stack. Calling `push` to the same route repeatedly stacks up duplicate screens that the user has to back out of one by one. Expo's docs recommend `navigate` as the usual choice.
+
+`<Link>` also differs in a small way that surprises people: it renders its children inside a `<Text>` by default. To wrap a card or a button, pass `asChild` and give it a `Pressable`.
+
+## Data loading moves to the client
+
+The App Router's default is a server component that awaits data before rendering. There's no direct equivalent on native. A screen in an iOS or Android build runs on the device, so data loading usually happens on the client. The common pattern is TanStack Query (or a similar cache) inside the screen, keyed on the route params:
+
+```tsx
+import { useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+
+export default function Order() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data, isPending } = useQuery({
+    queryKey: ['order', id],
+    queryFn: () => getOrder(id),
+  });
+  // ...
+}
+```
+
+That shifts responsibilities a server component used to cover. You handle loading and error states on every screen, caching and retries move into the query library, and secrets can't live in screen code, because everything in the bundle ships to the device.
+
+Expo Router does have server-side data loading, but it's easy to read more into it than it offers today. Routes can export a `loader` function and read it with `useLoaderData`, similar to Remix. Expo documents loaders under its web section. They need `web.output` set to `static` or `server`, and they sit behind the `unstable_useServerDataLoaders` flag from SDK 55 until the release Expo's docs mark them stable. For a native-first app, treat loaders as a web feature and keep client fetching as the default.
+
+API routes (`+api.ts`) cover the remaining need. If a screen needs a secret, put the call behind an API route on a deployed server and call that from the client, the same way you'd treat a public API.
+
+## Deep links arrive without history
+
+A Next.js page can assume very little about how the user got there, and that's fine, because the browser has a back button and every URL renders on its own. A native app has more to get right when a link opens it from a notification, an email or another app.
+
+**The back button needs somewhere to go.** If a deep link opens `/orders/42` directly, the stack holds one screen and there's nothing to go back to. In a layout, `export const unstable_settings = { anchor: 'index' }` tells Expo Router to put the index screen underneath, so the back arrow still appears. During normal in-app navigation the anchor isn't used unless you pass `withAnchor` to the link.
+
+**Auth is a client-side guard.** On the web, you might redirect unauthenticated requests in `proxy.ts`. Expo Router's `+middleware.ts` runs on the server for HTTP requests only. Its docs say plainly that it doesn't run during client-side navigation with `<Link>` or `router`, or during native screen transitions. On device, the tool is `Stack.Protected`:
+
+```tsx
+<Stack>
+  <Stack.Protected guard={!isSignedIn}>
+    <Stack.Screen name="sign-in" />
+  </Stack.Protected>
+  <Stack.Protected guard={isSignedIn}>
+    <Stack.Screen name="(app)" />
+  </Stack.Protected>
+</Stack>
+```
+
+When a guard is false, navigation to those screens redirects to the anchor route. If a guard flips while the user is on a protected screen, they're redirected and that screen's history is removed. That covers deep links into protected routes as well as sign-out.
+
+**Not every incoming link is one of your URLs.** Marketing tools and older app versions can open the app with a provider-specific URL or a path that no longer exists. `+native-intent.tsx` exports a `redirectSystemPath` function that receives the raw path and whether this is the initial launch, and returns the route to open. Nothing in Next.js does this job, because a web server just returns a 404 or a redirect.
+
+## Where to start translating
+
+Port the file structure first, since it maps almost mechanically, and then work through the runtime differences in this order:
+
+1. Pick a navigator for every folder before writing screens.
+2. Audit effects for work that should stop when a screen loses focus, and move it to `useFocusEffect`.
+3. Use `useLocalSearchParams` by default and reach for the global hook only when a background screen needs to react to URL changes.
+4. Pick a client data layer and decide which calls need an API route to keep secrets off the device.
+5. Test every deep link from a cold start, with and without a signed-in user, and set an `anchor` anywhere the back button disappears.
+
+If you want type checking on all of this, enable `experiments.typedRoutes` in `app.json`. Expo CLI then generates route types so `<Link href>` and `router.navigate` reject paths that don't exist. Expo still labels it beta, but it catches the class of bug that file-based routing invites, such as renaming a file and leaving stale links behind.
+
+App Router experience gets you through the file tree on day one. Navigation state, screen lifecycles and cold-start deep links take longer, since a server-rendered web app never had to model them.
