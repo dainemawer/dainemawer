@@ -1,0 +1,19 @@
+---
+title: Coding agents need checks they can run themselves
+date: '2026-10-20'
+tags:
+  - ai
+  - agents
+  - testing
+---
+
+Addy Osmani's [Agentic Verification](https://addyo.substack.com/p/agentic-verification) makes a simple point: "The bottleneck has moved from writing code to knowing it's correct." An agent that can run its own checks can write, fail, read the error and retry many times before you see anything. An agent that can't is guessing, and you end up doing the checking yourself.
+
+His ways of giving an agent those checks:
+
+- **End-to-end tests** for a few important user flows. They're hard to fake, and they're most useful when a failure comes with a screenshot or trace.
+- **Property-based tests** for rules that must always hold, like round-trips, invariants and idempotency. In his words, "Example tests say what should happen; properties say what must not."
+- **Differential tests** for rewrites and migrations, with the old system as the source of truth.
+- **Fast, deterministic suites.** Slow or flaky tests teach agents to retry until something passes.
+
+The habit I'm taking from it is to write the check before asking for the code. As Osmani puts it, he'd prefer "a much better feedback loop to a slightly better model."
