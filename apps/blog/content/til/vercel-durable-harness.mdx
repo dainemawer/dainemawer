@@ -1,0 +1,29 @@
+---
+title: Vercel's durable-harness lets coding agents survive a crash
+date: '2026-10-22'
+tags:
+  - ai
+  - agents
+  - vercel
+---
+
+Run Claude Code or Codex locally and a crash costs you little, because the session history is on disk and you pick up where you left off. Run the same agent in a serverless function and a timeout or network error can lose the whole turn. Vercel's [durable-harness](https://github.com/vercel-labs/durable-harness) fixes that without changing the harness itself. It works with Claude Code, Codex, OpenCode and Pi, and it's built on [Workflow SDK](https://workflow-sdk.dev).
+
+How it works, per Vercel's [announcement](https://vercel.com/blog/making-every-harness-durable):
+
+- **Every step is logged.** Each model and tool call records its intent before it runs and its result when it finishes.
+- **A queue backs every turn.** If the function dies, a new one picks up the turn, reads the log and carries on.
+- **Finished work isn't repeated.** Completed calls come from the log, so you don't pay for the same model call twice.
+- **You decide what's safe to retry.** A tool marked `replay: 'safe'` re-runs after a crash. One marked `replay: 'never'` is reported to the model as "may have run", and the model decides whether to check.
+
+The log can live on Vercel, in local files during development, or in your own Postgres, MongoDB, Redis or Turso.
+
+Where I'd use it:
+
+- **Background PR agents.** Vercel's own example: an agent adds a pricing page, opens a PR and waits for CI. If the function times out mid-wait, it resumes instead of starting over.
+- **Long migrations.** Upgrading a framework across a large codebase takes longer than any function timeout. With a durable log, hitting the limit just means the next function continues the job.
+- **Agents with side effects.** Posting a PR comment, sending an email or deploying shouldn't happen twice. Marking those tools `replay: 'never'` is a cleaner guard than hoping nothing crashes.
+- **Agents that wait on people.** Triage or review bots that pause for an approval or a CI result, then continue hours later from the same state.
+- **Agents inside your own product.** Its documents feature stores typed JSON, like a plan or to-do list, in the session log and can stream changes to the browser, so a "build this for me" feature in your app keeps its state even if a function fails.
+
+It's still experimental (version `0.0.x`, so the API may change). The [agent harnesses docs](https://vercel.com/docs/agent-harnesses) cover setup for each harness.
