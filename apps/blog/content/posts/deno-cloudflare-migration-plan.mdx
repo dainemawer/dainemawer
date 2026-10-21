@@ -1,0 +1,162 @@
+---
+title: Deno Has a Year Left. Here's How to Plan the Exit
+dek: Cloudflare took on the Deno team and put the runtime on a one-year clock. Most Deno code is closer to portable than it looks, if you migrate in the right order.
+date: '2026-10-21'
+topics:
+  - javascript
+  - staff-engineering
+shortAnswer: On October 9, 2026, the Deno team announced it is joining Cloudflare. Deno Deploy shuts down after six months, and the runtime gets one year of bug fixes and security patches before development ends. Move hosting first, then put each service behind a standard fetch handler, then swap Deno-specific APIs and tooling.
+takeaways:
+  - "There are two deadlines, not one. Deno Deploy closes about six months after the October 9, 2026 announcement; the runtime keeps getting bug fixes and security releases for a year. Plan hosting work first."
+  - "Inventory three layers separately: platform services (Deploy, KV, cron), runtime APIs (anything on the Deno global), and toolchain (deno test, fmt, lint, compile). Each has a different migration target and a different amount of work."
+  - "Code written as a function from Request to Response already runs on Workers, Bun, and Node via Hono. Getting every service into that shape first turns the runtime swap into a config change."
+  - "Deno-style code with explicit .ts import extensions runs on Node's built-in type stripping, as long as it sticks to erasable syntax. Turn on erasableSyntaxOnly to find what doesn't."
+  - "The lesson for platform bets is to measure how much of your code touches vendor-only APIs. Teams that stayed close to web standards have a weekend of work. Teams that leaned on Deno KV and Deno.cron have a project."
+faq:
+  - question: When does Deno Deploy shut down?
+    answer: Deno's October 9, 2026 announcement says Deno Deploy will keep running for six months and then shut down, with migration support for paying customers moving to Cloudflare Workers. No exact calendar date was given, so counting from the announcement puts it around April 2027. Treat that as the hosting deadline and plan the move before it.
+  - question: Is the Deno runtime dead?
+    answer: Not immediately. The Deno runtime gets monthly bug-fix and security releases for one more year, after which official development ends. The code stays open source, so the community can keep maintaining it, but you shouldn't assume anyone will. Existing Deno apps keep working, they just stop getting new features and eventually stop getting patches.
+  - question: Should I migrate from Deno to Node, Bun, or Cloudflare Workers?
+    answer: Match the target to the workload. Edge-style HTTP handlers that ran on Deno Deploy fit Cloudflare Workers, which also has a supported migration path. Long-running servers and anything with heavy npm dependencies fit Node.js, which now runs TypeScript directly. Bun suits teams that want one binary for running, testing, and bundling, as Deno offered.
+  - question: Can I still use JSR packages after leaving Deno?
+    answer: Yes. JSR keeps operating on Cloudflare infrastructure, and pnpm 10.9 and later install JSR packages directly with pnpm add jsr:@scope/name. Many @std packages are runtime-agnostic, and each package's JSR page lists which runtimes it supports, so check that before assuming a Deno-only dependency has to go.
+needsRewrite: false
+---
+
+On October 9, 2026, Ryan Dahl [announced that the Deno team is joining Cloudflare](https://deno.com/blog/cloudflare). The part that matters for anyone running Deno in production is the timeline that came with it. Deno Deploy keeps running for six months and then shuts down, with migration support for paying customers moving to Cloudflare Workers. The Deno runtime gets bug-fix and security releases for one more year, and then official development ends. JSR, the package registry, keeps operating on Cloudflare infrastructure.
+
+The team is moving to Workers. According to the coverage of the deal, Dahl and co-founder Bert Belder will lead work to merge celld, Deno's self-hostable implementation of the Workers model, into workerd, Cloudflare's open-source Workers runtime. That's a reasonable outcome for the people involved and for Workers. For a team with Deno services in production, it's a deadline.
+
+The good news is that most Deno code is more portable than the runtime's reputation suggests. The work is in doing it in the right order.
+
+## Two clocks, not one
+
+It's easy to read "one year" and put this on next quarter's roadmap. That misses the shorter deadline.
+
+| What | What happens | Rough deadline |
+| --- | --- | --- |
+| Deno Deploy | Runs for six months, then shuts down | Around April 2027 |
+| Deno runtime | Bug fixes and security releases only, then development ends | Around October 2027 |
+| JSR | Keeps operating, infrastructure moves to Cloudflare | No announced end |
+
+The announcement gave durations, not dates, so those are counted from October 9. If you host anything on Deno Deploy, the six-month clock is the one that should set your schedule. Self-hosted Deno services have more room, but a runtime that only gets patches for a year is a security dependency with an end date, and that should be on your risk register now rather than next September.
+
+## Step 1: Inventory three layers separately
+
+"Migrate off Deno" sounds like one project. It's three, and they don't cost the same.
+
+**Platform services.** Anything that only exists because Deno Deploy hosts it: the deployment itself, Deno KV, `Deno.cron`, queues. These carry the hardest deadline and the least portable code, because nothing else implements those APIs.
+
+**Runtime APIs.** Everything on the `Deno` global: `Deno.serve`, `Deno.env`, `Deno.readTextFile`, `Deno.Command`, the permission flags you pass at startup. Each one has a direct equivalent elsewhere, so this is mechanical work.
+
+**Toolchain.** `deno test`, `deno fmt`, `deno lint`, `deno compile`, and the `deno.json` import map. This is the easiest layer to move and the one teams tend to start with, because it's the most visible. Leave it for last.
+
+A quick way to size the runtime layer is to count how often the code touches the global:
+
+```bash
+grep -rn "Deno\.\(openKv\|cron\)" --include=*.ts . | wc -l
+grep -rho "Deno\.[a-zA-Z]*" --include=*.ts . | sort | uniq -c | sort -rn
+```
+
+The first number tells you how much platform work you have. The second gives you a ranked list of the runtime APIs to replace. Most services come back with a short list dominated by `Deno.serve` and `Deno.env.get`, which is the cheap case.
+
+## Step 2: Pick a target per workload, not per company
+
+There's no single right destination, and forcing every service to the same one usually costs more than it saves.
+
+| Workload | Good fit | Why |
+| --- | --- | --- |
+| HTTP handlers on Deno Deploy | Cloudflare Workers | Same request/response model, and the supported migration path |
+| Long-running servers, heavy npm use | Node.js | Largest ecosystem, and it runs TypeScript directly now |
+| CLIs and scripts built with `deno compile` | Bun or Node | Bun compiles to a single binary; Node has single executable applications |
+| Internal scripts nobody deploys | Stay on Deno for now | They keep working, and the runtime gets patches for a year |
+
+That last row is worth taking seriously. A build script that runs on a developer laptop doesn't need to move this quarter. Spend the time on the things with the shorter clock.
+
+## Step 3: Put every service behind a fetch handler
+
+This is the step that makes the rest cheap. Deno, Workers, and Bun all share the same server model: a function that takes a web-standard `Request` and returns a `Response`. If a service's HTTP layer is written in that shape, the runtime becomes an entry-point detail.
+
+A typical Deno service starts like this:
+
+```ts
+Deno.serve((req) => {
+  const url = new URL(req.url);
+  if (url.pathname === "/health") return new Response("ok");
+  return new Response("Not found", { status: 404 });
+});
+```
+
+Pull the handler out into its own module, with no reference to `Deno` at all:
+
+```ts
+// app.ts
+export function handle(req: Request): Response {
+  const url = new URL(req.url);
+  if (url.pathname === "/health") return new Response("ok");
+  return new Response("Not found", { status: 404 });
+}
+```
+
+Then each runtime gets a few lines of entry point:
+
+```ts
+// worker.ts (Cloudflare Workers)
+import { handle } from "./app.ts";
+export default { fetch: handle };
+
+// server.ts (Node, via Hono's adapter)
+import { serve } from "@hono/node-server";
+import { handle } from "./app.ts";
+serve({ fetch: handle, port: 8000 });
+```
+
+Bun accepts the same `export default { fetch }` shape as Workers. Do this refactor while the service still runs on Deno. It ships as an ordinary change, it's easy to review, and it leaves a codebase where the migration means changing the deploy target. If you use a router, Hono already works this way on every one of these runtimes.
+
+## Step 4: Swap runtime APIs one at a time
+
+With the HTTP layer separated, what's left is a list of direct replacements.
+
+| Deno | Node.js | Workers |
+| --- | --- | --- |
+| `Deno.env.get("X")` | `process.env.X` | The `env` binding passed to `fetch` |
+| `Deno.readTextFile()` | `readFile()` from `node:fs/promises` | No filesystem; use R2 or KV |
+| `Deno.Command` | `node:child_process` | Not available |
+| `Deno.openKv()` | Redis, Postgres, or SQLite | Workers KV, Durable Objects, or D1 |
+| `Deno.cron()` | A scheduler or the host's cron | Cron Triggers |
+| `--allow-net` and friends | `--permission` and `--allow-*` flags | Not applicable |
+
+Deno KV is the row to start early. The announcement didn't spell out its future, and it has no drop-in replacement on any other runtime. Moving it means choosing a new store, writing a migration for the data, and probably changing how the code handles consistency. That's design work, so give it an owner this month.
+
+The permission row is also worth a note. Node's permission model is narrower than Deno's, so if a service relied on `--allow-net` restrictions as a security control, write that down as a gap rather than assume the flags map one to one.
+
+## Step 5: Move the toolchain last
+
+Deno code has one habit that makes this easier than you'd expect: relative imports already carry explicit `.ts` extensions. Node has run TypeScript by default since 23.6 and 22.18, using type stripping, and that mode requires exactly those extensions. Two things to change in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  }
+}
+```
+
+`erasableSyntaxOnly` flags the constructs Node can't strip, mostly enums, namespaces with runtime code, and constructor parameter properties. Node doesn't type-check either, so keep `tsc --noEmit` in CI.
+
+The rest is housekeeping. Move the `deno.json` imports into `package.json` dependencies, and turn `npm:` specifiers in source files back into bare imports. For `jsr:` dependencies, pnpm 10.9 and later [install JSR packages directly](https://pnpm.io/package-sources) with `pnpm add jsr:@std/assert`, and many `@std` packages are runtime-agnostic, so check each one's JSR page before replacing it. `deno test` maps to `node:test` or Vitest, and `deno fmt` plus `deno lint` map to Biome.
+
+## What this says about platform bets
+
+Every platform choice is a bet that the vendor will still be investing in it when you need it to be. Deno didn't fail technically. Its ideas about web-standard APIs, built-in TypeScript, and secure defaults spread into Node, Bun, and Workers. Whatever the reasons behind the deal, the outcome for users is a product on a sunset schedule, and that's a risk with any runtime or hosting product, however good it is.
+
+Nobody can predict whether a vendor will survive. A staff engineer can answer a more useful question: how much of our code would we have to rewrite if it didn't? For this migration the answer splits cleanly. Teams that kept HTTP handlers in fetch-handler shape and used web APIs have a few days of work. Teams that built on Deno KV, `Deno.cron`, and Deploy-only features have a project with a six-month deadline.
+
+You can measure that exposure before anything goes wrong. Pick the platforms your services depend on, count the call sites that use vendor-only APIs, and keep that number where people will see it. The same habit applies to the [npm packages](/npm-supply-chain-worm-defense) you depend on and to [shared code that has to run in two places](/shared-typescript-nextjs-expo-monorepo). Using vendor APIs is fine when it's a deliberate choice, made with a rough idea of what leaving would cost.
+
+## Bringing it together
+
+Deno's runtime has a year of patches left and Deno Deploy has about six months. Work to the shorter clock. Inventory platform services, runtime APIs, and tooling separately, and start on Deno KV and anything else that only exists on Deploy, because those have no drop-in replacement. Refactor each service into a plain fetch handler while it still runs on Deno, and pick a target per workload: Workers for Deploy-style handlers, Node for long-running servers, Bun where a single binary helps. Move the toolchain last.
