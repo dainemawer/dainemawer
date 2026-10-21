@@ -1,0 +1,20 @@
+---
+title: Agents build better UI from clean Figma files
+date: '2026-10-21'
+tags:
+  - ai
+  - agents
+  - design
+---
+
+When an agent reads a design through the [Figma MCP server](https://developers.figma.com/docs/figma-mcp-server/), it isn't looking at the picture you see. It's reading the layer tree: names, structure, auto layout, variables and components. A tidy file turns into close-to-correct code. A messy one gets guessed at, and you spend the time you saved fixing the guesses.
+
+What makes the biggest difference:
+
+- **Name your layers.** `Frame 427` and `Rectangle 12` tell an agent nothing. `PricingCard` and `CTAButton` become sensible component and prop names.
+- **Use auto layout.** It maps almost directly to flexbox. Absolutely positioned layers come back as absolutely positioned code.
+- **Use variables, not raw values.** A colour bound to `color/brand/primary` becomes your design token. A hex code becomes another hard-coded hex code.
+- **Build with components and variants.** Instances tell the agent "this is the `Button`, size `sm`", so it can reuse what's already in your codebase. [Code Connect](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server) makes that mapping explicit.
+- **Cut the noise.** Detached instances, hidden layers, empty groups and old explorations left on the page all end up in the agent's context.
+
+None of this is new advice. It's what a careful front-end developer has always asked designers for. The difference is that a developer would ask when a file was confusing. An agent just guesses.
