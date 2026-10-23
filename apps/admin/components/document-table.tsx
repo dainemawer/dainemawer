@@ -18,13 +18,7 @@ export type DocumentTableRow = {
   company?: string;
 };
 
-export function DocumentTable({
-  rows,
-  showKind = false,
-}: {
-  rows: DocumentTableRow[];
-  showKind?: boolean;
-}) {
+export function DocumentTable({ rows }: { rows: DocumentTableRow[] }) {
   return (
     <Table>
       <TableHeader>
@@ -35,11 +29,7 @@ export function DocumentTable({
           ) : null}
           <TableHead>Issued</TableHead>
           <TableHead>
-            {showKind
-              ? "Valid / due"
-              : rows[0]?.document.kind === "quote"
-                ? "Valid until"
-                : "Due"}
+            {rows[0]?.document.kind === "quote" ? "Valid until" : "Due"}
           </TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Total</TableHead>

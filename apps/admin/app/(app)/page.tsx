@@ -200,7 +200,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
                   key={`${event.kind}-${event.documentId}-${event.at}`}
                   href={docPath(event.documentKind, event.documentId)}
                   primary={`${event.number} ${event.kind}`}
-                  secondary={`${event.company} · ${formatDate(event.at.slice(0, 10))}`}
+                  secondary={`${event.company} · ${formatDate(todayISO(new Date(event.at)))}`}
                   amount={formatMoney(event.totalMinor, event.currency)}
                 />
               ))}

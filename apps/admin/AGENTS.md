@@ -4,9 +4,11 @@ App-specific conventions for `apps/admin` (admin.dainemawer.com: customers, quot
 
 ## Running it
 
-- `pnpm --filter admin dev` serves on port 3001. Without `DATABASE_URL` the app uses an embedded PGlite database in `.data/pglite`, so no Postgres server is needed. Run `pnpm --filter admin db:migrate` and `db:seed` once first.
+- `pnpm --filter admin dev` serves on port 3001. It first starts a real local Postgres 17 (the `embedded-postgres` binaries, data in `.data/postgres`), applies migrations and seeds it, then runs `next dev` against it (`db/local.mts`). Don't swap this for an in-process database such as PGlite: `next dev` runs the app in several processes, and they overwrote each other's files.
+- `db:migrate` and `db:seed` are only for a remote database and need `DATABASE_URL` in the shell. `pnpm dev` ignores a `DATABASE_URL` in `.env.local` on purpose: `vercel env pull` writes the production one there.
 - Without `RESEND_API_KEY`, emails (magic links included) are printed to the dev server log instead of sent. Sign in by opening the logged link.
 - Copy `.env.example` to `.env.local`; only `BETTER_AUTH_SECRET` is required locally.
+- `.data/` is disposable: delete it to start from an empty database.
 
 ## Conventions
 
@@ -16,7 +18,7 @@ App-specific conventions for `apps/admin` (admin.dainemawer.com: customers, quot
 - **Numbers are gapless per kind and year**: allocated by an upsert on `counters` inside the create transaction. That's why invoices are voided, never deleted.
 - **Auth**: Better Auth with magic links, sign-up disabled, one user (`ADMIN_EMAIL`, created by `db:seed`). `proxy.ts` only checks for a session cookie; every page and Server Action calls `requireSession()`, and the PDF route handlers check the session themselves.
 - Server Actions that the client calls for errors return `{ error }` instead of throwing — thrown messages are redacted in production.
-- Schema changes: edit `db/schema.ts`, then `pnpm --filter admin db:generate` and commit the SQL in `db/migrations`. Vercel runs `db:migrate` before each build (`vercel.json`).
+- Schema changes: edit `db/schema.ts`, then `pnpm --filter admin db:generate` and commit the SQL in `db/migrations`. Vercel runs `db:migrate` before production builds only (`vercel.json`): previews share the production database, so a PR must never migrate it.
 - UI is shadcn/ui (`components/ui`, added with the shadcn CLI) themed onto the blog's tokens in `app/globals.css`. Use the semantic classes (`text-muted-foreground`, `bg-muted`); `--color-muted` means a background here, unlike in the blog.
 
 <!-- BEGIN:nextjs-agent-rules -->

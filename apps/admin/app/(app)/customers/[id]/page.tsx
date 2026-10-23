@@ -5,13 +5,15 @@ import { DocumentTable } from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/money";
+import { type AmountsByCurrency, addAmount, formatAmounts } from "@/lib/money";
 import { getCustomer, listCustomerDocuments } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/customers/[id]">) {
+  // Metadata renders alongside the page, so it checks the session itself.
+  await requireSession();
   const customer = await getCustomer((await params).id);
   return { title: customer?.company ?? "Customer" };
 }
@@ -27,7 +29,11 @@ export default async function CustomerPage({
   const invoices = docs.filter((d) => d.document.kind === "invoice");
   const quotes = docs.filter((d) => d.document.kind === "quote");
   const sum = (rows: typeof docs) =>
-    rows.reduce((total, r) => total + r.document.totalMinor, 0);
+    rows.reduce<AmountsByCurrency>(
+      (total, r) =>
+        addAmount(total, r.document.currency, r.document.totalMinor),
+      {},
+    );
   const billed = sum(
     invoices.filter(
       (d) => d.document.status === "sent" || d.document.status === "paid",
@@ -67,15 +73,17 @@ export default async function CustomerPage({
       />
 
       <dl className="mb-10 grid gap-6 sm:grid-cols-3">
-        {[
-          ["Billed", billed],
-          ["Outstanding", outstanding],
-          ["Paid", paid],
-        ].map(([label, value]) => (
-          <div key={label as string} className="border-t pt-3">
+        {(
+          [
+            ["Billed", billed],
+            ["Outstanding", outstanding],
+            ["Paid", paid],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label} className="border-t pt-3">
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="mt-1 text-xl font-medium tabular-nums">
-              {formatMoney(value as number, customer.currency)}
+              {formatAmounts(value, customer.currency)}
             </dd>
           </div>
         ))}

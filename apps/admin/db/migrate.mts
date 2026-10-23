@@ -1,15 +1,16 @@
-import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
-import { migrate as migratePostgres } from "drizzle-orm/postgres-js/migrator";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { closeDb, db } from "./index.ts";
 
-// Runs before `next build` on Vercel and by hand locally (`pnpm db:migrate`).
-const migrationsFolder = new URL("./migrations", import.meta.url).pathname;
-
-if (process.env.DATABASE_URL) {
-  await migratePostgres(db, { migrationsFolder });
-} else {
-  // biome-ignore lint/suspicious/noExplicitAny: same client, other driver type (see db/index.ts)
-  await migratePglite(db as any, { migrationsFolder });
+// Runs before production builds on Vercel (vercel.json). Local development
+// migrates itself on `pnpm dev`.
+if (!process.env.DATABASE_URL) {
+  console.error(
+    "DATABASE_URL is not set. Locally, `pnpm dev` applies migrations itself.",
+  );
+  process.exit(1);
 }
+await migrate(db, {
+  migrationsFolder: new URL("./migrations", import.meta.url).pathname,
+});
 await closeDb();
 console.log("Migrations applied.");

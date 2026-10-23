@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -64,6 +64,29 @@ const documentSchema = z
     lines: z.array(lineSchema).min(1, "Add at least one line item."),
   })
   .superRefine((doc, ctx) => {
+    if (doc.discount < 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["discount"],
+        message: "A discount can't be negative.",
+      });
+    }
+    // Negative lines are allowed (credits), a negative document isn't.
+    const { totalMinor } = computeTotals(
+      doc.lines.map((line) => ({
+        quantityHundredths: line.quantity,
+        unitPriceMinor: line.unitPrice,
+      })),
+      doc.discount,
+      doc.taxRate,
+    );
+    if (totalMinor < 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["discount"],
+        message: "The total can't be below zero.",
+      });
+    }
     if (doc.validUntil && doc.validUntil < doc.issueDate) {
       ctx.addIssue({
         code: "custom",
@@ -372,8 +395,44 @@ export async function convertToInvoice(quoteId: string): Promise<ActionResult> {
   if (!quote || !allowedActions(quote.kind, quote.status).convert) {
     return { error: "Only an accepted quote can be converted." };
   }
-  const id = await copyInto(quoteId, "invoice");
+  const existing = await liveInvoiceFor(quoteId);
+  if (existing) redirect(`/invoices/${existing}`);
+
+  let id: string;
+  try {
+    id = await copyInto(quoteId, "invoice");
+  } catch (error) {
+    // Lost a race with a concurrent convert: the unique index on
+    // source_quote_id refused the second invoice, so show the first.
+    const winner = isUniqueViolation(error) && (await liveInvoiceFor(quoteId));
+    if (winner) redirect(`/invoices/${winner}`);
+    throw error;
+  }
   redirect(`/invoices/${id}/edit`);
+}
+
+async function liveInvoiceFor(quoteId: string) {
+  const [row] = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.sourceQuoteId, quoteId),
+        eq(documents.kind, "invoice"),
+        ne(documents.status, "void"),
+      ),
+    );
+  return row?.id ?? null;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  // Drizzle wraps the driver error; Postgres reports 23505 either way.
+  const codeOf = (e: unknown) =>
+    typeof e === "object" && e !== null && "code" in e ? e.code : undefined;
+  return (
+    codeOf(error) === "23505" ||
+    codeOf((error as { cause?: unknown } | null)?.cause) === "23505"
+  );
 }
 
 export async function duplicateDocument(id: string): Promise<ActionResult> {

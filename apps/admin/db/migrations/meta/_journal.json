@@ -8,6 +8,13 @@
       "when": 1792745028056,
       "tag": "0000_complex_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792749682172,
+      "tag": "0001_solid_jack_power",
+      "breakpoints": true
     }
   ]
 }

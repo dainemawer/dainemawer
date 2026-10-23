@@ -9,6 +9,7 @@ import {
   displayStatus,
   todayISO,
 } from "@/lib/documents";
+import { type AmountsByCurrency, addAmount } from "@/lib/money";
 
 // Reads only. Every caller is a Server Component or Server Action that has
 // already passed requireSession().
@@ -26,39 +27,45 @@ export async function getSettings() {
 }
 
 export async function listCustomers({ archived = false } = {}) {
-  const totals = db
-    .select({
-      customerId: documents.customerId,
-      outstanding:
-        sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${documents.kind} = 'invoice' and ${documents.status} = 'sent'), 0)`
-          .mapWith(Number)
-          .as("outstanding"),
-      paid: sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${documents.kind} = 'invoice' and ${documents.status} = 'paid'), 0)`
-        .mapWith(Number)
-        .as("paid"),
-      count: sql<number>`count(*)`.mapWith(Number).as("count"),
-    })
-    .from(documents)
-    .groupBy(documents.customerId)
-    .as("totals");
+  const [rows, totals] = await Promise.all([
+    db
+      .select()
+      .from(customers)
+      .where(
+        archived
+          ? sql`${customers.archivedAt} is not null`
+          : isNull(customers.archivedAt),
+      )
+      .orderBy(asc(customers.company)),
+    // Grouped by currency too: a customer billed in two currencies gets
+    // two figures, never one sum in the wrong currency.
+    db
+      .select({
+        customerId: documents.customerId,
+        currency: documents.currency,
+        outstanding:
+          sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${documents.status} = 'sent'), 0)`.mapWith(
+            Number,
+          ),
+        paid: sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${documents.status} = 'paid'), 0)`.mapWith(
+          Number,
+        ),
+      })
+      .from(documents)
+      .where(eq(documents.kind, "invoice"))
+      .groupBy(documents.customerId, documents.currency),
+  ]);
 
-  return db
-    .select({
-      customer: customers,
-      outstanding: sql<number>`coalesce(${totals.outstanding}, 0)`.mapWith(
-        Number,
-      ),
-      paid: sql<number>`coalesce(${totals.paid}, 0)`.mapWith(Number),
-      documentCount: sql<number>`coalesce(${totals.count}, 0)`.mapWith(Number),
-    })
-    .from(customers)
-    .leftJoin(totals, eq(totals.customerId, customers.id))
-    .where(
-      archived
-        ? sql`${customers.archivedAt} is not null`
-        : isNull(customers.archivedAt),
-    )
-    .orderBy(asc(customers.company));
+  return rows.map((customer) => {
+    let outstanding: AmountsByCurrency = {};
+    let paid: AmountsByCurrency = {};
+    for (const t of totals) {
+      if (t.customerId !== customer.id) continue;
+      outstanding = addAmount(outstanding, t.currency, t.outstanding);
+      paid = addAmount(paid, t.currency, t.paid);
+    }
+    return { customer, outstanding, paid };
+  });
 }
 
 export async function getCustomer(id: string) {

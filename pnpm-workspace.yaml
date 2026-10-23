@@ -3,8 +3,12 @@ packages:
   - packages/*
 
 allowBuilds:
+  # Only recreates symlinks inside its own native/ folder; it's apps/admin's
+  # local Postgres for `pnpm dev`.
+  '@embedded-postgres/darwin-arm64': true
   esbuild: true
   lefthook: true
 onlyBuiltDependencies:
+  - "@embedded-postgres/darwin-arm64"
   - esbuild
   - lefthook

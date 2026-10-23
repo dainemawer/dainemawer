@@ -45,3 +45,28 @@ export function minorToInput(minor: number): string {
   const abs = Math.abs(minor);
   return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
 }
+
+/** Amounts kept apart by currency: totals are never summed across currencies. */
+export type AmountsByCurrency = Partial<Record<Currency, number>>;
+
+export function addAmount(
+  amounts: AmountsByCurrency,
+  currency: Currency,
+  minor: number,
+): AmountsByCurrency {
+  return { ...amounts, [currency]: (amounts[currency] ?? 0) + minor };
+}
+
+/**
+ * `{ ZAR: 100000, USD: 5000 }` → `R 1,000.00 · $50.00`, the customer's own
+ * currency first; zero amounts are dropped and nothing at all is `—`.
+ */
+export function formatAmounts(
+  amounts: AmountsByCurrency,
+  first?: Currency,
+): string {
+  const parts = CURRENCIES.filter((c) => amounts[c])
+    .sort((a, b) => Number(b === first) - Number(a === first))
+    .map((c) => formatMoney(amounts[c] as number, c));
+  return parts.length ? parts.join(" · ") : "—";
+}

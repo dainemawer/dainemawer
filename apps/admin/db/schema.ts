@@ -141,6 +141,11 @@ export const documents = pgTable(
     uniqueIndex("documents_kind_number_idx").on(t.kind, t.number),
     index("documents_customer_idx").on(t.customerId),
     index("documents_kind_status_idx").on(t.kind, t.status),
+    // One live invoice per quote: a double-clicked Convert can't create two.
+    // A voided invoice frees the quote to be converted again.
+    uniqueIndex("documents_source_quote_idx")
+      .on(t.sourceQuoteId)
+      .where(sql`${t.kind} = 'invoice' and ${t.status} <> 'void'`),
   ],
 );
 

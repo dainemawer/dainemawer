@@ -1,33 +1,22 @@
-import { mkdirSync } from "node:fs";
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
-import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { LOCAL_DATABASE_URL } from "./local-url";
 import * as schema from "./schema";
 
-// Neon in production and previews (DATABASE_URL), an embedded PGlite
-// database under .data/ everywhere else — so `pnpm dev` and the tests need
-// no Postgres server. Both are the same Postgres dialect through Drizzle;
-// the PGlite instance is typed as the postgres-js one because the query
-// and transaction APIs the app uses are identical.
+// Neon in production and previews (DATABASE_URL). Locally, `pnpm dev`
+// starts an embedded PGlite database and serves it on LOCAL_DATABASE_URL
+// (see db/local.mts), so the app always speaks plain Postgres and only
+// one process ever owns the PGlite files.
 
 function connect() {
-  const url = process.env.DATABASE_URL;
-  if (url) {
-    return drizzlePostgres(postgres(url, { max: 5, prepare: false }), {
-      schema,
-      casing: "snake_case",
-    });
-  }
-  const dataDir = process.env.PGLITE_DIR ?? ".data/pglite";
-  mkdirSync(dataDir, { recursive: true });
-  return drizzlePglite(new PGlite(dataDir), {
+  const url = process.env.DATABASE_URL ?? LOCAL_DATABASE_URL;
+  return drizzle(postgres(url, { max: 5, prepare: false }), {
     schema,
     casing: "snake_case",
-  }) as unknown as ReturnType<typeof drizzlePostgres<typeof schema>>;
+  });
 }
 
-// One connection per server process, surviving dev-mode module reloads.
+// One pool per server process, surviving dev-mode module reloads.
 const globalForDb = globalThis as unknown as {
   db?: ReturnType<typeof connect>;
 };
@@ -37,11 +26,7 @@ globalForDb.db = db;
 export type Db = typeof db;
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-/** For scripts: release the connection so the process can exit. */
+/** For scripts: release the pool so the process can exit. */
 export async function closeDb() {
-  const client = db.$client as unknown as {
-    end?: () => Promise<void>;
-    close?: () => Promise<void>;
-  };
-  await (client.end ?? client.close)?.call(client);
+  await db.$client.end();
 }

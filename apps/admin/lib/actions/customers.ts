@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
 import { CURRENCIES } from "@/lib/money";
+import { safeLocalPath } from "@/lib/safe-path";
 import { requireSession } from "@/lib/session";
 import { type FormState, fieldErrorsFrom } from "./form-state";
 
@@ -71,8 +72,8 @@ export async function saveCustomer(
   }
   revalidatePath("/customers");
   // Back to where a new customer was started from, e.g. the quote form.
-  const returnTo = formData.get("returnTo")?.toString();
-  if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
+  const returnTo = safeLocalPath(formData.get("returnTo")?.toString());
+  if (returnTo) {
     redirect(
       `${returnTo}${returnTo.includes("?") ? "&" : "?"}customer=${savedId}`,
     );

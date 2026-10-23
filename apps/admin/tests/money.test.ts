@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatMoney, minorToInput, parseMoney } from "../lib/money.ts";
+import {
+  addAmount,
+  formatAmounts,
+  formatMoney,
+  minorToInput,
+  parseMoney,
+} from "../lib/money.ts";
 import {
   computeTotals,
   parseQuantity,
@@ -74,4 +80,14 @@ test("parseQuantity and parseTaxRate", () => {
   assert.equal(parseTaxRate("15"), 1500);
   assert.equal(parseTaxRate("7.5"), 750);
   assert.equal(parseTaxRate("101"), null);
+});
+
+test("formatAmounts keeps currencies apart, preferred currency first", () => {
+  let amounts = addAmount({}, "USD", 5000);
+  amounts = addAmount(amounts, "ZAR", 100000);
+  amounts = addAmount(amounts, "USD", 1000);
+  assert.equal(formatAmounts(amounts, "ZAR"), "R 1,000.00 · $60.00");
+  assert.equal(formatAmounts(amounts, "USD"), "$60.00 · R 1,000.00");
+  assert.equal(formatAmounts({}), "—");
+  assert.equal(formatAmounts({ GBP: 0 }), "—");
 });

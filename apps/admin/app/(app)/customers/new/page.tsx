@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CustomerForm } from "@/components/customer-form";
 import { PageHeader } from "@/components/page-header";
 import { getSettings } from "@/lib/queries";
+import { safeLocalPath } from "@/lib/safe-path";
 import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "New customer" };
@@ -20,7 +21,10 @@ export default async function NewCustomerPage({
           currency: settings.defaultCurrency,
           termsDays: settings.defaultTermsDays,
         }}
-        returnTo={typeof returnTo === "string" ? returnTo : undefined}
+        returnTo={
+          safeLocalPath(typeof returnTo === "string" ? returnTo : null) ??
+          undefined
+        }
       />
     </>
   );

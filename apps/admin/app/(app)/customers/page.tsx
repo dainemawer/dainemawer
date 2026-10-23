@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatMoney } from "@/lib/money";
+import { formatAmounts } from "@/lib/money";
 import { listCustomers } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
 
@@ -99,12 +99,10 @@ export default async function CustomersPage({
                 </TableCell>
                 <TableCell>{customer.currency}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {outstanding
-                    ? formatMoney(outstanding, customer.currency)
-                    : "—"}
+                  {formatAmounts(outstanding, customer.currency)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {paid ? formatMoney(paid, customer.currency) : "—"}
+                  {formatAmounts(paid, customer.currency)}
                 </TableCell>
               </TableRow>
             ))}
