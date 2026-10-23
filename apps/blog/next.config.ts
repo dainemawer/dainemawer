@@ -51,6 +51,7 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  transpilePackages: ["@dm/ui"],
   poweredByHeader: false,
   // The pnpm lockfile lives at the monorepo root, one level up from this
   // app — without this, Next infers the wrong root from the topmost

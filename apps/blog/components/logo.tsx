@@ -1,5 +1,5 @@
+import { LOGO_PATH_D, LOGO_VIEWBOX } from "@dm/ui/logo-mark";
 import Link from "next/link";
-import { LOGO_PATH_D, LOGO_VIEWBOX } from "@/lib/logo-mark";
 import { site } from "@/lib/site";
 
 export function Logo() {

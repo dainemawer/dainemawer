@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@dm/ui/theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * shadcn/ui's semantic variables, pointed at the blog's palette from
+ * @dm/ui/theme.css so the admin reads as the same site: white surface,
+ * near-black ink, hairline dividers, no brand colour. The few colours the
+ * blog doesn't have (destructive, status) are muted to match.
+ */
+:root {
+  --radius: 0.5rem;
+  --background: var(--color-surface);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-ink);
+  --primary-foreground: var(--color-surface);
+  --secondary: #f4f4f4;
+  --secondary-foreground: var(--color-ink);
+  --muted: #f6f6f6;
+  /* Literal, not var(--color-muted): shadcn reuses that name for a background. */
+  --muted-foreground: #6b6b6b;
+  --accent: #f1f1f1;
+  --accent-foreground: var(--color-ink);
+  --destructive: #b42318;
+  --border: #e4e4e4;
+  --input: var(--color-field);
+  --ring: var(--color-ink);
+  --success: #1e7a46;
+  --warning: #a15c07;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}

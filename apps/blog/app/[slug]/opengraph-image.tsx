@@ -1,6 +1,6 @@
+import { LOGO_ASPECT_RATIO, logoDataUri } from "@dm/ui/logo-mark";
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
-import { LOGO_ASPECT_RATIO, logoDataUri } from "@/lib/logo-mark";
 import { getAllPosts, getPostBySlug } from "@/lib/posts";
 
 const LOGO_HEIGHT = 32;
