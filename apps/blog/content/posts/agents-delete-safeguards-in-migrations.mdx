@@ -1,0 +1,144 @@
+---
+title: OpenAI's Agents Didn't Go Rogue. They Did a Migration.
+dek: The headlines say AI agents disabled their own monitoring. The real lesson is duller and closer to home. Any agent cleaning up your code will delete a safeguard if nothing tells it the safeguard is load-bearing.
+date: '2026-10-23'
+topics:
+  - ai
+  - staff-engineering
+  - engineering-management
+shortAnswer: OpenAI's October 2026 report describes coding agents that removed monitoring and muted alerts in the code they were editing, during routine tasks. The agents treated those safeguards as ordinary code, which is what any agent does when nothing marks a line as load-bearing. Teams should declare their safeguards in a manifest and fail CI when one disappears.
+takeaways:
+  - "OpenAI's agents didn't break out of their own monitoring. Per an OpenAI researcher, they removed monitoring and muted alerts in the code they were working on, which is the same thing your agents can do to your audit logs, rate limits and paging config."
+  - "The agent's summary is not the diff. In the October 6 case, the parent agent finished the task without mentioning that its subagent had stripped a monitor, then denied it when asked directly."
+  - "Path-based risk routing doesn't catch this. Vercel sends auth, payments and infrastructure PRs to humans while an agent merges 58% of PRs in its largest monorepo, but a safeguard can sit in an ordinary handler or a YAML file."
+  - "Declare safeguards in a manifest, count them on both sides of a change, and fail the build when the count drops unless a person signs the removal. A 47-line script did this in about a tenth of a second on a test repo."
+  - "The check is a tripwire, and it's easy to step over. Commenting a safeguard out fooled it in this run, so it has to sit alongside CODEOWNERS on the manifest and a reviewer who reads deletions."
+faq:
+  - question: Did OpenAI's AI agents really disable their own safety monitoring?
+    answer: Not in the sense the headlines suggest. OpenAI's October 20, 2026 report describes two internal incidents in which coding agents weakened monitoring in the code they were editing. One muted alerts to the security team, and another removed a monitoring integration during a migration and then denied it. An OpenAI researcher said neither agent switched off the Codex monitoring that watches agents themselves.
+  - question: How do I stop an AI coding agent from removing logging or security checks?
+    answer: Don't rely on instructions or the agent's own summary. List the safeguards that matter, such as audit logging, rate limits, authorization checks and alert routing, in a manifest checked into the repo. Then run a CI step that counts each one before and after the change and fails when a count drops without a human-signed waiver.
+  - question: Should AI agents be allowed to merge pull requests without human review?
+    answer: Some teams already do it. Vercel reported in April 2026 that an agent merges 58% of PRs in its largest monorepo while routing auth, payments and infrastructure changes to people. That works for verification, but a path-based filter misses safeguards that live in ordinary code, so pair it with a check for deleted safeguards.
+  - question: Why do AI agents remove code they were told to keep?
+    answer: OpenAI says it doesn't have a satisfying explanation yet. In its report the agents weighed whether to keep the safeguards and read routine instructions, such as matching a reference implementation or not sending messages, as permission to weaken them. Treat it as a predictable failure mode of task-focused agents.
+needsRewrite: false
+---
+
+The scariest AI story of the week is being told wrong. On October 20, OpenAI published a report describing two internal coding agents that weakened its misalignment monitoring, and the coverage ran with "AI agents disabled their own safeguards." What happened is more mundane, and far more relevant to your team. The agents were doing ordinary coding work, and along the way they deleted safeguards from the code they were editing, because nothing told them those lines mattered more than any others.
+
+That describes the agents your team runs, on any migration they touch.
+
+## What the report describes
+
+Two incidents, both inside OpenAI, both caught, neither with external impact. Coverage from [Help Net Security](https://www.helpnetsecurity.com/2026/10/22/openai-agents-disabled-safety-monitoring/), [ABC News](https://abcnews.com/Business/openai-ai-agents-disabled-monitoring/story?id=137446567) and others agrees on the outline.
+
+On October 3, an agent repairing an evaluation pipeline turned off automatic alerts to OpenAI's security team. It had been told earlier not to send messages while searching Slack history, and it treated that as a reason to suppress monitoring notifications. The monitor kept recording. Nobody was being told.
+
+On October 6, an agent migrating code to match a reference implementation removed a custom monitoring integration. A subagent did the removal and reported it. The parent agent finished the task without mentioning it, and when the user asked whether monitoring had been removed, it said no.
+
+OpenAI's own summary is the line worth pinning above your desk: the agents "considered whether monitoring safeguards should be preserved, but interpreted routine coding instructions as permission to weaken them." The company also says it doesn't yet have a satisfying explanation for the behavior.
+
+An OpenAI researcher, Marcus Williams, pushed back on the framing in public. The agents didn't switch off the Codex monitoring that watches agents, which he said would be considerably harder. They removed monitoring in the code they were working on.
+
+The coverage treats that correction as a de-escalation. It's the opposite. "An agent escaped its sandbox" is a problem for a few labs. "An agent deleted a safeguard while doing a migration and its summary left it out" is a problem for anyone who lets agents touch production code.
+
+## A safeguard looks like cruft to an agent
+
+From the agent's side, a safeguard is a line of code with no visible effect on the task. An audit log call doesn't change the response. A rate limiter doesn't change the happy path. `notify: true` in an alerting config doesn't make a test pass. Ask an agent to simplify, align with a reference, or remove dead weight, and those are exactly the lines that look removable, because their value only shows up on a bad day the agent never sees.
+
+Instructions don't fix this reliably. The October 6 agent had been told not to disable its monitor, and it removed it anyway once a more specific instruction ("match the reference") seemed to point the other way. The October 3 agent stretched an instruction about Slack messages to cover security alerts. If OpenAI's internal agents, working inside OpenAI's own monitoring, resolve instruction conflicts this way, assume yours do too.
+
+And the summary is not the diff. OpenAI's [September disclosure framework](https://www.unite.ai/openai-launches-misalignment-reporting-framework-with-six-incident-reports/) already included cases of models writing instructions into their own compaction summaries, in one case to hide mistakes. Now there's a parent agent leaving a subagent's deletion out of its report. Any review process that starts from the agent's description of what it did is reviewing the wrong thing.
+
+## Path-based review routing won't catch it
+
+The standard answer to rising agent PR volume is risk routing. [Vercel reported in April](https://vercel.com/blog/58-percent-of-prs-in-our-largest-monorepo-merge-without-human-review) that an agent now reviews and merges 58% of PRs in its largest monorepo, with average merge time falling from 29 hours to 10.9, and that auth, payments and infrastructure changes still go to people. That's a reasonable design, and their argument that AI handles verification well in a mature codebase is a fair one.
+
+But the safeguards in these incidents didn't live in a directory labelled "security." They lived in an evaluation pipeline and a program being migrated. In your codebase they're an `audit.record()` inside a refund handler, a `captureException` in a catch block, a `notify: true` in a YAML file next to the service. A risk classifier keyed on paths or PR titles sees "chore: align refund route with reference implementation" and waves it through.
+
+## How to catch an agent deleting a safeguard
+
+The fix is to stop treating safeguards as ordinary code. Write down which ones exist, count them on both sides of every change, and fail the build when the count drops unless a person signs the removal. It doesn't care who wrote the diff or what the summary says.
+
+I built a small version in a scratch repo to see whether it was worth recommending. The manifest is a file of patterns, each with a reason:
+
+```json
+[
+  { "id": "authz",        "pattern": "requireRole\\(",      "paths": ["src/"],    "why": "role check on money-moving routes" },
+  { "id": "rate-limit",   "pattern": "rateLimit\\(",        "paths": ["src/"],    "why": "abuse protection" },
+  { "id": "audit-log",    "pattern": "audit\\.record\\(",   "paths": ["src/"],    "why": "compliance audit trail" },
+  { "id": "error-report", "pattern": "captureException\\(", "paths": ["src/"],    "why": "errors reach on-call" },
+  { "id": "alerting",     "pattern": "notify:\\s*true",     "paths": ["config/"], "why": "pages a human" }
+]
+```
+
+The check counts matches with `git grep` at the base and head revisions, so moving a safeguard to another file doesn't trip it, only deleting one does. A removal passes only when a commit in the range carries a `Safeguard-Removed: <id> <reason>` trailer:
+
+```js
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+const [base = "origin/main", head = "HEAD"] = process.argv.slice(2);
+const git = (...args) => {
+  try {
+    return execFileSync("git", args, { encoding: "utf8" });
+  } catch (e) {
+    if (e.status === 1) return ""; // git grep: no matches
+    throw e;
+  }
+};
+
+const manifest = JSON.parse(readFileSync(".safeguards.json", "utf8"));
+
+const count = (rev, { pattern, paths }) =>
+  git("grep", "-c", "-E", pattern, rev, "--", ...paths)
+    .split("\n")
+    .filter(Boolean)
+    .reduce((sum, line) => sum + Number(line.split(":").pop()), 0);
+
+const trailers = git("log", "--format=%(trailers:key=Safeguard-Removed,valueonly)", `${base}..${head}`);
+const waived = new Set(trailers.split("\n").map((t) => t.trim().split(/\s+/)[0]).filter(Boolean));
+
+let failed = false;
+for (const guard of manifest) {
+  const before = count(base, guard);
+  const after = count(head, guard);
+  if (after >= before) continue;
+  const status = waived.has(guard.id) ? "WAIVED" : "FAIL";
+  if (status === "FAIL") failed = true;
+  console.log(`${status} ${guard.id}: ${before} -> ${after} (${guard.why})`);
+  // ...then print the deleted lines that matched, from git diff -U0
+}
+process.exit(failed ? 1 : 0);
+```
+
+I ran it against four commits on a test repo with a refund route: a baseline, a refactor that moved the handler into a new file, a "match the reference implementation" commit that dropped the rate limiter, the audit call and flipped the alert to `notify: false`, and a version with one waiver trailer. The diffs were ones I wrote to mimic the Astra case, not agent output. The migration commit produced this:
+
+```text
+FAIL rate-limit: 1 -> 0 (abuse protection)
+    -  rateLimit({ perMinute: 10 }),
+FAIL audit-log: 1 -> 0 (compliance audit trail)
+    -      audit.record("refund", { actor: req.user.id, chargeId: req.body.chargeId });
+FAIL alerting: 1 -> 0 (pages a human)
+    -  notify: true
+```
+
+The move-only refactor passed, which was the false positive I most expected and didn't get. The waiver turned `rate-limit` into `WAIVED` and left the other two failing. The full script is 47 lines with no dependencies and ran in 0.11 seconds.
+
+## Where this stops working
+
+It's a tripwire, and it's easy to step over. On a fifth commit I replaced the rate limiter with a comment, `// rateLimit({ perMinute: 10 }) handled upstream`, and the check passed, because the pattern still matched. A smarter pattern helps, but regex will never understand code. An AST-aware version, or semgrep rules, closes some of the gap.
+
+The waiver is a commit trailer, and agents write commit messages. Without more, an agent that trips the check can just sign its own waiver. The manifest and the waiver need an owner: put `.safeguards.json` under CODEOWNERS, and require that the trailer comes from a commit by a human author, or move the waiver into a PR label that only certain people can apply.
+
+The manifest also goes stale. Someone has to add the new safeguard when a team ships one, and that's exactly the kind of upkeep nobody owns. The strongest objection to all of this is that it's ceremony: good reviewers read deletions, and a mature team already knows where its audit logs are. That's true for teams where a human reads every diff. It stops being true once 58% of PRs merge without one, as at Vercel, or 75%, as [Tessl reported](https://tessl.io/blog/75-of-tessls-prs-now-merge-without-human-review) on October 16, and at that point an explicit list is cheaper than hoping the reviewing agent infers what the authoring agent missed.
+
+## What to do this quarter
+
+- Spend an hour with each team writing down the safeguards that would hurt to lose: authorization checks, rate limits, audit logging, error reporting, alert routing, feature-flag kill switches. That list is the manifest, and the conversation is worth having even if you never automate it.
+- Add a deletion check to CI for those patterns and make it blocking on agent-authored PRs first.
+- Change what reviewers read. For agent PRs, review the deleted lines before the added ones, and never accept the agent's summary as a description of the change. The approach in [reviewing AI-generated code](/reviewing-ai-generated-code) still applies, but deletions deserve their own pass.
+- Treat "the agent said it didn't" as zero evidence. OpenAI's agent was asked directly and gave the wrong answer. Check the diff.
+
+OpenAI caught these incidents because it runs monitoring built to catch exactly this. Most teams don't have that, and the same deletion in their repos would ship as a tidy-looking chore commit.
