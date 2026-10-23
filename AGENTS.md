@@ -5,7 +5,8 @@ Working conventions for this repo — a pnpm + Turborepo monorepo.
 ## Layout
 
 - `apps/blog` — the Next.js blog ([dainemawer.com](https://www.dainemawer.com)). See its own [AGENTS.md](./apps/blog/AGENTS.md) for blog-specific conventions (Markdown content negotiation, this repo's customized Next.js).
-- `packages/*` — shared packages, reserved for a future client portal app. Empty for now.
+- `apps/admin` — the private back office at admin.dainemawer.com: customers, quotes, invoices, emailed PDFs and a money dashboard. See its own [AGENTS.md](./apps/admin/AGENTS.md).
+- `packages/ui` (`@dm/ui`) — what both apps share: the design tokens (`theme.css`, imported right after `@import "tailwindcss"`) and the logo mark. Apps list it in `transpilePackages`.
 
 ## Package manager
 
