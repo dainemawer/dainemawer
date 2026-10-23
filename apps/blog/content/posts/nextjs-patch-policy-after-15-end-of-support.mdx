@@ -1,0 +1,142 @@
+---
+title: Next.js 15 Is Out of Support. Here's a Patch Policy for What Comes Next
+dek: Two critical advisories landed a week before Next.js 15's support window closed. A written patch policy turns the next one into a routine upgrade instead of a scramble.
+date: '2026-10-23'
+topics:
+  - javascript
+  - security
+  - staff-engineering
+shortAnswer: Next.js 15 left Maintenance LTS on October 21, 2026, a week after two critical RCEs in Next.js 16 were fixed in 16.4.1 with no 16.3.x backport. Security fixes land on the newest minor of each supported major, so drifting behind turns a patch into a feature upgrade. A written patch policy keeps fixes small.
+takeaways:
+  - Next.js gives each major Active LTS until the next major ships, then Maintenance LTS for two years from its initial release. Next.js 15 shipped on October 21, 2024, so its window closed on October 21, 2026.
+  - Security fixes land on the newest minor of a supported major. The October 14 fixes shipped in 16.4.1, with no 16.3.x backport, so a team on 16.3 had to take a minor upgrade to get them.
+  - Write the policy down. Set how far behind the latest minor you're allowed to be, how fast you apply a fix at each severity, and who owns the upgrade.
+  - Group next, react, react-dom and the framework's companion packages in one automated update so they move together and the diff stays reviewable.
+  - Check transitive dependencies the framework doesn't pin tightly. Next.js 15.5.28 still accepts sharp 0.34, so an existing lockfile can keep the vulnerable image library after the framework upgrade.
+faq:
+  - question: When did Next.js 15 reach end of life?
+    answer: Next.js 15 left its Maintenance LTS window on October 21, 2026, two years after 15.0.0 was released on October 21, 2024. It no longer receives scheduled security fixes. The Next.js support policy allows patching versions outside LTS in rare, severe cases, but you shouldn't plan around that.
+  - question: Do I need to upgrade to Next.js 16.4 to get the October 2026 security fixes?
+    answer: On the 16.x line, yes. The two critical advisories published on October 14, 2026 affect Next.js 16.0.0 through 16.4.0 and were fixed in 16.4.1. No 16.3.x patch was published, so the minimum safe version on Next.js 16 is 16.4.1. On 15.x, the matching security release is 15.5.28, the final release before support ended.
+  - question: How often should I update Next.js?
+    answer: Stay on a supported major and within one minor of the latest release. Apply patch releases weekly through grouped automated updates, and apply critical security fixes within a day or two. Upgrade to a new major within a few months of release, well before the previous major's Maintenance LTS window ends.
+  - question: Is it safe to stay on Next.js 15 after end of support?
+    answer: Your app keeps running, but future vulnerabilities in Next.js 15 won't get scheduled fixes. Every advisory published from now on becomes a forced major upgrade under time pressure. Start the move to 16 now while it's a planned project, using the official upgrade codemod.
+  - question: Why does my lockfile still have a vulnerable sharp version after upgrading Next.js?
+    answer: Next.js lists sharp as an optional dependency with a version range, and pnpm keeps the version already in your lockfile if it still satisfies that range. Next.js 15.5.28 accepts sharp ^0.34.3 or ^0.35.5, so a lockfile on 0.34 stays there. Run pnpm why sharp and update it explicitly.
+needsRewrite: false
+---
+
+Next.js 15 dropped out of support on October 21, 2026. A week earlier, the Next.js team shipped an out-of-band security release for two critical advisories: an unauthenticated remote code execution in `use cache` functions that return typed arrays ([GHSA-673q-mjm6-r5xr](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr)), and another in the Image Optimization API when SVG files are involved. Both affect every Next.js 16 release up to and including 16.4.0.
+
+The fixes shipped in 16.4.1, alongside a 15.5.28 release for the 15.x line. Teams already on the latest minor bumped a patch version and moved on. Teams a few minors behind found that the fix came with a minor upgrade attached, plus whatever release notes they hadn't read yet. Teams still on Next.js 15 got one more patch release and a week before their support window closed.
+
+That gap is a policy problem more than a framework problem. Below is how the Next.js release lines work, and a patch policy that keeps your team on the side of the gap where security fixes are routine.
+
+## How Next.js decides what gets patched
+
+The [Next.js support policy](https://nextjs.org/support-policy) has two tiers. The current major is in Active LTS and gets features, fixes and security patches. When a new major ships, the previous one moves to Maintenance LTS and only gets critical bug fixes and essential security updates, for two years from its own initial release. Next.js 15.0.0 was published on October 21, 2024, so its window closed exactly two years later.
+
+The part teams miss is that patches land on minors, not majors. The npm registry's publish history shows the pattern. Next.js 16.3.0 shipped on August 3, 2026 and got nine releases in eight weeks, ending with 16.3.8 on September 30. Then 16.4.0 shipped on October 6, and the October 14 security fixes went into 16.4.1. There is no 16.3.9. Being "on Next.js 16" wasn't enough to get a patch release. You had to be on 16.4.
+
+The same holds for the maintenance line. Since Next.js 16 shipped, every 15.x fix has landed as a 15.5 patch, and 15.5.28 is the last of them.
+
+So "supported" means something narrower than it sounds: the newest minor of a supported major. Anything older is on its own.
+
+## Write the policy down
+
+Most teams have an informal version of this ("we update when Dependabot nags us"). It holds until the week a critical advisory lands during a release freeze. A written policy settles the decisions in advance, so nobody negotiates them during an incident. It needs four parts.
+
+### 1. A version distance you're allowed to drift
+
+Set a hard limit on how far behind the latest release you can be. A practical default for Next.js:
+
+- Production apps run a supported major and are never more than one minor behind the latest.
+- A new major gets adopted within three months of its first stable release, and never later than six.
+
+One minor of slack gives you room to skip a `.0` release while early bugs shake out. Two minors behind means the next security fix arrives with a feature upgrade you haven't tested.
+
+### 2. Response times by severity
+
+Tie the response time to the advisory's severity rather than to how busy the sprint looks:
+
+- **Critical:** patched in production within 24 to 48 hours. If the advisory says there's no workaround, as the `use cache` advisory did, assume you're exposed whether or not you think you use the affected feature.
+- **High:** within a week.
+- **Moderate and low:** in the next scheduled update.
+
+The October advisories show why "we don't use that feature" isn't a safe exemption. The `use cache` RCE only applied to functions returning typed arrays, but confirming that across every route takes longer than upgrading. The upgrade is the cheaper check.
+
+### 3. An owner per app
+
+Every Next.js app needs a named owner for framework upgrades, whether a person or a rotation. When nobody owns it, the update PR sits open behind feature work until an advisory makes it urgent. This is cheap work for a staff engineer. Define the policy once and assign owners, and teams stop rediscovering the problem one incident at a time.
+
+### 4. A budget for majors
+
+Majors take real work, so put them on the roadmap like any other project. Next.js 16 made Turbopack the default bundler for `next build`, made the request APIs async with no synchronous fallback, renamed `middleware` to `proxy` and changed several `next/image` defaults. That's a few days of work for a mid-sized app, not an afternoon. Scheduling it during a calm quarter means the end of Maintenance LTS is just a date on a calendar.
+
+## Make staying current cheap
+
+The policy only holds if staying current is cheap. Two changes do most of the work.
+
+Group the framework packages so they move together. A `next` upgrade without the matching `eslint-config-next` or `@next/*` packages produces confusing failures, and three separate PRs get reviewed less carefully than one. With Dependabot:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      nextjs:
+        patterns:
+          - next
+          - '@next/*'
+          - eslint-config-next
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+```
+
+Renovate's `packageRules` with a shared `groupName` does the same job. Weekly is enough for routine updates. With Dependabot security updates turned on, advisory fixes arrive as their own PRs as soon as an advisory is published.
+
+Then make the check visible. Run `pnpm audit --prod` (or your scanner of choice) in CI on a schedule, not only on pull requests, so a new advisory against an untouched app still turns something red. The [npm worm hardening playbook](/npm-supply-chain-worm-defense) covers lockfile discipline and scanning in more depth. The point here is narrower: an advisory against your framework should show up the day it's published, not the next time someone opens a PR.
+
+## Check what the framework doesn't pin
+
+The October release had a second lesson, in the image pipeline. The Image Optimization fix came with a newer version of [sharp](https://sharp.pixelplumbing.com/), the image library Next.js uses for optimization, and npm's advisory data marks every sharp release before 0.35.5 as affected by CVE-2026-96889.
+
+Next.js declares sharp as an optional dependency with a version range, and the ranges differ by release line. Next.js 16.4.1 and later require `^0.35.5`, so upgrading forces the safe version. Next.js 15.5.28 accepts `^0.34.3 || ^0.35.5`, because the 15.x line still supports the older sharp. If your lockfile resolved sharp 0.34 last year, upgrading `next` to 15.5.28 leaves it there. Your Next.js version looks patched while the image library underneath doesn't.
+
+Check it directly after any security upgrade:
+
+```bash
+pnpm why sharp
+pnpm audit --prod
+```
+
+If the resolved version is still vulnerable, update it explicitly or add an override. In a pnpm workspace, overrides live in `pnpm-workspace.yaml`:
+
+```yaml
+overrides:
+  sharp: '>=0.35.5'
+```
+
+The same check applies beyond sharp. Any time an advisory names an upstream library, trace it through your lockfile rather than trusting the top-level version number.
+
+## If you're still on Next.js 15
+
+Upgrade to 15.5.28 today if you haven't, and check sharp as above. That's the last scheduled patch you'll get. Then plan the move to 16 as a project with a date:
+
+1. Run `pnpm dlx @next/codemod@canary upgrade latest`. It updates `next.config` for the new `turbopack` option, migrates `next lint` to the ESLint CLI and renames `middleware` to `proxy`.
+2. Run `npx @next/codemod@canary next-async-request-api .` if any code still reads `params`, `searchParams`, `cookies()` or `headers()` synchronously. The upgrade codemod doesn't run this one.
+3. Decide on the bundler. If you have a custom `webpack` config, `next build` fails under Turbopack by default rather than silently ignoring it. Migrate the config or keep `--webpack` as a temporary opt-out.
+4. Review the `next/image` default changes, especially `minimumCacheTTL` moving from 60 seconds to 4 hours and local images with query strings now needing `images.localPatterns`.
+5. Confirm Node.js 20.9 or later and TypeScript 5.1 or later in every environment that builds the app.
+
+Then land straight on the latest 16.x minor, not 16.0. Landing on an old minor puts you behind the policy on day one.
+
+## Bringing it together
+
+The October 14 advisories were a normal patch for teams on 16.4 and a scramble for everyone else, and the difference came down to habits set months earlier. Keep each app within one minor of the latest release, decide response times by severity before you need them, give every app an owner, group the framework packages so updates stay small, and check the transitive libraries the framework doesn't pin. Then the next critical advisory is a routine patch upgrade.
