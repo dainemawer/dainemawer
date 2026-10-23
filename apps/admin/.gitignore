@@ -1,3 +1,4 @@
 .data
+.vercel
 .env*.local
 !.env.example
