@@ -1,0 +1,10 @@
+{
+  "name": "@dm/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./theme.css": "./src/theme.css",
+    "./logo-mark": "./src/logo-mark.ts"
+  }
+}

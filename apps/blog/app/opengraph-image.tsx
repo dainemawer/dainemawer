@@ -1,5 +1,5 @@
+import { LOGO_ASPECT_RATIO, logoDataUri } from "@dm/ui/logo-mark";
 import { ImageResponse } from "next/og";
-import { LOGO_ASPECT_RATIO, logoDataUri } from "@/lib/logo-mark";
 import { site } from "@/lib/site";
 
 const LOGO_HEIGHT = 32;
