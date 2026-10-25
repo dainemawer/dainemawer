@@ -98,7 +98,9 @@ export async function DocumentListPage({
   );
 }
 
-async function customerOptions(includeId?: string): Promise<CustomerOption[]> {
+export async function customerOptions(
+  includeId?: string,
+): Promise<CustomerOption[]> {
   const rows = await listCustomers();
   const options = rows.map(({ customer }) => ({
     id: customer.id,
@@ -339,6 +341,18 @@ export async function DocumentDetailPage({
             label="Paid on"
             value={`${formatDate(document.paidAt)}${document.paymentRef ? ` · ${document.paymentRef}` : ""}`}
           />
+        ) : document.recurringId ? (
+          <div className="border-t pt-3">
+            <dt className="text-xs text-muted-foreground">Created from</dt>
+            <dd className="mt-1">
+              <Link
+                href={`/recurring/${document.recurringId}`}
+                className="underline underline-offset-4"
+              >
+                Recurring invoice
+              </Link>
+            </dd>
+          </div>
         ) : document.sourceQuoteId ? (
           <div className="border-t pt-3">
             <dt className="text-xs text-muted-foreground">From quote</dt>

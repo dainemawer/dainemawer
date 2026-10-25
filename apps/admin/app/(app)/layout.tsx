@@ -7,7 +7,7 @@ import { requireSession } from "@/lib/session";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
   return (
-    <div className="mx-auto grid min-h-svh max-w-shell md:grid-cols-shell">
+    <div className="mx-auto grid min-h-svh max-w-shell content-start md:grid-cols-shell">
       <aside className="flex flex-col gap-8 border-b px-4 py-5 md:sticky md:top-0 md:h-svh md:border-r md:border-b-0 md:px-6 md:py-8">
         <Link
           href="/"

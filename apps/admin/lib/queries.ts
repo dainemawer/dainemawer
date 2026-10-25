@@ -1,7 +1,15 @@
 import "server-only";
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, documents, lineItems, sends, settings } from "@/db/schema";
+import {
+  customers,
+  documents,
+  lineItems,
+  recurringInvoices,
+  recurringLines,
+  sends,
+  settings,
+} from "@/db/schema";
 import {
   addDays,
   type DisplayStatus,
@@ -10,6 +18,7 @@ import {
   todayISO,
 } from "@/lib/documents";
 import { type AmountsByCurrency, addAmount } from "@/lib/money";
+import { recurringStatus } from "@/lib/recurring-dates";
 
 // Reads only. Every caller is a Server Component or Server Action that has
 // already passed requireSession().
@@ -175,5 +184,45 @@ export async function documentDefaults(
     terms:
       (kind === "quote" ? settings.quoteTerms : settings.invoiceTerms) ?? "",
     notes: settings.defaultNotes ?? "",
+  };
+}
+
+export async function listRecurring() {
+  const rows = await db
+    .select({ schedule: recurringInvoices, company: customers.company })
+    .from(recurringInvoices)
+    .innerJoin(customers, eq(customers.id, recurringInvoices.customerId))
+    .orderBy(asc(recurringInvoices.nextIssueDate), asc(customers.company));
+  return rows.map((row) => ({ ...row, status: recurringStatus(row.schedule) }));
+}
+
+export async function getRecurring(id: string) {
+  const [row] = await db
+    .select({ schedule: recurringInvoices, customer: customers })
+    .from(recurringInvoices)
+    .innerJoin(customers, eq(customers.id, recurringInvoices.customerId))
+    .where(eq(recurringInvoices.id, id));
+  if (!row) return null;
+  const today = todayISO();
+  const [lines, invoices] = await Promise.all([
+    db
+      .select()
+      .from(recurringLines)
+      .where(eq(recurringLines.recurringId, id))
+      .orderBy(asc(recurringLines.position)),
+    db
+      .select()
+      .from(documents)
+      .where(eq(documents.recurringId, id))
+      .orderBy(desc(documents.issueDate), desc(documents.number)),
+  ]);
+  return {
+    ...row,
+    lines,
+    invoices: invoices.map((document) => ({
+      document,
+      status: displayStatus(document, today),
+    })),
+    status: recurringStatus(row.schedule),
   };
 }

@@ -15,6 +15,13 @@
       "when": 1792749682172,
       "tag": "0001_solid_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792906753284,
+      "tag": "0002_gray_reavers",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { DocumentKind, StoredStatus } from "@/lib/documents";
 import type { Currency } from "@/lib/money";
+import type { Interval } from "@/lib/recurring-dates";
 
 // Column names are snake_case in Postgres and camelCase here — the client
 // and drizzle.config.ts both set `casing: "snake_case"`, so no column below
@@ -127,6 +128,11 @@ export const documents = pgTable(
     taxMinor: money().notNull().default(0),
     totalMinor: money().notNull().default(0),
     sourceQuoteId: uuid(),
+    /** The schedule that created this invoice, and the issue date it was for. */
+    recurringId: uuid().references(() => recurringInvoices.id, {
+      onDelete: "set null",
+    }),
+    recurringDate: date({ mode: "string" }),
     sentAt: timestamp({ withTimezone: true }),
     acceptedAt: timestamp({ withTimezone: true }),
     declinedAt: timestamp({ withTimezone: true }),
@@ -146,6 +152,11 @@ export const documents = pgTable(
     uniqueIndex("documents_source_quote_idx")
       .on(t.sourceQuoteId)
       .where(sql`${t.kind} = 'invoice' and ${t.status} <> 'void'`),
+    // One invoice per schedule per issue date: a cron run that repeats or
+    // overlaps can't bill a client twice.
+    uniqueIndex("documents_recurring_date_idx")
+      .on(t.recurringId, t.recurringDate)
+      .where(sql`${t.recurringId} is not null`),
   ],
 );
 
@@ -164,6 +175,51 @@ export const lineItems = pgTable(
     amountMinor: money().notNull(),
   },
   (t) => [index("line_items_document_idx").on(t.documentId, t.position)],
+);
+
+/**
+ * A template the daily cron (app/api/cron/recurring) turns into a draft
+ * invoice on each issue date; see lib/recurring.ts.
+ */
+export const recurringInvoices = pgTable(
+  "recurring_invoices",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    customerId: uuid()
+      .notNull()
+      .references(() => customers.id),
+    currency: text().$type<Currency>().notNull(),
+    interval: text().$type<Interval>().notNull(),
+    /** Day of the month every issue date aims for (see lib/recurring-dates.ts). */
+    anchorDay: integer().notNull(),
+    nextIssueDate: date({ mode: "string" }).notNull(),
+    /** No invoices are issued after this date. */
+    endDate: date({ mode: "string" }),
+    pausedAt: timestamp({ withTimezone: true }),
+    title: text(),
+    notes: text(),
+    terms: text(),
+    discountMinor: money().notNull().default(0),
+    taxRateBp: integer().notNull().default(0),
+    totalMinor: money().notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("recurring_invoices_next_idx").on(t.nextIssueDate)],
+);
+
+export const recurringLines = pgTable(
+  "recurring_lines",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    recurringId: uuid()
+      .notNull()
+      .references(() => recurringInvoices.id, { onDelete: "cascade" }),
+    position: integer().notNull(),
+    description: text().notNull(),
+    quantityHundredths: integer().notNull(),
+    unitPriceMinor: money().notNull(),
+  },
+  (t) => [index("recurring_lines_recurring_idx").on(t.recurringId, t.position)],
 );
 
 /** One row per email sent: the audit trail of exactly what a client received. */
@@ -240,3 +296,5 @@ export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
 export type Send = typeof sends.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
+export type RecurringInvoice = typeof recurringInvoices.$inferSelect;
+export type RecurringLine = typeof recurringLines.$inferSelect;

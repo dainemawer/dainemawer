@@ -1,51 +1,31 @@
 "use server";
 
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { db, type Tx } from "@/db";
-import { counters, documents, lineItems } from "@/db/schema";
+import { db } from "@/db";
+import { documents, lineItems } from "@/db/schema";
 import {
   addDays,
   allowedActions,
   DOCUMENT_KINDS,
   type DocumentKind,
-  formatDocumentNumber,
   todayISO,
 } from "@/lib/documents";
-import { CURRENCIES, parseMoney } from "@/lib/money";
+import { CURRENCIES } from "@/lib/money";
+import { allocateNumber } from "@/lib/numbering";
 import { getDocument, getSettings } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
-import { computeTotals, parseQuantity, parseTaxRate } from "@/lib/totals";
+import {
+  checkPricing,
+  isoDate,
+  optionalDate,
+  optionalText,
+  pricingShape,
+  totalsOf,
+} from "@/lib/validation";
 import { type FormState, fieldErrorsFrom } from "./form-state";
-
-const isoDate = z.iso.date("Pick a date.");
-const optionalDate = z
-  .string()
-  .transform((value) => value || null)
-  .pipe(isoDate.nullable());
-const optionalText = z
-  .string()
-  .trim()
-  .transform((value) => value || null);
-
-function parsed<T>(parse: (value: string) => T | null, message: string) {
-  return z.string().transform((value, ctx) => {
-    const result = parse(value.trim() === "" ? "0" : value);
-    if (result === null) {
-      ctx.addIssue({ code: "custom", message });
-      return z.NEVER;
-    }
-    return result;
-  });
-}
-
-const lineSchema = z.object({
-  description: z.string().trim().min(1, "Describe this line."),
-  quantity: parsed(parseQuantity, "A number, up to two decimals."),
-  unitPrice: parsed(parseMoney, "An amount, e.g. 1500 or 1500.50."),
-});
 
 const documentSchema = z
   .object({
@@ -59,34 +39,10 @@ const documentSchema = z
     title: optionalText,
     notes: optionalText,
     terms: optionalText,
-    discount: parsed(parseMoney, "An amount, e.g. 500."),
-    taxRate: parsed(parseTaxRate, "A percentage from 0 to 100."),
-    lines: z.array(lineSchema).min(1, "Add at least one line item."),
+    ...pricingShape,
   })
   .superRefine((doc, ctx) => {
-    if (doc.discount < 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["discount"],
-        message: "A discount can't be negative.",
-      });
-    }
-    // Negative lines are allowed (credits), a negative document isn't.
-    const { totalMinor } = computeTotals(
-      doc.lines.map((line) => ({
-        quantityHundredths: line.quantity,
-        unitPriceMinor: line.unitPrice,
-      })),
-      doc.discount,
-      doc.taxRate,
-    );
-    if (totalMinor < 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["discount"],
-        message: "The total can't be below zero.",
-      });
-    }
+    checkPricing(doc, ctx);
     if (doc.validUntil && doc.validUntil < doc.issueDate) {
       ctx.addIssue({
         code: "custom",
@@ -111,24 +67,6 @@ const documentSchema = z
   });
 
 export type DocumentInput = z.input<typeof documentSchema>;
-
-/**
- * Next number for (kind, year), allocated inside the caller's transaction:
- * the upsert takes a row lock, so concurrent creates queue rather than
- * collide, and a rolled-back create releases its number.
- */
-async function allocateNumber(tx: Tx, kind: DocumentKind, issueDate: string) {
-  const year = Number(issueDate.slice(0, 4));
-  const [row] = await tx
-    .insert(counters)
-    .values({ kind, year, lastValue: 1 })
-    .onConflictDoUpdate({
-      target: [counters.kind, counters.year],
-      set: { lastValue: sql`${counters.lastValue} + 1` },
-    })
-    .returning({ value: counters.lastValue });
-  return formatDocumentNumber(kind, year, row.value);
-}
 
 function pathFor(kind: DocumentKind, id?: string) {
   const base = kind === "quote" ? "/quotes" : "/invoices";
@@ -156,11 +94,7 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
     };
   }
   const doc = result.data;
-  const lines = doc.lines.map((line) => ({
-    quantityHundredths: line.quantity,
-    unitPriceMinor: line.unitPrice,
-  }));
-  const totals = computeTotals(lines, doc.discount, doc.taxRate);
+  const totals = totalsOf(doc);
   const values = {
     customerId: doc.customerId,
     currency: doc.currency,
