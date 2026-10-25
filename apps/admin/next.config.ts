@@ -26,6 +26,10 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Static shell + streamed data (Partial Prerendering) and `use cache`;
+  // Links prefetch each route's App Shell. See AGENTS.md.
+  cacheComponents: true,
+  partialPrefetching: true,
   poweredByHeader: false,
   transpilePackages: ["@dm/ui"],
   // Loaded at runtime from node_modules rather than bundled: react-pdf

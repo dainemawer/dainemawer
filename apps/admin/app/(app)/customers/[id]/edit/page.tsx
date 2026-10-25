@@ -1,16 +1,33 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { CustomerForm } from "@/components/customer-form";
 import { PageHeader } from "@/components/page-header";
+import { FormSkeleton, HeaderSkeleton, Loading } from "@/components/skeletons";
 import { getCustomer } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Edit customer" };
 
-export default async function EditCustomerPage({
+export default function EditCustomerPage({
   params,
 }: PageProps<"/customers/[id]/edit">) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <FormSkeleton />
+        </Loading>
+      }
+    >
+      <EditCustomer params={params} />
+    </Suspense>
+  );
+}
+
+async function EditCustomer({
+  params,
+}: Pick<PageProps<"/customers/[id]/edit">, "params">) {
   const { id } = await params;
   const customer = await getCustomer(id);
   if (!customer) notFound();

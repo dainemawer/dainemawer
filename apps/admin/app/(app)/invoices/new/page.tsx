@@ -3,14 +3,8 @@ import { NewDocumentPage } from "@/components/document-pages";
 
 export const metadata: Metadata = { title: "New invoice" };
 
-export default async function NewInvoicePage({
+export default function NewInvoicePage({
   searchParams,
 }: PageProps<"/invoices/new">) {
-  const { customer } = await searchParams;
-  return (
-    <NewDocumentPage
-      kind="invoice"
-      customerId={typeof customer === "string" ? customer : undefined}
-    />
-  );
+  return <NewDocumentPage kind="invoice" searchParams={searchParams} />;
 }

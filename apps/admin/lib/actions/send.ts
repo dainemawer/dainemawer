@@ -1,11 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { documents, sends } from "@/db/schema";
 import { ADMIN_EMAIL } from "@/lib/auth";
+import { TAG } from "@/lib/cache-tags";
 import { allowedActions } from "@/lib/documents";
 import { sendMail } from "@/lib/mail";
 import { getDocument, getSettings } from "@/lib/queries";
@@ -114,8 +115,6 @@ export async function sendDocument(
     };
   }
 
-  revalidatePath(document.kind === "quote" ? "/quotes" : "/invoices");
-  revalidatePath(`/${document.kind === "quote" ? "quotes" : "invoices"}/${id}`);
-  revalidatePath("/");
+  updateTag(TAG.documents);
   return { ok: true };
 }

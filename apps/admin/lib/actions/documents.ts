@@ -1,11 +1,12 @@
 "use server";
 
 import { and, eq, ne } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { documents, lineItems } from "@/db/schema";
+import { TAG } from "@/lib/cache-tags";
 import {
   addDays,
   allowedActions,
@@ -73,15 +74,9 @@ function pathFor(kind: DocumentKind, id?: string) {
   return id ? `${base}/${id}` : base;
 }
 
-function revalidateDocument(
-  kind: DocumentKind,
-  id: string,
-  customerId?: string,
-) {
-  revalidatePath(pathFor(kind));
-  revalidatePath(pathFor(kind, id));
-  revalidatePath("/");
-  if (customerId) revalidatePath(`/customers/${customerId}`);
+/** Every page that lists or totals documents reads the one tag. */
+function revalidateDocuments() {
+  updateTag(TAG.documents);
 }
 
 export async function saveDocument(input: DocumentInput): Promise<FormState> {
@@ -166,7 +161,7 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
     return { error: error instanceof Error ? error.message : "Couldn't save." };
   }
 
-  revalidateDocument(doc.kind, id as string, doc.customerId);
+  revalidateDocuments();
   redirect(pathFor(doc.kind, id));
 }
 
@@ -222,7 +217,7 @@ export async function transitionDocument(
   } else {
     return { error: `Can't ${transition} a ${doc.status} ${doc.kind}.` };
   }
-  revalidateDocument(doc.kind, id, doc.customerId);
+  revalidateDocuments();
   return {};
 }
 
@@ -249,7 +244,7 @@ export async function markPaid(
     .update(documents)
     .set({ status: "paid", ...parsedPayment.data })
     .where(eq(documents.id, id));
-  revalidateDocument(doc.kind, id, doc.customerId);
+  revalidateDocuments();
   return { ok: true };
 }
 
@@ -262,7 +257,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     };
   }
   await db.delete(documents).where(eq(documents.id, id));
-  revalidateDocument(doc.kind, id, doc.customerId);
+  revalidateDocuments();
   redirect(pathFor(doc.kind));
 }
 
@@ -316,7 +311,7 @@ async function copyInto(sourceId: string, kind: DocumentKind) {
     }
     return created.id;
   });
-  revalidateDocument(kind, id, source.document.customerId);
+  revalidateDocuments();
   return id;
 }
 

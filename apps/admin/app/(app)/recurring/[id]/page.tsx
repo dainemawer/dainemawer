@@ -1,30 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { DocumentTable } from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RecurringActions } from "@/components/recurring-actions";
 import { RecurringStatusBadge } from "@/components/recurring-status";
+import {
+  HeaderSkeleton,
+  Loading,
+  StatsSkeleton,
+  TableSkeleton,
+} from "@/components/skeletons";
 import { formatDate } from "@/lib/documents";
 import { formatMoney } from "@/lib/money";
 import { getRecurring } from "@/lib/queries";
 import { INTERVAL_LABEL } from "@/lib/recurring-dates";
-import { requireSession } from "@/lib/session";
 import { formatQuantity } from "@/lib/totals";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/recurring/[id]">): Promise<Metadata> {
-  await requireSession();
   const full = await getRecurring((await params).id);
   return { title: full ? `Recurring · ${full.customer.company}` : "Recurring" };
 }
 
-export default async function RecurringDetailPage({
+export default function RecurringDetailPage({
   params,
 }: PageProps<"/recurring/[id]">) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <StatsSkeleton />
+          <TableSkeleton rows={3} />
+        </Loading>
+      }
+    >
+      <RecurringDetail params={params} />
+    </Suspense>
+  );
+}
+
+async function RecurringDetail({
+  params,
+}: Pick<PageProps<"/recurring/[id]">, "params">) {
   const { id } = await params;
   const full = await getRecurring(id);
   if (!full) notFound();

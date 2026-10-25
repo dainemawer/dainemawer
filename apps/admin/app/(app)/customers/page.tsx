@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { Loading, TableSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -13,14 +15,29 @@ import {
 } from "@/components/ui/table";
 import { formatAmounts } from "@/lib/money";
 import { listCustomers } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Customers" };
 
-export default async function CustomersPage({
+export default function CustomersPage({
   searchParams,
 }: PageProps<"/customers">) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <PageHeader title="Customers" />
+          <TableSkeleton />
+        </Loading>
+      }
+    >
+      <Customers searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Customers({
+  searchParams,
+}: Pick<PageProps<"/customers">, "searchParams">) {
   const { archived, q } = await searchParams;
   const showArchived = archived === "1";
   const query = typeof q === "string" ? q.trim().toLowerCase() : "";

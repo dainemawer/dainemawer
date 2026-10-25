@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LogoMark } from "@/components/logo-mark";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { error } = await searchParams;
+// Fully static apart from ?error= (an expired or used link), which is the
+// only thing that waits for the request.
+export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <main className="flex min-h-svh items-center justify-center px-4">
       <div className="w-full max-w-sm">
@@ -15,8 +17,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           Quotes, invoices and customers. Sign in with a link sent to your
           email.
         </p>
-        <LoginForm linkError={error ? String(error) : null} />
+        <Suspense fallback={<LoginForm linkError={null} />}>
+          <Form searchParams={searchParams} />
+        </Suspense>
       </div>
     </main>
   );
+}
+
+async function Form({
+  searchParams,
+}: Pick<PageProps<"/login">, "searchParams">) {
+  const { error } = await searchParams;
+  return <LoginForm linkError={error ? String(error) : null} />;
 }

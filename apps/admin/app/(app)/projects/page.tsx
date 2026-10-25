@@ -1,15 +1,39 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { GanttChart } from "@/components/gantt-chart";
 import { PageHeader } from "@/components/page-header";
-import { todayISO } from "@/lib/documents";
+import { Loading, Skeleton } from "@/components/skeletons";
 import { projects } from "@/lib/projects";
 import { requireSession } from "@/lib/session";
+import { getToday } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Projects" };
 
-export default async function ProjectsPage() {
+export default function ProjectsPage() {
+  return (
+    <>
+      <PageHeader
+        title="Projects"
+        description="Mock data: a snapshot of Linear on 25 Oct 2026. Progress figures are illustrative."
+      />
+      <Suspense
+        fallback={
+          <Loading>
+            <Skeleton className="h-72" />
+          </Loading>
+        }
+      >
+        <Projects />
+      </Suspense>
+    </>
+  );
+}
+
+// Client names live in the mock, so it stays behind the session check
+// like real data would (and "today" is request-time anyway).
+async function Projects() {
   await requireSession();
-  const today = todayISO();
+  const today = await getToday();
   const scheduled = projects.flatMap((p) =>
     p.startDate ? [{ ...p, startDate: p.startDate }] : [],
   );
@@ -17,11 +41,6 @@ export default async function ProjectsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Projects"
-        description="Mock data: a snapshot of Linear on 25 Oct 2026. Progress figures are illustrative."
-      />
-
       <section className="mb-12" aria-labelledby="timeline">
         <h2 id="timeline" className="mb-4 text-lg font-bold">
           Timeline

@@ -1,18 +1,9 @@
-import { DocumentDetailPage } from "@/components/document-pages";
-import { getDocument } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
+import { DocumentDetailPage, documentTitle } from "@/components/document-pages";
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/invoices/[id]">) {
-  // Metadata renders alongside the page, so it checks the session itself.
-  await requireSession();
-  const full = await getDocument((await params).id);
-  return { title: full?.document.number ?? "Invoice" };
+export function generateMetadata({ params }: PageProps<"/invoices/[id]">) {
+  return documentTitle(params, "Invoice");
 }
 
-export default async function InvoicePage({
-  params,
-}: PageProps<"/invoices/[id]">) {
-  return <DocumentDetailPage kind="invoice" id={(await params).id} />;
+export default function InvoicePage({ params }: PageProps<"/invoices/[id]">) {
+  return <DocumentDetailPage kind="invoice" params={params} />;
 }

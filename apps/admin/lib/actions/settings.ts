@@ -1,10 +1,11 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
+import { TAG } from "@/lib/cache-tags";
 import { CURRENCIES } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 import { parseTaxRate } from "@/lib/totals";
@@ -59,6 +60,6 @@ export async function saveSettings(
     };
   }
   await db.update(settings).set(parsed.data).where(eq(settings.id, 1));
-  revalidatePath("/", "layout");
+  updateTag(TAG.settings);
   return { ok: true };
 }

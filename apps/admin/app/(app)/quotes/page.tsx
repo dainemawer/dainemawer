@@ -3,14 +3,6 @@ import { DocumentListPage } from "@/components/document-pages";
 
 export const metadata: Metadata = { title: "Quotes" };
 
-export default async function QuotesPage({
-  searchParams,
-}: PageProps<"/quotes">) {
-  const { status } = await searchParams;
-  return (
-    <DocumentListPage
-      kind="quote"
-      status={typeof status === "string" ? status : undefined}
-    />
-  );
+export default function QuotesPage({ searchParams }: PageProps<"/quotes">) {
+  return <DocumentListPage kind="quote" searchParams={searchParams} />;
 }

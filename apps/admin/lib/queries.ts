@@ -1,5 +1,6 @@
 import "server-only";
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import {
   customers,
@@ -10,20 +11,44 @@ import {
   sends,
   settings,
 } from "@/db/schema";
+import { TAG } from "@/lib/cache-tags";
 import {
   addDays,
   type DisplayStatus,
   type DocumentKind,
   displayStatus,
-  todayISO,
 } from "@/lib/documents";
 import { type AmountsByCurrency, addAmount } from "@/lib/money";
 import { recurringStatus } from "@/lib/recurring-dates";
+import { requireSession } from "@/lib/session";
+import { getToday } from "@/lib/today";
 
-// Reads only. Every caller is a Server Component or Server Action that has
-// already passed requireSession().
+// The data access layer: every read the app makes. Each export checks the
+// session first, then calls a cached query, so no page can read data
+// without a signed-in user however it's structured, and nothing here can
+// end up in a prerendered static shell (the session check is request-time).
+//
+// The cached queries use `use cache: remote` (on Vercel, the shared runtime
+// cache): the default in-memory cache rarely survives between serverless
+// requests, and a hit also spares Neon waking from idle. Writes expire the
+// tags (lib/cache-tags.ts). Anything that depends on today's date is
+// derived outside the cache, or takes `today` as an argument so it's part
+// of the key.
+
+/** Shared by every cached query below. */
+function cached(...tags: string[]) {
+  cacheTag(...tags);
+  cacheLife("hours");
+}
 
 export async function getSettings() {
+  await requireSession();
+  return cachedSettings();
+}
+
+async function cachedSettings() {
+  "use cache: remote";
+  cached(TAG.settings);
   const [row] = await db.select().from(settings).where(eq(settings.id, 1));
   if (row) return row;
   // First request on a fresh database: create the defaults row.
@@ -36,6 +61,13 @@ export async function getSettings() {
 }
 
 export async function listCustomers({ archived = false } = {}) {
+  await requireSession();
+  return cachedCustomers(archived);
+}
+
+async function cachedCustomers(archived: boolean) {
+  "use cache: remote";
+  cached(TAG.customers, TAG.documents);
   const [rows, totals] = await Promise.all([
     db
       .select()
@@ -78,6 +110,13 @@ export async function listCustomers({ archived = false } = {}) {
 }
 
 export async function getCustomer(id: string) {
+  await requireSession();
+  return cachedCustomer(id);
+}
+
+async function cachedCustomer(id: string) {
+  "use cache: remote";
+  cached(TAG.customers);
   const [customer] = await db
     .select()
     .from(customers)
@@ -87,47 +126,58 @@ export async function getCustomer(id: string) {
 
 export type DocumentRow = Awaited<ReturnType<typeof listDocuments>>[number];
 
-export async function listDocuments(
-  kind: DocumentKind,
-  options: { customerId?: string } = {},
-) {
-  const today = todayISO();
-  const rows = await db
-    .select({
-      document: documents,
-      company: customers.company,
-    })
-    .from(documents)
-    .innerJoin(customers, eq(customers.id, documents.customerId))
-    .where(
-      and(
-        eq(documents.kind, kind),
-        options.customerId
-          ? eq(documents.customerId, options.customerId)
-          : undefined,
-      ),
-    )
-    .orderBy(desc(documents.issueDate), desc(documents.number));
-  return rows.map((row) => ({
+export async function listDocuments(kind: DocumentKind) {
+  await requireSession();
+  const today = await getToday();
+  return (await cachedDocuments(kind)).map((row) => ({
     ...row,
     status: displayStatus(row.document, today),
   }));
 }
 
-export async function listCustomerDocuments(customerId: string) {
-  const rows = await db
-    .select()
+async function cachedDocuments(kind: DocumentKind) {
+  "use cache: remote";
+  cached(TAG.documents, TAG.customers);
+  return db
+    .select({ document: documents, company: customers.company })
     .from(documents)
-    .where(eq(documents.customerId, customerId))
+    .innerJoin(customers, eq(customers.id, documents.customerId))
+    .where(eq(documents.kind, kind))
     .orderBy(desc(documents.issueDate), desc(documents.number));
-  const today = todayISO();
-  return rows.map((document) => ({
+}
+
+export async function listCustomerDocuments(customerId: string) {
+  await requireSession();
+  const today = await getToday();
+  return (await cachedCustomerDocuments(customerId)).map((document) => ({
     document,
     status: displayStatus(document, today),
   }));
 }
 
+async function cachedCustomerDocuments(customerId: string) {
+  "use cache: remote";
+  cached(TAG.documents);
+  return db
+    .select()
+    .from(documents)
+    .where(eq(documents.customerId, customerId))
+    .orderBy(desc(documents.issueDate), desc(documents.number));
+}
+
 export async function getDocument(id: string) {
+  await requireSession();
+  const row = await cachedDocument(id);
+  if (!row) return null;
+  return {
+    ...row,
+    status: displayStatus(row.document, await getToday()) as DisplayStatus,
+  };
+}
+
+async function cachedDocument(id: string) {
+  "use cache: remote";
+  cached(TAG.documents, TAG.customers);
   const [row] = await db
     .select({ document: documents, customer: customers })
     .from(documents)
@@ -146,17 +196,14 @@ export async function getDocument(id: string) {
       .where(eq(sends.documentId, id))
       .orderBy(desc(sends.sentAt)),
   ]);
-  return {
-    ...row,
-    lines,
-    sends: sendLog,
-    status: displayStatus(row.document, todayISO()) as DisplayStatus,
-  };
+  return { ...row, lines, sends: sendLog };
 }
 
 export type FullDocument = NonNullable<Awaited<ReturnType<typeof getDocument>>>;
 
+/** Uncached: only the "PDF as sent" route reads it, once per click. */
 export async function getSend(id: string) {
+  await requireSession();
   const [row] = await db.select().from(sends).where(eq(sends.id, id));
   return row ?? null;
 }
@@ -166,11 +213,11 @@ export async function documentDefaults(
   kind: DocumentKind,
   customerId?: string,
 ) {
-  const settings = await getSettings();
-  const today = todayISO();
-  const [customer] = customerId
-    ? await db.select().from(customers).where(eq(customers.id, customerId))
-    : [];
+  const [settings, customer] = await Promise.all([
+    getSettings(),
+    customerId ? getCustomer(customerId) : null,
+  ]);
+  const today = await getToday();
   return {
     currency: customer?.currency ?? settings.defaultCurrency,
     issueDate: today,
@@ -188,22 +235,47 @@ export async function documentDefaults(
 }
 
 export async function listRecurring() {
-  const rows = await db
+  await requireSession();
+  return (await cachedRecurringList()).map((row) => ({
+    ...row,
+    status: recurringStatus(row.schedule),
+  }));
+}
+
+async function cachedRecurringList() {
+  "use cache: remote";
+  cached(TAG.recurring, TAG.customers);
+  return db
     .select({ schedule: recurringInvoices, company: customers.company })
     .from(recurringInvoices)
     .innerJoin(customers, eq(customers.id, recurringInvoices.customerId))
     .orderBy(asc(recurringInvoices.nextIssueDate), asc(customers.company));
-  return rows.map((row) => ({ ...row, status: recurringStatus(row.schedule) }));
 }
 
 export async function getRecurring(id: string) {
+  await requireSession();
+  const row = await cachedRecurring(id);
+  if (!row) return null;
+  const today = await getToday();
+  return {
+    ...row,
+    invoices: row.invoices.map((document) => ({
+      document,
+      status: displayStatus(document, today),
+    })),
+    status: recurringStatus(row.schedule),
+  };
+}
+
+async function cachedRecurring(id: string) {
+  "use cache: remote";
+  cached(TAG.recurring, TAG.customers, TAG.documents);
   const [row] = await db
     .select({ schedule: recurringInvoices, customer: customers })
     .from(recurringInvoices)
     .innerJoin(customers, eq(customers.id, recurringInvoices.customerId))
     .where(eq(recurringInvoices.id, id));
   if (!row) return null;
-  const today = todayISO();
   const [lines, invoices] = await Promise.all([
     db
       .select()
@@ -216,13 +288,5 @@ export async function getRecurring(id: string) {
       .where(eq(documents.recurringId, id))
       .orderBy(desc(documents.issueDate), desc(documents.number)),
   ]);
-  return {
-    ...row,
-    lines,
-    invoices: invoices.map((document) => ({
-      document,
-      status: displayStatus(document, today),
-    })),
-    status: recurringStatus(row.schedule),
-  };
+  return { ...row, lines, invoices };
 }

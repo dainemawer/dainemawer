@@ -1,4 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
+import { revalidateTag } from "next/cache";
+import { TAG } from "@/lib/cache-tags";
 import { issueDueInvoices } from "@/lib/recurring";
 
 // Vercel Cron calls this daily (vercel.json) with CRON_SECRET as a bearer
@@ -11,6 +13,12 @@ export async function GET(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
   const { issued, failed } = await issueDueInvoices();
+  if (issued.length) {
+    // Not updateTag (Server Actions only); expire: 0 so the next visit
+    // shows the new drafts instead of a stale list.
+    revalidateTag(TAG.documents, { expire: 0 });
+    revalidateTag(TAG.recurring, { expire: 0 });
+  }
   return Response.json(
     { issued: issued.map(({ id, number }) => ({ id, number })), failed },
     // A failure shows up as a failed run in Vercel's cron log.

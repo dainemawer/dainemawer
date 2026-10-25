@@ -14,30 +14,50 @@ const links = [
   { href: "/settings", label: "Settings" },
 ];
 
-export function AppNav() {
-  const pathname = usePathname();
+/** `highlight` marks the current section; without it (the Suspense fallback) nothing reads the pathname. */
+export function AppNav({ highlight = false }: { highlight?: boolean }) {
   return (
     <nav aria-label="Main">
       <ul className="flex flex-wrap gap-x-5 gap-y-2 md:flex-col md:gap-1">
-        {links.map(({ href, label }) => {
-          const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "block py-1 text-sm transition-colors hover:text-ink",
-                  active ? "font-medium text-ink" : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </Link>
-            </li>
-          );
-        })}
+        {links.map((link) =>
+          highlight ? (
+            <ActiveItem key={link.href} {...link} />
+          ) : (
+            <Item key={link.href} {...link} active={false} />
+          ),
+        )}
       </ul>
     </nav>
+  );
+}
+
+function ActiveItem({ href, label }: { href: string; label: string }) {
+  const pathname = usePathname();
+  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return <Item href={href} label={label} active={active} />;
+}
+
+function Item({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "block py-1 text-sm transition-colors hover:text-ink",
+          active ? "font-medium text-ink" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </Link>
+    </li>
   );
 }

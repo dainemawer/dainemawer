@@ -1,12 +1,39 @@
 import "server-only";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import { customers, documents, sends } from "@/db/schema";
-import { addDays, todayISO } from "@/lib/documents";
+import { TAG } from "@/lib/cache-tags";
+import { addDays } from "@/lib/documents";
 import type { Currency } from "@/lib/money";
+import { requireSession } from "@/lib/session";
+import { getToday } from "@/lib/today";
 
 // Every money figure is for one currency — totals are never summed across
 // currencies (no FX in v1). Definitions match the PRD's analytics section.
+//
+// Same shape as lib/queries.ts: each export checks the session, then calls
+// a cached query. The figures depend on today's date, so `today` is an
+// argument and part of the cache key.
+
+export async function getDashboard(currency: Currency) {
+  await requireSession();
+  const today = await getToday();
+  const [stats, months, overdue, awaiting, top, activity] = await Promise.all([
+    headline(currency, today),
+    monthly(currency, today),
+    overdueInvoices(currency, today),
+    awaitingQuotes(currency, today),
+    topCustomers(currency, today),
+    recentActivity(),
+  ]);
+  return { today, stats, months, overdue, awaiting, top, activity };
+}
+
+function cached() {
+  cacheTag(TAG.documents, TAG.customers);
+  cacheLife("hours");
+}
 
 const sum = (condition: ReturnType<typeof sql>) =>
   sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${condition}), 0)`.mapWith(
@@ -17,6 +44,13 @@ const count = (condition: ReturnType<typeof sql>) =>
 
 /** Currencies that appear on any document, most used first. */
 export async function activeCurrencies(): Promise<Currency[]> {
+  await requireSession();
+  return cachedCurrencies();
+}
+
+async function cachedCurrencies(): Promise<Currency[]> {
+  "use cache: remote";
+  cached();
   const rows = await db
     .select({ currency: documents.currency, n: sql<number>`count(*)` })
     .from(documents)
@@ -25,8 +59,9 @@ export async function activeCurrencies(): Promise<Currency[]> {
   return rows.map((row) => row.currency);
 }
 
-export async function headline(currency: Currency) {
-  const today = todayISO();
+async function headline(currency: Currency, today: string) {
+  "use cache: remote";
+  cached();
   const monthStart = `${today.slice(0, 7)}-01`;
   const yearStart = `${today.slice(0, 4)}-01-01`;
   const yearAgo = addDays(today, -365);
@@ -62,8 +97,9 @@ export async function headline(currency: Currency) {
 }
 
 /** Invoiced (by issue date, excluding drafts and voids) and paid (by paid date), per month for the last 12 months. */
-export async function monthly(currency: Currency) {
-  const today = todayISO();
+async function monthly(currency: Currency, today: string) {
+  "use cache: remote";
+  cached();
   const months: string[] = [];
   const cursor = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
   for (let i = 11; i >= 0; i--) {
@@ -115,7 +151,9 @@ export async function monthly(currency: Currency) {
   }));
 }
 
-export async function overdueInvoices(currency: Currency) {
+async function overdueInvoices(currency: Currency, today: string) {
+  "use cache: remote";
+  cached();
   return db
     .select({ document: documents, company: customers.company })
     .from(documents)
@@ -125,13 +163,15 @@ export async function overdueInvoices(currency: Currency) {
         eq(documents.kind, "invoice"),
         eq(documents.status, "sent"),
         eq(documents.currency, currency),
-        sql`${documents.dueDate} < ${todayISO()}`,
+        sql`${documents.dueDate} < ${today}`,
       ),
     )
     .orderBy(documents.dueDate);
 }
 
-export async function awaitingQuotes(currency: Currency) {
+async function awaitingQuotes(currency: Currency, today: string) {
+  "use cache: remote";
+  cached();
   return db
     .select({ document: documents, company: customers.company })
     .from(documents)
@@ -141,14 +181,16 @@ export async function awaitingQuotes(currency: Currency) {
         eq(documents.kind, "quote"),
         eq(documents.status, "sent"),
         eq(documents.currency, currency),
-        sql`(${documents.validUntil} is null or ${documents.validUntil} >= ${todayISO()})`,
+        sql`(${documents.validUntil} is null or ${documents.validUntil} >= ${today})`,
       ),
     )
     .orderBy(documents.validUntil);
 }
 
-export async function topCustomers(currency: Currency) {
-  const yearStart = `${todayISO().slice(0, 4)}-01-01`;
+async function topCustomers(currency: Currency, today: string) {
+  "use cache: remote";
+  cached();
+  const yearStart = `${today.slice(0, 4)}-01-01`;
   return db
     .select({
       id: customers.id,
@@ -182,7 +224,9 @@ export type Activity = {
 };
 
 /** The latest sends, payments and quote decisions, newest first. */
-export async function recentActivity(limit = 10): Promise<Activity[]> {
+async function recentActivity(limit = 10): Promise<Activity[]> {
+  "use cache: remote";
+  cached();
   const [sent, decided] = await Promise.all([
     db
       .select({ send: sends, document: documents, company: customers.company })

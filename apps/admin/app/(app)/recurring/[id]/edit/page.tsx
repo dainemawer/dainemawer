@@ -1,20 +1,37 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { customerOptions } from "@/components/document-pages";
 import { PageHeader } from "@/components/page-header";
 import { RecurringForm } from "@/components/recurring-form";
+import { FormSkeleton, HeaderSkeleton, Loading } from "@/components/skeletons";
 import { minorToInput } from "@/lib/money";
 import { getRecurring } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 import { formatQuantity, formatTaxRate } from "@/lib/totals";
 
 export const metadata: Metadata = { title: "Edit recurring invoice" };
 
-export default async function EditRecurringPage({
+export default function EditRecurringPage({
   params,
 }: PageProps<"/recurring/[id]/edit">) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <FormSkeleton />
+        </Loading>
+      }
+    >
+      <EditRecurring params={params} />
+    </Suspense>
+  );
+}
+
+async function EditRecurring({
+  params,
+}: Pick<PageProps<"/recurring/[id]/edit">, "params">) {
   const { id } = await params;
   const full = await getRecurring(id);
   if (!full) notFound();

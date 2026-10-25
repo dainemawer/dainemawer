@@ -1,22 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import {
-  activeCurrencies,
-  awaitingQuotes,
-  headline,
-  monthly,
-  overdueInvoices,
-  recentActivity,
-  topCustomers,
-} from "@/lib/dashboard";
+  Loading,
+  Skeleton,
+  StatsSkeleton,
+  TableSkeleton,
+} from "@/components/skeletons";
+import { Button } from "@/components/ui/button";
+import { activeCurrencies, getDashboard } from "@/lib/dashboard";
 import { formatDate, todayISO } from "@/lib/documents";
 import { type Currency, formatMoney, isCurrency } from "@/lib/money";
 import { getSettings } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -24,30 +22,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 const docPath = (kind: string, id: string) =>
   `/${kind === "quote" ? "quotes" : "invoices"}/${id}`;
 
-export default async function DashboardPage({ searchParams }: PageProps<"/">) {
-  await requireSession();
-  const [{ currency: requested }, settings, currencies] = await Promise.all([
-    searchParams,
-    getSettings(),
-    activeCurrencies(),
-  ]);
-  const currency: Currency = isCurrency(requested)
-    ? requested
-    : (currencies[0] ?? settings.defaultCurrency);
-  const money = (minor: number) => formatMoney(minor, currency);
-
-  const [stats, months, overdue, awaiting, top, activity] = await Promise.all([
-    headline(currency),
-    monthly(currency),
-    overdueInvoices(currency),
-    awaitingQuotes(currency),
-    topCustomers(currency),
-    recentActivity(),
-  ]);
-  const today = todayISO();
-  const daysLate = (due: string | null) =>
-    due ? Math.round((Date.parse(today) - Date.parse(due)) / 864e5) : 0;
-
+export default function DashboardPage({ searchParams }: PageProps<"/">) {
   return (
     <>
       <PageHeader
@@ -63,7 +38,44 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
           </>
         }
       />
+      <Suspense
+        fallback={
+          <Loading>
+            <StatsSkeleton count={6} />
+            <Skeleton className="mb-12 h-56" />
+            <div className="grid gap-12 lg:grid-cols-2">
+              <TableSkeleton rows={3} />
+              <TableSkeleton rows={3} />
+            </div>
+          </Loading>
+        }
+      >
+        <Dashboard searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
 
+async function Dashboard({
+  searchParams,
+}: Pick<PageProps<"/">, "searchParams">) {
+  const [{ currency: requested }, settings, currencies] = await Promise.all([
+    searchParams,
+    getSettings(),
+    activeCurrencies(),
+  ]);
+  const currency: Currency = isCurrency(requested)
+    ? requested
+    : (currencies[0] ?? settings.defaultCurrency);
+  const money = (minor: number) => formatMoney(minor, currency);
+
+  const { today, stats, months, overdue, awaiting, top, activity } =
+    await getDashboard(currency);
+  const daysLate = (due: string | null) =>
+    due ? Math.round((Date.parse(today) - Date.parse(due)) / 864e5) : 0;
+
+  return (
+    <>
       {currencies.length > 1 ? (
         <nav aria-label="Currency" className="mb-6 flex gap-1">
           {currencies.map((c) => (

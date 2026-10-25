@@ -1,10 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { DocumentActions } from "@/components/document-actions";
 import { type CustomerOption, DocumentForm } from "@/components/document-form";
 import { DocumentTable } from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import {
+  FormSkeleton,
+  HeaderSkeleton,
+  Loading,
+  Skeleton,
+  StatsSkeleton,
+  TableSkeleton,
+} from "@/components/skeletons";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,13 +29,19 @@ import {
   listCustomers,
   listDocuments,
 } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 import { fillTemplate } from "@/lib/templates";
 import { formatQuantity, formatTaxRate } from "@/lib/totals";
 import { cn } from "@/lib/utils";
 
 // Quotes and invoices share every page; app/(app)/quotes/* and
 // app/(app)/invoices/* are one-line wrappers that pass their kind.
+//
+// Each page renders what it can without data (headings, buttons) straight
+// into the static shell and streams the rest behind <Suspense>. The data
+// reads check the session themselves (lib/queries.ts).
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type Params = Promise<{ id: string }>;
 
 const LABEL = { quote: "Quote", invoice: "Invoice" } as const;
 const PLURAL = { quote: "Quotes", invoice: "Invoices" } as const;
@@ -38,18 +53,13 @@ const FILTERS: Record<DocumentKind, DisplayStatus[]> = {
   invoice: ["draft", "sent", "overdue", "paid", "void"],
 };
 
-export async function DocumentListPage({
+export function DocumentListPage({
   kind,
-  status,
+  searchParams,
 }: {
   kind: DocumentKind;
-  status?: string;
+  searchParams: SearchParams;
 }) {
-  await requireSession();
-  const all = await listDocuments(kind);
-  const filter = FILTERS[kind].find((s) => s === status);
-  const rows = filter ? all.filter((row) => row.status === filter) : all;
-
   return (
     <>
       <PageHeader
@@ -60,6 +70,36 @@ export async function DocumentListPage({
           </Button>
         }
       />
+      <Suspense
+        fallback={
+          <Loading>
+            <Skeleton className="mb-6 h-7 w-80 rounded-full" />
+            <TableSkeleton />
+          </Loading>
+        }
+      >
+        <DocumentList kind={kind} searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+
+async function DocumentList({
+  kind,
+  searchParams,
+}: {
+  kind: DocumentKind;
+  searchParams: SearchParams;
+}) {
+  const [{ status }, all] = await Promise.all([
+    searchParams,
+    listDocuments(kind),
+  ]);
+  const filter = FILTERS[kind].find((s) => s === status);
+  const rows = filter ? all.filter((row) => row.status === filter) : all;
+
+  return (
+    <>
       <nav aria-label="Filter by status" className="mb-6 flex flex-wrap gap-1">
         {[undefined, ...FILTERS[kind]].map((s) => {
           const count = s
@@ -124,22 +164,13 @@ export async function customerOptions(
   return options;
 }
 
-export async function NewDocumentPage({
+export function NewDocumentPage({
   kind,
-  customerId,
+  searchParams,
 }: {
   kind: DocumentKind;
-  customerId?: string;
+  searchParams: SearchParams;
 }) {
-  await requireSession();
-  const [customers, defaults] = await Promise.all([
-    customerOptions(),
-    documentDefaults(kind, customerId),
-  ]);
-  const validCustomer = customers.some((c) => c.id === customerId)
-    ? customerId
-    : "";
-
   return (
     <>
       <PageHeader
@@ -150,6 +181,39 @@ export async function NewDocumentPage({
         }
         title={`New ${kind}`}
       />
+      <Suspense
+        fallback={
+          <Loading>
+            <FormSkeleton />
+          </Loading>
+        }
+      >
+        <NewDocument kind={kind} searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+
+async function NewDocument({
+  kind,
+  searchParams,
+}: {
+  kind: DocumentKind;
+  searchParams: SearchParams;
+}) {
+  // ?customer=<id> from a customer's page, or back from "Add a new customer".
+  const { customer } = await searchParams;
+  const customerId = typeof customer === "string" ? customer : undefined;
+  const [customers, defaults] = await Promise.all([
+    customerOptions(),
+    documentDefaults(kind, customerId),
+  ]);
+  const validCustomer = customers.some((c) => c.id === customerId)
+    ? customerId
+    : "";
+
+  return (
+    <>
       {customers.length === 0 ? (
         <EmptyState title="Add a customer first">
           <Link
@@ -183,14 +247,35 @@ export async function NewDocumentPage({
   );
 }
 
-export async function EditDocumentPage({
+export function EditDocumentPage({
   kind,
-  id,
+  params,
 }: {
   kind: DocumentKind;
-  id: string;
+  params: Params;
 }) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <FormSkeleton />
+        </Loading>
+      }
+    >
+      <EditDocument kind={kind} params={params} />
+    </Suspense>
+  );
+}
+
+async function EditDocument({
+  kind,
+  params,
+}: {
+  kind: DocumentKind;
+  params: Params;
+}) {
+  const { id } = await params;
   const full = await getDocument(id);
   if (!full || full.document.kind !== kind) notFound();
   const { document, lines } = full;
@@ -242,14 +327,42 @@ export async function EditDocumentPage({
   );
 }
 
-export async function DocumentDetailPage({
+export function DocumentDetailPage({
   kind,
-  id,
+  params,
 }: {
   kind: DocumentKind;
-  id: string;
+  params: Params;
 }) {
-  await requireSession();
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <StatsSkeleton />
+          <Skeleton className="aspect-[1/1.414] w-full xl:w-[calc(100%-24.5rem)]" />
+        </Loading>
+      }
+    >
+      <DocumentDetail kind={kind} params={params} />
+    </Suspense>
+  );
+}
+
+/** For the detail routes' generateMetadata. */
+export async function documentTitle(params: Params, fallback: string) {
+  const full = await getDocument((await params).id);
+  return { title: full?.document.number ?? fallback };
+}
+
+async function DocumentDetail({
+  kind,
+  params,
+}: {
+  kind: DocumentKind;
+  params: Params;
+}) {
+  const { id } = await params;
   const full = await getDocument(id);
   if (!full || full.document.kind !== kind) notFound();
   const { document, customer, sends, status } = full;

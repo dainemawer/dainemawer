@@ -1,27 +1,46 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ArchiveButton } from "@/components/archive-button";
 import { DocumentTable } from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import {
+  HeaderSkeleton,
+  Loading,
+  StatsSkeleton,
+  TableSkeleton,
+} from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { type AmountsByCurrency, addAmount, formatAmounts } from "@/lib/money";
 import { getCustomer, listCustomerDocuments } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/customers/[id]">) {
-  // Metadata renders alongside the page, so it checks the session itself.
-  await requireSession();
   const customer = await getCustomer((await params).id);
   return { title: customer?.company ?? "Customer" };
 }
 
-export default async function CustomerPage({
+export default function CustomerPage({ params }: PageProps<"/customers/[id]">) {
+  return (
+    <Suspense
+      fallback={
+        <Loading>
+          <HeaderSkeleton />
+          <StatsSkeleton count={3} />
+          <TableSkeleton rows={4} />
+        </Loading>
+      }
+    >
+      <Customer params={params} />
+    </Suspense>
+  );
+}
+
+async function Customer({
   params,
-}: PageProps<"/customers/[id]">) {
-  await requireSession();
+}: Pick<PageProps<"/customers/[id]">, "params">) {
   const { id } = await params;
   const customer = await getCustomer(id);
   if (!customer) notFound();

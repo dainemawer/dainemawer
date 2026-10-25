@@ -1,11 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { recurringInvoices, recurringLines } from "@/db/schema";
+import { TAG } from "@/lib/cache-tags";
 import { todayISO } from "@/lib/documents";
 import { CURRENCIES } from "@/lib/money";
 import { INTERVALS, nextIssueDate } from "@/lib/recurring-dates";
@@ -56,9 +57,10 @@ export type RecurringInput = z.input<typeof recurringSchema>;
 
 type ActionResult = { error?: string };
 
-function revalidateRecurring(id?: string) {
-  revalidatePath("/recurring");
-  if (id) revalidatePath(`/recurring/${id}`);
+function revalidateRecurring() {
+  updateTag(TAG.recurring);
+  // Deleting a schedule unlinks its invoices.
+  updateTag(TAG.documents);
 }
 
 export async function saveRecurring(input: RecurringInput): Promise<FormState> {
@@ -124,7 +126,7 @@ export async function saveRecurring(input: RecurringInput): Promise<FormState> {
     return { error: error instanceof Error ? error.message : "Couldn't save." };
   }
 
-  revalidateRecurring(id);
+  revalidateRecurring();
   redirect(`/recurring/${id}`);
 }
 
@@ -152,7 +154,7 @@ export async function setRecurringPaused(
     .update(recurringInvoices)
     .set({ pausedAt: paused ? new Date() : null, nextIssueDate: next })
     .where(eq(recurringInvoices.id, id));
-  revalidateRecurring(id);
+  revalidateRecurring();
   return {};
 }
 

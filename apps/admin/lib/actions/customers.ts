@@ -1,11 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
+import { TAG } from "@/lib/cache-tags";
 import { CURRENCIES } from "@/lib/money";
 import { safeLocalPath } from "@/lib/safe-path";
 import { requireSession } from "@/lib/session";
@@ -70,7 +71,7 @@ export async function saveCustomer(
       .returning({ id: customers.id });
     savedId = created.id;
   }
-  revalidatePath("/customers");
+  updateTag(TAG.customers);
   // Back to where a new customer was started from, e.g. the quote form.
   const returnTo = safeLocalPath(formData.get("returnTo")?.toString());
   if (returnTo) {
@@ -87,6 +88,5 @@ export async function setCustomerArchived(id: string, archived: boolean) {
     .update(customers)
     .set({ archivedAt: archived ? new Date() : null })
     .where(eq(customers.id, id));
-  revalidatePath("/customers");
-  revalidatePath(`/customers/${id}`);
+  updateTag(TAG.customers);
 }
