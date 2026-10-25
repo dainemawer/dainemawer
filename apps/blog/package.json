@@ -15,6 +15,7 @@
     "cfp-scan": "tsx scripts/cfp-scan.mts"
   },
   "dependencies": {
+    "@dm/ui": "workspace:*",
     "@vercel/analytics": "^2.0.1",
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",

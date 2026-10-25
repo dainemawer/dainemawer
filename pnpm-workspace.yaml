@@ -3,8 +3,15 @@ packages:
   - packages/*
 
 allowBuilds:
+  # Only recreate symlinks inside their own native/ folder; apps/admin's
+  # local Postgres for `pnpm dev`. Linux is what Vercel installs: an
+  # unapproved script fails `pnpm install` there.
+  '@embedded-postgres/darwin-arm64': true
+  '@embedded-postgres/linux-x64': true
   esbuild: true
   lefthook: true
 onlyBuiltDependencies:
+  - "@embedded-postgres/darwin-arm64"
+  - "@embedded-postgres/linux-x64"
   - esbuild
   - lefthook

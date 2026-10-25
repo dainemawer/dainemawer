@@ -1,0 +1,68 @@
+/* Shared by apps/blog and apps/admin; each imports it after `@import "tailwindcss"`. */
+
+/*
+ * Design tokens, sourced from the "Minimal blog design" Claude Design
+ * project (claude.ai/design/p/5d4a82a0-ebaa-40bb-af14-59ba9308242a), with
+ * the page background/card treatment corrected per design review: the page
+ * is a plain white surface edge-to-edge, not a floating card on a colored
+ * gradient — no shadow-card/radius-card/brand-gradient tokens exist here.
+ *
+ * Font sizes are a deliberately consolidated scale: the source mockup used
+ * a few sub-pixel variants (13px vs 13.5px, 14px vs 14.5px, 15px) that read
+ * as AI-generation noise rather than intentional distinctions, so each pair
+ * has been merged onto a single step below.
+ */
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* Colors */
+  --color-ink: #111111;
+  --color-muted: #6b6b6b; /* ~5.3:1 on white — WCAG AA for normal text */
+  --color-faint: #767676; /* ~4.5:1 on white — WCAG AA minimum for normal text */
+  --color-divider: #cfcfcf;
+  /* The underline on the contact form's fields. `divider` is ~1.6:1, fine for
+     a decorative rule but not for the only thing marking out a form control —
+     WCAG 1.4.11 wants 3:1 for that. This is ~3.45:1 and still lighter than
+     `faint`, so the fields keep the design's hairline look. */
+  --color-field: #8a8a8a;
+  --color-surface: #ffffff;
+  --color-overlay: rgb(10 32 26 / 32%); /* command palette backdrop */
+
+  /* Type scale */
+  --text-2xs: 0.75rem; /* 12px - kbd / shortcut badges */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.84375rem; /* 13.5px - captions, breadcrumbs, sidebar labels */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.90625rem; /* 14.5px - nav links, meta text, dates */
+  --text-sm--line-height: 1.4;
+  --text-base: 1.0625rem; /* 17px - secondary body: FAQ answers, takeaways */
+  --text-base--line-height: 1.55;
+  --text-md: 1.1875rem; /* 19px - primary prose, deks */
+  --text-md--line-height: 1.6;
+  --text-lg: 1.3125rem; /* 21px - h2 section headings */
+  --text-lg--line-height: 1.3;
+  --text-xl: 1.375rem; /* 22px - post list title */
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.875rem; /* 30px - h1 page title */
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 3rem; /* 48px - article h1 headline */
+  --text-3xl--line-height: 1.1;
+
+  /* Layout constants */
+  --grid-template-columns-shell: 13.25rem 1fr; /* 212px sidebar + content */
+  --grid-template-columns-meta: 6.25rem 1fr; /* 100px label + content row, used across detail pages and post lists */
+  --grid-template-columns-result: 3.875rem 1fr; /* 62px date + content, command palette results */
+  --grid-template-columns-subrow: 8.125rem 1fr; /* 130px label + content, nested detail rows (Uses items) */
+  --spacing-content: 58.875rem; /* 942px, prose column max-width */
+  --spacing-shell: 82.625rem; /* 1322px, overall page max-width */
+  --spacing-palette: 66vh; /* command palette max-height */
+  --spacing-palette-offset: 14vh; /* command palette top offset */
+
+  /* Radius */
+  --radius-palette: 12px;
+
+  /* Shadow */
+  --shadow-palette: 0 30px 70px rgb(0 40 30 / 28%);
+}

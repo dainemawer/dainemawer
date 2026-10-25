@@ -1,0 +1,38 @@
+# Agent Guide — admin
+
+App-specific conventions for `apps/admin` (admin.dainemawer.com: customers, quotes, invoices). Repo-wide conventions live in the [root AGENTS.md](../../AGENTS.md) — read that first. This section is hand-maintained — only the block below it is auto-managed by `next dev`.
+
+## Running it
+
+- `pnpm --filter admin dev` serves on port 3001. It first starts a real local Postgres 17 (the `embedded-postgres` binaries, data in `.data/postgres`), applies migrations and seeds it, then runs `next dev` against it (`db/local.mts`). Don't swap this for an in-process database such as PGlite: `next dev` runs the app in several processes, and they overwrote each other's files.
+- `db:migrate` and `db:seed` are only for a remote database and need `DATABASE_URL` in the shell. `pnpm dev` ignores a `DATABASE_URL` in `.env.local` on purpose: `vercel env pull` writes the production one there.
+- Without `RESEND_API_KEY`, emails (magic links included) are printed to the dev server log instead of sent. Sign in by opening the logged link.
+- Copy `.env.example` to `.env.local`; only `BETTER_AUTH_SECRET` is required locally.
+- `.data/` is disposable: delete it to start from an empty database.
+
+## Conventions
+
+- **Money is integer minor units** (`bigint`, cents) end to end; quantities are hundredths. All arithmetic goes through `lib/totals.ts`, which the editor (live totals), the Server Actions (stored totals) and the PDF share. Never compute totals anywhere else.
+- **Quotes and invoices are one `documents` table** with a `kind`. Every page is shared in `components/document-pages.tsx`; the route files under `app/(app)/quotes` and `app/(app)/invoices` only pass their kind.
+- **`expired` and `overdue` are derived** from dates on read (`displayStatus` in `lib/documents.ts`), never stored. `allowedActions` is the one source of truth for which transitions a status permits; Server Actions re-check it.
+- **Numbers are gapless per kind and year**: allocated by an upsert on `counters` inside the create transaction. That's why invoices are voided, never deleted.
+- **Auth**: Better Auth with magic links, sign-up disabled, one user (`ADMIN_EMAIL`, created by `db:seed`). `proxy.ts` only checks for a session cookie. The real check is `requireSession()`, called by every data read in `lib/queries.ts` / `lib/dashboard.ts` (so no page can show data without a session, however it's laid out), every Server Action, and the PDF route handlers.
+- **Rendering: Cache Components + Partial Prefetching** (`next.config.ts`). Every page is a sync component that renders its headings and buttons into the prerendered static shell, and streams its data behind `<Suspense>` with a fallback from `components/skeletons.tsx`. Never `await` params, searchParams or data at the top of a page or layout; push it into a child inside the boundary. The layout is static too (only the signed-in email streams).
+- **Never put data in the static shell.** The shell is served to anyone who gets past `proxy.ts` (a made-up cookie does). That's why data only comes through the session-gated readers, and why there's no UI-level `"use cache"` on components that render data.
+- **Caching**: the readers call unexported `"use cache: remote"` queries tagged per table (`lib/cache-tags.ts`, `cacheLife("hours")`). Writes expire tags: `updateTag` in Server Actions, `revalidateTag(tag, { expire: 0 })` in the cron route. A write that bypasses those (manual SQL, a script) shows up within the hour or on the next deploy. Anything derived from today's date takes `getToday()` (`lib/today.ts`, cached for minutes) as a value or cache-key argument, never `new Date()` while rendering; actions and the cron use `todayISO()`. `requireSession` is `"use cache: private"` (browser-only, 5-minute stale) so signed-in App Shells can be prefetched; the server still checks every request.
+- `next dev` doesn't serve `use cache` hits the way production does. Check caching with `next build && next start` against the local database.
+- **Recurring invoices** are schedules (`recurring_invoices` + `recurring_lines`) that a daily Vercel Cron (`vercel.json`, 04:00 UTC = 06:00 Cape Town) turns into **draft** invoices via `lib/recurring.ts`, then emails `ADMIN_EMAIL` a list to review. Nothing goes to a client automatically. Dates live in `lib/recurring-dates.ts` (anchor day, month-end fallback, catch-up). Duplicates are impossible: the schedule row is locked while it issues, and `documents` has a unique index on `(recurring_id, recurring_date)`. Cron only runs on production deployments.
+- Shared zod pieces live in `lib/validation.ts` and number allocation in `lib/numbering.ts`, not in the `"use server"` files: every export of those becomes a public Server Action.
+- Server Actions that the client calls for errors return `{ error }` instead of throwing — thrown messages are redacted in production.
+- Schema changes: edit `db/schema.ts`, then `pnpm --filter admin db:generate` and commit the SQL in `db/migrations`. Vercel runs `db:migrate` before production builds only (`vercel.json`): previews share the production database, so a PR must never migrate it.
+- UI is shadcn/ui (`components/ui`, added with the shadcn CLI) themed onto the blog's tokens in `app/globals.css`. Use the semantic classes (`text-muted-foreground`, `bg-muted`); `--color-muted` means a background here, unlike in the blog.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

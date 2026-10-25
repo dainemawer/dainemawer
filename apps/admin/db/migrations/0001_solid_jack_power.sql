@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "documents_source_quote_idx" ON "documents" USING btree ("source_quote_id") WHERE "documents"."kind" = 'invoice' and "documents"."status" <> 'void';
