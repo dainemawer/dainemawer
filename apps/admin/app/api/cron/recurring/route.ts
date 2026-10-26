@@ -1,6 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { TAG } from "@/lib/cache-tags";
-import { isCronRequest } from "@/lib/cron-auth";
+import { isCronRequest, reportCronFailure } from "@/lib/cron-auth";
 import { issueDueInvoices } from "@/lib/recurring";
 
 // Vercel Cron calls this daily (vercel.json). Locally: set CRON_SECRET and
@@ -15,6 +15,12 @@ export async function GET(request: Request) {
     // shows the new drafts instead of a stale list.
     revalidateTag(TAG.documents, { expire: 0 });
     revalidateTag(TAG.recurring, { expire: 0 });
+  }
+  if (failed.length) {
+    await reportCronFailure(
+      "Recurring invoices",
+      `${failed.length} schedule${failed.length === 1 ? "" : "s"} couldn't issue: ${failed.join(", ")}.`,
+    );
   }
   return Response.json(
     { issued: issued.map(({ id, number }) => ({ id, number })), failed },

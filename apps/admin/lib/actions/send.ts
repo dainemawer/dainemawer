@@ -5,6 +5,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { documents, sends } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { ADMIN_EMAIL } from "@/lib/auth";
 import { TAG } from "@/lib/cache-tags";
 import { allowedActions } from "@/lib/documents";
@@ -115,6 +116,10 @@ export async function sendDocument(
     };
   }
 
+  await audit(
+    "document-sent",
+    `${document.number} to ${[...parsed.data.to, ...parsed.data.cc].join(", ")}`,
+  );
   updateTag(TAG.documents);
   return { ok: true };
 }

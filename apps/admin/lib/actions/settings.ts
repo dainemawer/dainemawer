@@ -5,6 +5,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { TAG } from "@/lib/cache-tags";
 import { CURRENCIES } from "@/lib/money";
 import { requireSession } from "@/lib/session";
@@ -60,6 +61,8 @@ export async function saveSettings(
     };
   }
   await db.update(settings).set(parsed.data).where(eq(settings.id, 1));
+  // Bank details live here: a changed account number is worth a record.
+  await audit("settings-saved");
   updateTag(TAG.settings);
   return { ok: true };
 }
