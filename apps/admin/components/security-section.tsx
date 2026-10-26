@@ -3,6 +3,7 @@ import {
   RemovePasskeyButton,
   SignOutOthersButton,
 } from "@/components/security";
+import { Bone, Skeleton, times, widthFor } from "@/components/skeletons";
 import { AUDIT_LABEL } from "@/lib/audit-actions";
 import { getSecurityOverview } from "@/lib/security";
 import { describeDevice } from "@/lib/user-agent";
@@ -157,7 +158,7 @@ function Part({
 }: {
   id: string;
   title: string;
-  description: string;
+  description: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -167,6 +168,76 @@ function Part({
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">{description}</p>
       {children}
+    </section>
+  );
+}
+
+/** The section while it loads: real headings, placeholder rows. */
+export function SecuritySectionSkeleton() {
+  return (
+    <section className="mt-16 grid gap-12 border-t pt-10">
+      <div>
+        <h2 className="text-2xl font-bold">Security</h2>
+        <p className="text-sm text-muted-foreground">
+          Every sign-in is emailed to you and logged below.
+        </p>
+      </div>
+      <Part
+        id="passkeys-loading"
+        title="Passkeys"
+        description={<Bone w="60ch" />}
+      >
+        <ul className="mb-3 divide-y rounded-lg border">
+          <li className="px-4 py-2 text-sm">
+            <Bone w="16ch" />
+          </li>
+        </ul>
+        <Skeleton className="h-9 w-32" />
+      </Part>
+      <Part
+        id="sessions-loading"
+        title="Signed in"
+        description="Each browser that's signed in. Sessions end after a week without use."
+      >
+        <ul className="divide-y rounded-lg border">
+          {times(2, (i) => (
+            <li
+              key={i}
+              className="flex justify-between gap-4 px-4 py-2 text-sm"
+            >
+              <Bone w="14ch" />
+              <span className="text-xs">
+                <Bone w="24ch" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Part>
+      <Part
+        id="activity-loading"
+        title="Activity"
+        description="The last 50 sign-ins, sends and changes to settings, rules and accounts."
+      >
+        <div className="rounded-lg border">
+          <div className="grid grid-cols-3 border-b px-4 py-2 text-xs font-medium text-muted-foreground">
+            <span>When</span>
+            <span>What</span>
+            <span>From</span>
+          </div>
+          {times(4, (i) => (
+            <div
+              key={i}
+              className="grid grid-cols-3 border-b px-4 py-2 text-sm last:border-0"
+            >
+              <Bone w="15ch" />
+              <Bone w={widthFor(i, 1)} />
+              <span className="text-xs">
+                <Bone w="12ch" />
+              </span>
+            </div>
+          ))}
+        </div>
+      </Part>
     </section>
   );
 }
