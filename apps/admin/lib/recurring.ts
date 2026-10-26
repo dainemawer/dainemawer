@@ -14,6 +14,7 @@ import { sendMail } from "@/lib/mail";
 import { formatMoney } from "@/lib/money";
 import { allocateNumber } from "@/lib/numbering";
 import { dueIssueDates, nextIssueDate } from "@/lib/recurring-dates";
+import { sendTelegram } from "@/lib/telegram";
 import { computeTotals } from "@/lib/totals";
 
 // Turns due schedules into draft invoices. Run daily by the cron route
@@ -149,7 +150,7 @@ async function issueSchedule(id: string, today: string): Promise<Issued[]> {
   });
 }
 
-/** One email to the admin listing the new drafts; nothing goes to clients. */
+/** One email (and a Telegram message) to the admin listing the new drafts; nothing goes to clients. */
 async function notify(issued: Issued[], today: string) {
   const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
   const count = issued.length;
@@ -174,4 +175,18 @@ async function notify(issued: Issued[], today: string) {
     // The drafts exist either way; a failed heads-up shouldn't fail the run.
     console.error("[recurring] notification failed", error);
   }
+  await sendTelegram(
+    {
+      title: `${count} recurring invoice${count === 1 ? "" : "s"} ready to review`,
+      lines: issued.map(
+        (invoice) =>
+          `${invoice.number} · ${invoice.company} · ${invoice.total}`,
+      ),
+      url:
+        count === 1
+          ? `${base}/invoices/${issued[0].id}`
+          : `${base}/invoices?status=draft`,
+    },
+    { quiet: true },
+  );
 }

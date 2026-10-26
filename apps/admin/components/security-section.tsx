@@ -2,6 +2,7 @@ import {
   AddPasskeyButton,
   RemovePasskeyButton,
   SignOutOthersButton,
+  TestTelegramButton,
 } from "@/components/security";
 import { Bone, Skeleton, times, widthFor } from "@/components/skeletons";
 import { AUDIT_LABEL } from "@/lib/audit-actions";
@@ -16,7 +17,7 @@ const when = new Intl.DateTimeFormat("en-GB", {
 
 /** Passkeys, signed-in sessions and the audit log, at the bottom of Settings. */
 export async function SecuritySection() {
-  const { passkeys, sessions, events, recoveryOverride } =
+  const { passkeys, sessions, events, recoveryOverride, telegram } =
     await getSecurityOverview();
   return (
     <section
@@ -91,6 +92,18 @@ export async function SecuritySection() {
           ))}
         </ul>
         {sessions.length > 1 ? <SignOutOthersButton /> : null}
+      </Part>
+
+      <Part
+        id="notifications"
+        title="Telegram"
+        description={
+          telegram
+            ? "Sign-ins, passkey and settings changes, and failed jobs buzz your phone. Expenses summaries, recurring drafts and sent documents arrive silently."
+            : "Not connected. Create a bot with @BotFather, send it a message, then run pnpm --filter admin telegram:chat-id. Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to Vercel and redeploy."
+        }
+      >
+        {telegram ? <TestTelegramButton /> : null}
       </Part>
 
       <Part

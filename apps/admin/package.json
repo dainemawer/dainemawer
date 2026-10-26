@@ -9,7 +9,8 @@
     "test": "tsx --test 'tests/*.test.ts'",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env.local --env-file-if-exists=../../.env.local db/migrate.mts",
-    "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=../../.env.local db/seed.mts"
+    "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=../../.env.local db/seed.mts",
+    "telegram:chat-id": "tsx --env-file-if-exists=.env.local scripts/telegram-chat-id.mts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.12",
