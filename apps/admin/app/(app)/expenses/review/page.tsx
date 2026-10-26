@@ -3,9 +3,12 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmButton } from "@/components/expenses/buttons";
 import { ExpensesGate, InvestecError } from "@/components/expenses/gate";
-import { TransactionTable } from "@/components/expenses/transaction-table";
+import {
+  TransactionTable,
+  TransactionTableSkeleton,
+} from "@/components/expenses/transaction-table";
 import { PageHeader } from "@/components/page-header";
-import { Loading, TableSkeleton } from "@/components/skeletons";
+import { Bone, Loading, Skeleton } from "@/components/skeletons";
 import { getReviewQueue, listCategories } from "@/lib/expenses/queries";
 
 export const metadata: Metadata = { title: "Review expenses" };
@@ -20,7 +23,13 @@ export default function ReviewPage() {
       <Suspense
         fallback={
           <Loading>
-            <TableSkeleton rows={6} />
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-sm">
+                <Bone w="10ch" />
+              </p>
+              <Skeleton className="h-9 w-28" />
+            </div>
+            <TransactionTableSkeleton rows={6} actions />
           </Loading>
         }
       >

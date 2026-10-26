@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { GanttChart } from "@/components/gantt-chart";
+import { GanttChart, GanttChartSkeleton } from "@/components/gantt-chart";
 import { PageHeader } from "@/components/page-header";
-import { Loading, Skeleton } from "@/components/skeletons";
+import { Bone, Loading } from "@/components/skeletons";
 import { projects } from "@/lib/projects";
 import { requireSession } from "@/lib/session";
 import { getToday } from "@/lib/today";
@@ -19,7 +19,30 @@ export default function ProjectsPage() {
       <Suspense
         fallback={
           <Loading>
-            <Skeleton className="h-72" />
+            <section className="mb-12">
+              <h2 className="mb-4 text-lg font-bold">Timeline</h2>
+              <GanttChartSkeleton
+                rows={projects.filter((p) => p.startDate).length}
+              />
+            </section>
+            {projects.some((p) => !p.startDate) ? (
+              <section>
+                <h2 className="mb-3 text-lg font-bold">Not scheduled</h2>
+                <ul className="divide-y border-y">
+                  {projects
+                    .filter((p) => !p.startDate)
+                    .map((p) => (
+                      <li
+                        key={p.id}
+                        className="flex justify-between gap-4 py-3 text-sm"
+                      >
+                        <Bone w="12ch" />
+                        <Bone w="7ch" />
+                      </li>
+                    ))}
+                </ul>
+              </section>
+            ) : null}
           </Loading>
         }
       >

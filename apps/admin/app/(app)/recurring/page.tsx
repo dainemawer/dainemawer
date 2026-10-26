@@ -4,7 +4,13 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RecurringStatusBadge } from "@/components/recurring-status";
-import { Loading, TableSkeleton } from "@/components/skeletons";
+import {
+  Bone,
+  Loading,
+  PillBone,
+  times,
+  widthFor,
+} from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -36,13 +42,55 @@ export default function RecurringPage() {
       <Suspense
         fallback={
           <Loading>
-            <TableSkeleton rows={3} />
+            <RecurringSkeleton />
           </Loading>
         }
       >
         <RecurringList />
       </Suspense>
     </>
+  );
+}
+
+function RecurringSkeleton() {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Customer</TableHead>
+          <TableHead>Repeats</TableHead>
+          <TableHead>Next invoice</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Amount</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {times(3, (i) => (
+          <TableRow key={i} className="hover:bg-transparent">
+            <TableCell>
+              <div className="font-medium">
+                <Bone w={widthFor(i)} />
+              </div>
+              <div className="text-xs">
+                <Bone w={widthFor(i, 3)} />
+              </div>
+            </TableCell>
+            <TableCell>
+              <Bone w="7ch" />
+            </TableCell>
+            <TableCell>
+              <Bone w="10ch" />
+            </TableCell>
+            <TableCell>
+              <PillBone w="3.25rem" />
+            </TableCell>
+            <TableCell className="text-right">
+              <Bone w="9ch" />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

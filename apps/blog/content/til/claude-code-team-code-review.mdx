@@ -1,0 +1,19 @@
+---
+title: How the Claude Code team reviews code when Claude writes most of it
+date: '2026-10-26'
+tags:
+  - ai
+  - code-review
+---
+
+Addy Osmani's article, [How the Claude Code team does code review](https://x.com/i/article/2114435487905808384), describes a setup where Claude writes about 90% of Claude Code's code. From June to September, merged PRs more than doubled and the share of reverted PRs fell by over 40%.
+
+The aim is for most PRs to merge with at most one human in the loop, without more reverts or incidents. Human time counts as a cost, including time spent fixing bad code.
+
+A few things I took from it:
+
+- **Layers, then rollback.** Pre-PR verification, AI review on every PR, a security review that can block a merge, CI checks, human approval scaled to risk, then a merge queue with feature flags and staged rollouts. Fast revert is the last safeguard.
+- **Approval depends on the change, not the author.** Agent approvals don't count as human ones, and an approval covers a single commit, so new pushes need a fresh look.
+- **Cap the review loop.** One PR bounced between an agent author and an agent reviewer more than fifty times overnight. The team now limits it to about three cycles.
+- **Explainers instead of diff-reading.** Engineers ask Claude to explain the part of the code they're about to change.
+- **"You land it, you own it."** Whoever fixes an issue owns it, and incident reviews look at the system rather than the person.
