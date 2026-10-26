@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { auditEvents, passkey, session } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { requireSession } from "@/lib/session";
+import { telegramConfigured } from "@/lib/telegram";
 
 /**
  * Everything the Security section shows. Never cached: a session you just
@@ -49,5 +50,6 @@ export async function getSecurityOverview() {
     })),
     events,
     recoveryOverride: process.env.ALLOW_EMAIL_SIGN_IN === "1",
+    telegram: telegramConfigured(),
   };
 }

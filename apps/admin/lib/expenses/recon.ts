@@ -30,6 +30,7 @@ import {
 } from "@/lib/expenses/transactions";
 import { sendMail } from "@/lib/mail";
 import { formatMoney } from "@/lib/money";
+import { sendTelegram } from "@/lib/telegram";
 
 // The expenses pipeline. Everything here is idempotent: labels are only
 // ever inserted for transactions that have none (a second concurrent run
@@ -422,4 +423,19 @@ async function sendSummary(labelled: Labelled[], today: string) {
     // The labels are saved either way; a failed email mustn't fail the run.
     console.error("[expenses] summary email failed", error);
   }
+  await sendTelegram(
+    {
+      title: `Expenses: ${money(out)} out, ${money(incoming)} in`,
+      lines: [
+        pending.length
+          ? `${pending.length} transaction${pending.length === 1 ? "" : "s"} to review`
+          : null,
+        duplicates.length
+          ? `${duplicates.length} possible duplicate charge${duplicates.length === 1 ? "" : "s"}`
+          : null,
+      ],
+      url: pending.length ? `${base}/expenses/review` : `${base}/expenses`,
+    },
+    { quiet: true },
+  );
 }

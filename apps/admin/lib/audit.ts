@@ -2,7 +2,13 @@ import "server-only";
 import { headers as requestHeaders } from "next/headers";
 import { db } from "@/db";
 import { auditEvents } from "@/db/schema";
-import type { AuditAction } from "@/lib/audit-actions";
+import {
+  AUDIT_LABEL,
+  AUDIT_TELEGRAM,
+  type AuditAction,
+} from "@/lib/audit-actions";
+import { appUrl, sendTelegram } from "@/lib/telegram";
+import { describeDevice } from "@/lib/user-agent";
 
 /** Where a request came from, as Vercel reports it. Empty fields outside Vercel. */
 export function requestOrigin(headers: Headers | null | undefined) {
@@ -22,23 +28,42 @@ export function requestOrigin(headers: Headers | null | undefined) {
 }
 
 /**
- * Records one event in the audit log. Never throws: a failed write is
- * logged, and whatever was being done carries on (sign-in must not fail
- * because the log couldn't be written).
+ * Records one event in the audit log, and sends it to Telegram if
+ * AUDIT_TELEGRAM says so. Never throws: a failed write is logged, and
+ * whatever was being done carries on (sign-in must not fail because the
+ * log couldn't be written).
  */
 export async function audit(
   action: AuditAction,
   detail?: string | null,
   headers?: Headers | null,
 ) {
+  const from = headers ?? (await requestHeaders().catch(() => null));
+  const origin = requestOrigin(from);
   try {
-    const from = headers ?? (await requestHeaders().catch(() => null));
     await db.insert(auditEvents).values({
       action,
       detail: detail ?? null,
-      ...requestOrigin(from),
+      ...origin,
     });
   } catch (error) {
     console.error(`audit(${action}) failed`, error);
+  }
+  const level = AUDIT_TELEGRAM[action];
+  if (level) {
+    await sendTelegram(
+      {
+        title: detail
+          ? `${AUDIT_LABEL[action]} · ${detail}`
+          : AUDIT_LABEL[action],
+        lines: [
+          [origin.location, origin.ipAddress].filter(Boolean).join(" · ") ||
+            null,
+          origin.userAgent ? describeDevice(origin.userAgent) : null,
+        ],
+        url: level === "alert" ? appUrl("/settings#security") : undefined,
+      },
+      { quiet: level === "quiet" },
+    );
   }
 }
