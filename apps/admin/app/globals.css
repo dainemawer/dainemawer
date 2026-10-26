@@ -4,6 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The sidebar's state, set on <html> by components/sidebar-toggle.tsx (and
+   before first paint by app/layout.tsx). Pair with md: — phones have no
+   sidebar to collapse. */
+@custom-variant sidebar-collapsed (&:where(html[data-sidebar="collapsed"] *));
+@custom-variant sidebar-expanded (&:where(
+    html:not([data-sidebar="collapsed"]) *
+  ));
+
 /*
  * shadcn/ui's semantic variables, pointed at the blog's palette from
  * @dm/ui/theme.css so the admin reads as the same site: white surface,

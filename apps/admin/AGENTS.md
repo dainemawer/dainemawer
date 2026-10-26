@@ -26,6 +26,8 @@ App-specific conventions for `apps/admin` (admin.dainemawer.com: customers, quot
 - Shared zod pieces live in `lib/validation.ts` and number allocation in `lib/numbering.ts`, not in the `"use server"` files: every export of those becomes a public Server Action.
 - Server Actions that the client calls for errors return `{ error }` instead of throwing — thrown messages are redacted in production.
 - Schema changes: edit `db/schema.ts`, then `pnpm --filter admin db:generate` and commit the SQL in `db/migrations`. Vercel runs `db:migrate` before production builds only (`vercel.json`): previews share the production database, so a PR must never migrate it.
+- **Sidebar**: pages and groups are listed once in `components/app-nav.tsx`. Collapsing to icons is CSS keyed off `<html data-sidebar="collapsed">` (the `sidebar-collapsed` / `sidebar-expanded` variants in `globals.css`), set by `components/sidebar-toggle.tsx` and restored before first paint by the inline script in `app/layout.tsx`, so the layout stays a static shell. Collapsed, every page is its own icon; groups only exist expanded.
+- **Emails**: anything with an HTML version lives in `lib/emails/` as tables and inline styles, always with a plain-text `text` too. Images come from `public/email/`, which `proxy.ts` serves without a session; reference them by the absolute origin of the link in the email.
 - UI is shadcn/ui (`components/ui`, added with the shadcn CLI) themed onto the blog's tokens in `app/globals.css`. Use the semantic classes (`text-muted-foreground`, `bg-muted`); `--color-muted` means a background here, unlike in the blog.
 
 <!-- BEGIN:nextjs-agent-rules -->

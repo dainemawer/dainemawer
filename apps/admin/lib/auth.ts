@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { signInEmail } from "@/lib/emails/sign-in";
 import { sendMail } from "@/lib/mail";
 
 /** The one address that can log in. The matching user row is created by `pnpm db:seed`. */
@@ -28,11 +29,7 @@ export const auth = betterAuth({
       // admin's actually receives a link.
       async sendMagicLink({ email, url }) {
         if (email.trim().toLowerCase() !== ADMIN_EMAIL) return;
-        await sendMail({
-          to: [email],
-          subject: "Your admin.dainemawer.com sign-in link",
-          text: `Sign in to admin.dainemawer.com:\n\n${url}\n\nThis link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.`,
-        });
+        await sendMail({ to: [email], ...signInEmail({ url, minutes: 15 }) });
       },
     }),
     // Must stay last: lets Server Actions set Better Auth's cookies.
