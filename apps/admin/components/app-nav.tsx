@@ -30,20 +30,22 @@ const dashboard: NavItem = {
   label: "Dashboard",
   icon: LayoutDashboard,
 };
+// Groups and the pages in them are alphabetical. Dashboard stays first and
+// Settings last, the way most apps anchor them.
 const groups: { label: string; items: NavItem[] }[] = [
-  {
-    label: "Work",
-    items: [
-      { href: "/quotes", label: "Quotes", icon: FileText },
-      { href: "/invoices", label: "Invoices", icon: Receipt },
-      { href: "/recurring", label: "Recurring", icon: Repeat },
-      { href: "/customers", label: "Customers", icon: Users },
-      { href: "/projects", label: "Projects", icon: ChartGantt },
-    ],
-  },
   {
     label: "Finance",
     items: [{ href: "/expenses", label: "Expenses", icon: Wallet }],
+  },
+  {
+    label: "Work",
+    items: [
+      { href: "/customers", label: "Customers", icon: Users },
+      { href: "/invoices", label: "Invoices", icon: Receipt },
+      { href: "/projects", label: "Projects", icon: ChartGantt },
+      { href: "/quotes", label: "Quotes", icon: FileText },
+      { href: "/recurring", label: "Recurring", icon: Repeat },
+    ],
   },
 ];
 const settings: NavItem = {
