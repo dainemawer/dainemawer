@@ -10,9 +10,11 @@ import { requireSession } from "@/lib/session";
 // email streams in, and each page gates its own data (lib/queries.ts), so
 // nothing here waits on the session. Collapsing is pure CSS off
 // <html data-sidebar> (components/sidebar-toggle.tsx), so it stays static too.
+// Collapsed, the shell drops its max width so the icon rail sits on the
+// screen's left edge, and the content takes the shell's width instead.
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="mx-auto grid min-h-svh max-w-shell content-start md:grid-cols-shell md:sidebar-collapsed:grid-cols-[4.25rem_1fr] md:motion-safe:transition-[grid-template-columns]">
+    <div className="mx-auto grid min-h-svh max-w-shell content-start md:grid-cols-shell md:sidebar-collapsed:max-w-none md:sidebar-collapsed:grid-cols-[4.25rem_1fr]">
       <aside className="flex flex-col gap-8 border-b px-4 py-5 md:sticky md:top-0 md:h-svh md:overflow-x-hidden md:overflow-y-auto md:border-r md:border-b-0 md:px-6 md:py-8 md:sidebar-collapsed:items-center md:sidebar-collapsed:px-0">
         <div className="flex items-start justify-between gap-2 md:sidebar-collapsed:flex-col md:sidebar-collapsed:items-center md:sidebar-collapsed:gap-4">
           <Link
@@ -45,7 +47,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           <SignOutButton />
         </div>
       </aside>
-      <main className="min-w-0 px-4 py-6 md:px-10 md:py-8">{children}</main>
+      <main className="min-w-0 px-4 py-6 md:px-10 md:py-8 md:sidebar-collapsed:mx-auto md:sidebar-collapsed:w-full md:sidebar-collapsed:max-w-shell">
+        {children}
+      </main>
     </div>
   );
 }
