@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { AuditAction } from "@/lib/audit-actions";
 import type { DocumentKind, StoredStatus } from "@/lib/documents";
 import type { CategoryKind, LabelSource } from "@/lib/expenses/transactions";
 import type { Currency } from "@/lib/money";
@@ -86,6 +87,53 @@ export const rateLimit = pgTable("rate_limit", {
   count: integer().notNull(),
   lastRequest: bigint({ mode: "number" }).notNull(),
 });
+
+/** Better Auth's passkey plugin (lib/auth.ts). */
+export const passkey = pgTable(
+  "passkey",
+  {
+    id: text().primaryKey(),
+    name: text(),
+    publicKey: text().notNull(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialID: text().notNull(),
+    counter: integer().notNull(),
+    deviceType: text().notNull(),
+    backedUp: boolean().notNull(),
+    transports: text(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow(),
+    aaguid: text(),
+  },
+  (t) => [
+    index("passkey_user_idx").on(t.userId),
+    index("passkey_credential_idx").on(t.credentialID),
+  ],
+);
+
+/* ---------- Security ---------- */
+
+/**
+ * What happened to the account and its data: sign-ins, passkeys, sends and
+ * the changes that steer the expenses classifier. Shown in Settings, and
+ * never edited.
+ */
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    action: text().$type<AuditAction>().notNull(),
+    /** A short human sentence: "INV-2026-0004 to sam@acme.com". */
+    detail: text(),
+    ipAddress: text(),
+    userAgent: text(),
+    /** "Cape Town, ZA", from Vercel's geolocation headers. */
+    location: text(),
+  },
+  (t) => [index("audit_events_at_idx").on(t.at)],
+);
 
 /* ---------- Invoicing ---------- */
 

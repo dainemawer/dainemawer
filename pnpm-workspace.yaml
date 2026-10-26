@@ -21,3 +21,7 @@ onlyBuiltDependencies:
 overrides:
   source-map-js: ^1.2.2
   "@vercel/cli-config>zod": ^4.6.6
+
+# Supply-chain cooling-off: a version must be a day old before pnpm will
+# resolve it, so a hijacked release is usually caught and pulled first.
+minimumReleaseAge: 1440

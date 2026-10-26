@@ -29,6 +29,13 @@
       "when": 1792992187933,
       "tag": "0003_groovy_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793022705278,
+      "tag": "0004_sparkling_hairball",
+      "breakpoints": true
     }
   ]
 }

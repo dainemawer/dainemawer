@@ -13,6 +13,7 @@ import {
   expenseNotes,
   expenseRules,
 } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { TAG } from "@/lib/cache-tags";
 import { addDays, todayISO } from "@/lib/documents";
 import { errorMessage } from "@/lib/errors";
@@ -229,6 +230,7 @@ export async function relabelTransaction(
           set: { categoryId: label.categoryId, deductible: label.deductible },
         })
         .returning();
+      await audit("expense-rule-saved", `"${pattern}"`);
       const rules = await db.select().from(expenseRules);
       window = await fetchIncluded(addDays(today, -HISTORY_DAYS), today);
       const matches = window.filter(
@@ -328,7 +330,11 @@ export async function deleteNote(id: string): Promise<ActionResult> {
 /** Labels it already made stay; it just stops applying to new transactions. */
 export async function deleteRule(id: string): Promise<ActionResult> {
   await requireSession();
-  await db.delete(expenseRules).where(eq(expenseRules.id, id));
+  const [rule] = await db
+    .delete(expenseRules)
+    .where(eq(expenseRules.id, id))
+    .returning({ pattern: expenseRules.pattern });
+  if (rule) await audit("expense-rule-deleted", `"${rule.pattern}"`);
   updateTag(TAG.expenses);
   return {};
 }
@@ -350,6 +356,10 @@ export async function setAccountIncluded(
       )
       .returning();
     if (changed) {
+      await audit(
+        "expense-account-changed",
+        `${changed.name} ${included ? "included" : "excluded"}`,
+      );
       const [category] = await db
         .select({ id: expenseCategories.id })
         .from(expenseCategories)

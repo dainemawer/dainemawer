@@ -14,8 +14,8 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         <LogoMark className="mb-10 h-5 w-auto text-ink" />
         <h1 className="text-2xl font-bold">Admin</h1>
         <p className="mt-2 mb-8 text-sm text-muted-foreground">
-          Quotes, invoices and customers. Sign in with a link sent to your
-          email.
+          Quotes, invoices, customers and expenses. Sign in with your passkey,
+          or a link sent to your email.
         </p>
         <Suspense fallback={<LoginForm linkError={null} />}>
           <Form searchParams={searchParams} />
