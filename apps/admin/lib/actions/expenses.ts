@@ -1,6 +1,7 @@
 "use server";
 
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { AISDKError } from "ai";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -14,6 +15,7 @@ import {
 } from "@/db/schema";
 import { TAG } from "@/lib/cache-tags";
 import { addDays, todayISO } from "@/lib/documents";
+import { errorMessage } from "@/lib/errors";
 import { type ProposedCategory, proposeCategories } from "@/lib/expenses/ai";
 import { investecConfigured } from "@/lib/expenses/investec";
 import {
@@ -32,13 +34,18 @@ import {
   monthOf,
   monthsBetween,
   postingDateFromId,
+  type Transaction,
 } from "@/lib/expenses/transactions";
 import { requireSession } from "@/lib/session";
 
 type ActionResult = { error?: string };
 
+// AI Gateway's own errors (out of credits, model unavailable) say what to
+// fix, so they're shown; anything else gets the action's generic message.
 const failed = (error: unknown, fallback: string) => ({
-  error: error instanceof Error ? error.message : fallback,
+  error: AISDKError.isInstance(error)
+    ? `AI Gateway: ${error.message}`
+    : errorMessage(error, fallback),
 });
 
 const categorySchema = z.object({
@@ -185,6 +192,8 @@ export async function relabelTransaction(
   const today = todayISO();
   const months = [monthOf(postingDateFromId(label.transactionId) ?? today)];
   let applied = 0;
+  // Set when remembering a rule, which reads the whole history window anyway.
+  let window: Transaction[] | undefined;
   try {
     await db
       .insert(expenseLabels)
@@ -221,9 +230,8 @@ export async function relabelTransaction(
         })
         .returning();
       const rules = await db.select().from(expenseRules);
-      const matches = (
-        await fetchIncluded(addDays(today, -HISTORY_DAYS), today)
-      ).filter(
+      window = await fetchIncluded(addDays(today, -HISTORY_DAYS), today);
+      const matches = window.filter(
         (tx) =>
           tx.id !== label.transactionId &&
           matchRule(tx.description, rules)?.id === rule.id,
@@ -246,31 +254,37 @@ export async function relabelTransaction(
           ).map((row) => row.id),
         );
         const targets = matches.filter((tx) => !mine.has(tx.id));
-        for (const tx of targets) {
-          const values = {
-            categoryId: rule.categoryId,
-            deductible: rule.deductible && tx.type === "DEBIT",
-            source: "rule" as const,
-            confidence: null,
-            needsReview: false,
-          };
+        if (targets.length) {
+          // One upsert for every match; `excluded` is each row's own values.
           await db
             .insert(expenseLabels)
-            .values({
-              transactionId: tx.id,
-              accountId: tx.accountId,
-              ...values,
-            })
+            .values(
+              targets.map((tx) => ({
+                transactionId: tx.id,
+                accountId: tx.accountId,
+                categoryId: rule.categoryId,
+                deductible: rule.deductible && tx.type === "DEBIT",
+                source: "rule" as const,
+                confidence: null,
+                needsReview: false,
+              })),
+            )
             .onConflictDoUpdate({
               target: expenseLabels.transactionId,
-              set: values,
+              set: {
+                categoryId: sql`excluded.category_id`,
+                deductible: sql`excluded.deductible`,
+                source: sql`excluded.source`,
+                confidence: sql`excluded.confidence`,
+                needsReview: sql`excluded.needs_review`,
+              },
             });
-          months.push(monthOf(tx.postingDate));
+          months.push(...targets.map((tx) => monthOf(tx.postingDate)));
         }
         applied = targets.length;
       }
     }
-    await recomputeMonths(months);
+    await recomputeMonths(months, today, window);
   } catch (error) {
     return failed(error, "Couldn't save the label.");
   }

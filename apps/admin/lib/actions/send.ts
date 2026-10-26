@@ -8,6 +8,7 @@ import { documents, sends } from "@/db/schema";
 import { ADMIN_EMAIL } from "@/lib/auth";
 import { TAG } from "@/lib/cache-tags";
 import { allowedActions } from "@/lib/documents";
+import { errorMessage } from "@/lib/errors";
 import { sendMail } from "@/lib/mail";
 import { getDocument, getSettings } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
@@ -109,9 +110,8 @@ export async function sendDocument(
         .where(eq(documents.id, id));
     });
   } catch (error) {
-    console.error("sendDocument failed", error);
     return {
-      error: `Not sent: ${error instanceof Error ? error.message : "unknown error"}.`,
+      error: `Not sent: ${errorMessage(error, "something went wrong")}.`,
     };
   }
 

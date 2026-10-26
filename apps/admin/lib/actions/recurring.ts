@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { recurringInvoices, recurringLines } from "@/db/schema";
 import { TAG } from "@/lib/cache-tags";
 import { todayISO } from "@/lib/documents";
+import { errorMessage, UserError } from "@/lib/errors";
 import { CURRENCIES } from "@/lib/money";
 import { INTERVALS, nextIssueDate } from "@/lib/recurring-dates";
 import { requireSession } from "@/lib/session";
@@ -99,7 +100,7 @@ export async function saveRecurring(input: RecurringInput): Promise<FormState> {
           .set(values)
           .where(eq(recurringInvoices.id, schedule.id))
           .returning({ id: recurringInvoices.id });
-        if (!updated) throw new Error("Recurring invoice not found.");
+        if (!updated) throw new UserError("Recurring invoice not found.");
         await tx
           .delete(recurringLines)
           .where(eq(recurringLines.recurringId, schedule.id));
@@ -123,7 +124,7 @@ export async function saveRecurring(input: RecurringInput): Promise<FormState> {
       return recurringId;
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Couldn't save." };
+    return { error: errorMessage(error, "Couldn't save.") };
   }
 
   revalidateRecurring();

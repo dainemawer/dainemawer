@@ -22,6 +22,8 @@ const CLASSIFY_MODEL = "anthropic/claude-haiku-5.5";
 const PROPOSE_MODEL = "anthropic/claude-sonnet-5.5";
 
 const BATCH = 60;
+/** Batches sent to the model at once. */
+const CONCURRENCY = 4;
 
 /** Below this the label is kept but goes to Review. */
 export const REVIEW_THRESHOLD = 0.75;
@@ -134,6 +136,8 @@ export async function classifyMerchants(
     return results;
   }
 
+  // Narrowed here for classifyBatch below, which TypeScript can't see through.
+  const llm: LanguageModel = model;
   const names = input.categories.map((c) => c.name) as [string, ...string[]];
   const system = `You categorise bank transactions for a personal budget. ${CONTEXT}
 
@@ -161,10 +165,9 @@ ${
 }
 For each transaction give the category, whether it's a deductible business expense (only ever true for money out), and your confidence from 0 to 1. Be honest about confidence: an ambiguous merchant name, or one that could be personal or business, is below 0.75.`;
 
-  for (let start = 0; start < merchants.length; start += BATCH) {
-    const batch = merchants.slice(start, start + BATCH);
+  async function classifyBatch(batch: Merchant[]) {
     const { output } = await generateText({
-      model,
+      model: llm,
       output: Output.object({
         schema: z.object({
           results: z.array(
@@ -194,6 +197,16 @@ For each transaction give the category, whether it's a deductible business expen
         confidence: result.confidence,
       });
     }
+  }
+
+  // A few batches at a time: the first sync labels hundreds of merchants,
+  // and one request after another made setup slow.
+  const batches: Merchant[][] = [];
+  for (let start = 0; start < merchants.length; start += BATCH) {
+    batches.push(merchants.slice(start, start + BATCH));
+  }
+  for (let i = 0; i < batches.length; i += CONCURRENCY) {
+    await Promise.all(batches.slice(i, i + CONCURRENCY).map(classifyBatch));
   }
   return results;
 }

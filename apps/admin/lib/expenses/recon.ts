@@ -39,8 +39,12 @@ import { formatMoney } from "@/lib/money";
 
 /** How far back the first sync, and corrections, reach: Investec's default history. */
 export const HISTORY_DAYS = 180;
-/** The daily run re-reads this many days, so a missed run (or a late-posting card) is caught up. */
-const CATCH_UP_DAYS = 14;
+/**
+ * Totals are grouped by posting date, but Investec filters by purchase date,
+ * so a fetch for a month starts this many days early to catch purchases
+ * that posted inside it.
+ */
+const POSTING_LAG_DAYS = 14;
 
 /** Refreshes the account list from Investec. New accounts start excluded, except the main Private Bank account. */
 export async function syncAccounts() {
@@ -196,33 +200,55 @@ export async function labelTransactions(
  * cut off part-way (it would drag every average down), and older months
  * keep what's stored, so the history outlives the API's window. A month
  * Investec returns nothing for is left alone too.
+ *
+ * `window` is the included accounts' transactions over the whole history
+ * window, for callers that just fetched them; otherwise the months are read
+ * in one request rather than one per month.
  */
-export async function recomputeMonths(months: string[], today = todayISO()) {
-  const ids = await includedAccountIds();
-  if (!ids.length) return;
+export async function recomputeMonths(
+  months: string[],
+  today = todayISO(),
+  window?: Transaction[],
+) {
   const earliest = addDays(today, -HISTORY_DAYS);
-  for (const month of [...new Set(months)].sort()) {
-    if (month < earliest) continue;
-    const transactions = await getAllTransactions(ids, month, monthEnd(month));
-    if (!transactions.length) continue;
-    const labels = await db
-      .select()
-      .from(expenseLabels)
-      .where(
-        inArray(
-          expenseLabels.transactionId,
-          transactions.map((tx) => tx.id),
-        ),
-      );
-    const totals = monthlyTotals(
-      transactions,
-      new Map(labels.map((label) => [label.transactionId, label])),
-    ).filter((total) => total.month === month);
-    await db.transaction(async (tx) => {
-      await tx.delete(expenseMonthly).where(eq(expenseMonthly.month, month));
-      if (totals.length) await tx.insert(expenseMonthly).values(totals);
-    });
+  const wanted = [...new Set(months)].filter((m) => m >= earliest).sort();
+  if (!wanted.length) return;
+  let transactions = window;
+  if (!transactions) {
+    const ids = await includedAccountIds();
+    if (!ids.length) return;
+    transactions = await getAllTransactions(
+      ids,
+      addDays(wanted[0], -POSTING_LAG_DAYS),
+      monthEnd(wanted[wanted.length - 1]),
+    );
   }
+  const inRange = transactions.filter((tx) =>
+    wanted.includes(monthOf(tx.postingDate)),
+  );
+  if (!inRange.length) return;
+  const labels = await db
+    .select()
+    .from(expenseLabels)
+    .where(
+      inArray(
+        expenseLabels.transactionId,
+        inRange.map((tx) => tx.id),
+      ),
+    );
+  const totals = monthlyTotals(
+    inRange,
+    new Map(labels.map((label) => [label.transactionId, label])),
+  );
+  const seen = new Set(inRange.map((tx) => monthOf(tx.postingDate)));
+  await db.transaction(async (tx) => {
+    for (const month of wanted) {
+      if (!seen.has(month)) continue;
+      const rows = totals.filter((total) => total.month === month);
+      await tx.delete(expenseMonthly).where(eq(expenseMonthly.month, month));
+      if (rows.length) await tx.insert(expenseMonthly).values(rows);
+    }
+  });
 }
 
 /** The first sync, or after including another account: labels and totals for the whole history window. */
@@ -230,13 +256,15 @@ export async function backfill(today = todayISO()) {
   const from = addDays(today, -HISTORY_DAYS);
   const transactions = await fetchIncluded(from, today);
   const labelled = await labelTransactions(transactions);
-  await recomputeMonths(monthsBetween(from, today), today);
+  await recomputeMonths(monthsBetween(from, today), today, transactions);
   return labelled;
 }
 
 /**
- * The daily run (app/api/cron/expenses): label what's new, refresh this
- * month's (and, early on, last month's) totals, email a summary.
+ * The daily run (app/api/cron/expenses): label what's new and email a
+ * summary. It reads the whole history window (one request per account), so
+ * a missed run, a late-posting card or an earlier failed AI call is caught
+ * up, and every month's totals are recomputed from scratch.
  */
 export async function runRecon({
   email = true,
@@ -253,10 +281,7 @@ export async function runRecon({
     return { skipped: "Expenses aren't set up yet.", labelled: 0, review: 0 };
 
   await syncAccounts();
-  const from = addDays(today, -CATCH_UP_DAYS);
-  const transactions = await fetchIncluded(from, today);
-  const labelled = await labelTransactions(transactions);
-  await recomputeMonths(monthsBetween(from, today), today);
+  const labelled = await backfill(today);
   const review = labelled.filter((l) => l.needsReview).length;
   if (email && labelled.length) await sendSummary(labelled, today);
   return { skipped: null, labelled: labelled.length, review };

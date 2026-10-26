@@ -17,7 +17,7 @@ import { formatMoney } from "@/lib/money";
 import { getToday } from "@/lib/today";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Transactions" };
+export const metadata: Metadata = { title: "Expense transactions" };
 
 export default function TransactionsPage({
   searchParams,
