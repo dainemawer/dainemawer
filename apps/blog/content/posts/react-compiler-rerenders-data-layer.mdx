@@ -1,0 +1,101 @@
+---
+title: React Compiler Removed Half My Re-render Bugs. The Other Half Aren't in Component Code
+dek: I measured eight common re-render causes with and without React Compiler, then gave the survivors to an agent. The compiler handles what's in the component. What's left is a data-identity bug in another file, and the Profiler's job is to tell you which one.
+date: '2026-10-26'
+topics:
+  - react-native
+  - javascript
+  - ai
+shortAnswer: "With React Compiler on, most re-renders caused by component code disappear: inline props, parent state, components defined inside render. The ones left come from new object references created outside render, in store selectors, refetches and keys minted with data. Use the Profiler to find where that reference is created, then fix it there."
+takeaways:
+  - "In this run, React Compiler 1.0 eliminated four of eight measured re-render causes outright and partly fixed a fifth. All three it couldn't touch created a new reference outside render: a store selector, a polling refetch, and a key minted when data arrived."
+  - "React.memo did nothing for the causes the compiler missed. A memoized child still re-rendered five times out of five when its prop was a fresh array or a freshly parsed object."
+  - "Six agent attempts at the three surviving cases all produced working fixes at the data layer, and none reached for useMemo or React.memo. Five of the six changed a component's props or context shape, which the agent couldn't check callers for."
+  - "The useful debugging question with the compiler on isn't which component should be memoized. It's where the new reference is created. Answer that with the Profiler, then hand the agent that file, not the screen that flickers."
+  - "Review agent re-render fixes as contract changes. A selector that now returns a count, or a context split in two, changes what every other consumer receives."
+faq:
+  - question: Does React Compiler stop all unnecessary re-renders in React Native?
+    answer: "No. It caches values and JSX created during render, so it removes re-renders caused by inline objects, inline callbacks and parent state changes. It can't help when a new reference arrives from outside render, such as a store selector that returns a new array, a refetch that parses a new object, or a list key generated when data loads."
+  - question: How do I find out why a React Native component re-rendered?
+    answer: "Open React Native DevTools, turn on Highlight updates when components render in the Components panel's settings, and reproduce the interaction. Then record in the Profiler and select the component to see why it rendered. Follow the prop or state that changed back to the line where its new reference is created."
+  - question: Should I still use React.memo with React Compiler?
+    answer: "Rarely. For components the compiler compiles, it already does that work. In my measurements React.memo also failed on the cases the compiler missed, because the prop really was a new reference each time. Fix the reference at its source instead."
+  - question: Can an AI coding agent fix React re-render problems?
+    answer: "Yes, if you give it the file where the unstable reference is created. In this run, agents produced working data-layer fixes for all three test cases. The risk is scope: most fixes changed a component's props or context shape, so check every consumer before merging."
+needsRewrite: false
+---
+
+I expected the agent to reach for `useMemo`. It didn't, not once in six tries. The fixes it wrote were correct, which tells you where the hard part of re-render debugging has gone: with React Compiler on, the work is no longer deciding what to memoize. It's finding the file where a new reference gets created, and that file is usually not the component that keeps re-rendering.
+
+React's 1.0 announcement for the compiler says new Expo apps on SDK 54 and later start with it enabled, and the post reports what it did in Meta's production apps: initial loads and cross-page navigations up to 12% faster, and some interactions more than 2.5 times faster. So the compiler is becoming the default. The useful question is what it leaves behind, and I wanted a measured answer, not a vibe.
+
+## Which re-render causes React Compiler fixes
+
+I set up a scratch project with React 19.3.1, `react-test-renderer` and `babel-plugin-react-compiler` 1.0.0. I wrote eight small components, each reproducing one common re-render cause. I compiled the same source twice, once plain and once through the compiler. Each case got five updates that shouldn't have affected the target component, and I counted how many times it rendered (with a `Profiler` and an effect) and how many times it remounted.
+
+This is a test renderer, not a device. It counts renders and doesn't time frames, so it tells you whether a cause survives the compiler, not how much it costs on a mid-range Android phone.
+
+| Cause | No compiler | Compiler 1.0 | Where the fix lives |
+| --- | --- | --- | --- |
+| Parent state changes, child props are constants | 5 renders | 0 | Compiler handles it |
+| Inline `style={{}}` and `onPress={() => {}}` props | 5 renders | 0 | Compiler handles it |
+| Component defined inside the parent's render | 5 renders, 5 remounts | 0 | Compiler handles it |
+| `key={Math.random()}` in render | 5 renders, 5 remounts | 0 | Compiler hides it (see below) |
+| Context value has a fast field the consumer doesn't read | 5 consumer renders | 5 consumer renders, child shielded | Split the context |
+| Store selector returns `items.filter(...)` | 5 renders | 5 | Selector or equality check |
+| Polling refetch returns the same payload as a new object | 5 renders | 5 | Structural sharing at the fetch |
+| Key generated when data arrives | 5 renders, 5 remounts | 5 renders, 5 remounts | Stable IDs in the data |
+
+Four causes disappeared, one was half fixed, and three didn't move. All three that survived share one property: the new reference was created outside render, in a subscription callback, a `fetch` handler or a state setter. The compiler only caches what it can see during render, so it has nothing to work with.
+
+I also ran the reflexive fix. Wrapping the target in `React.memo` changed nothing for the store selector or the refetch: five renders out of five, with and without the compiler. `memo` compares props by reference, and the prop really was a new array or object each time. Making the selector return a shallow-compared result, or keeping the previous object when the payload hadn't changed, took both cases to zero.
+
+The `Math.random()` row needs a footnote. The compiler cached the key along with the JSX, so the random value was computed once and the remounts stopped. That's an accident of an impure call being memoized, not a fix. The same bug moved into the data layer, where the key is minted when rows arrive, stays broken at five remounts out of five.
+
+## What the agent did with the survivors
+
+Next I gave the three surviving cases to fresh Claude subagents, written as React Native screens with a header comment saying the compiler was on. Each case ran twice. One prompt just said the component "re-renders more often than it should. Fix it." The other made the agent first name which value changes identity and where that identity is created, and say whether the compiler already covers it, before proposing anything.
+
+All six fixes were reasonable, and all six went to the data layer:
+
+- **Store selector:** both runs changed the selector to return a count instead of a filtered array.
+- **Refetch:** the bare prompt changed the child to take `name` instead of `user`. The evidence-first prompt kept the prop and added structural sharing in the setter, returning `prev` when the payload was unchanged.
+- **Context:** both runs split the context into a theme context and a clock context.
+
+I re-measured two of them in the harness. The count selector took the store case to zero. The `name` prop fix also went to zero, but only with the compiler on. Without it the parent still re-renders on every poll and drags the child with it. The agent had been told the compiler was on, so the fix was correct, but it only works because of that.
+
+The evidence-first prompt didn't change the outcome here. Its explanations were better and it was the only run to keep a component's props intact, but the bare prompt got the same results. That's because I'd already done the hard part for it. Each snippet contained both the symptom and the cause in about twenty lines.
+
+In a real app those are in different files. The screen that flickers renders a row, the row reads a selector from a store module, and the store is fed by a query hook in a third place. Point an agent at the screen and ask it to stop the flicker, and the cause isn't in its context. Memoization is the fix it can write without leaving the file.
+
+Five of the six fixes also changed a contract: a prop renamed or retyped, a context export removed and replaced with two new ones. Two agents said outright that they hadn't checked who else imported the thing they'd changed. They couldn't have, because they'd been told to read one file. That's the review risk, and it doesn't show up in a diff that looks this tidy.
+
+## How to debug a re-render with React Compiler on
+
+This is the order I'd follow now, for me or for an agent:
+
+1. **Confirm the compiler covers the component.** React DevTools marks compiled components with a Memo ✨ badge in the Components tree. No badge means the compiler skipped it, and you're debugging a lint problem, not a render problem. My first harness run hit exactly this: I reassigned a module-level variable inside seven components, and the compiler skipped all seven without a build error. It only showed up in the compiler's logger output.
+2. **See the re-render before you reason about it.** Turn on "Highlight updates when components render" in the Components panel's View Settings and reproduce the interaction. You want the component that flashes when it shouldn't.
+3. **Record a profile and ask why.** In the Profiler, select the commit and the component. If your version of the panel offers "Record why each component rendered while profiling", turn it on first, so the panel shows which props, state or hooks changed.
+4. **Trace the changed value to where it's created.** This is most of the work. Follow the prop back through the parent, the selector and the fetch until you reach the line that makes a new object, array or key. With the compiler on, that line is almost never in render.
+5. **Hand the agent that file, plus the trace.** "The `done` prop on `DoneCount` changes identity on every store update; it comes from this selector" gets you a two-line fix. "The settings screen re-renders too much" gets you a guess.
+6. **Review the fix as an API change.** Search for every consumer of anything whose shape changed, and re-profile to confirm the render count dropped.
+
+The Profiler is easy to misread, too. My first measurement of the context case used a `Profiler` wrapped around the consumer inside a compiled parent. It reported zero re-renders with the compiler on. An effect counter in the consumer itself said five. The compiler had memoized the `Profiler` element, and its callback didn't fire for the context-driven re-render underneath it. I didn't dig into why. I switched to counting in effects and kept both counters side by side for the rest of the run. If a number looks too good, count it a second way.
+
+## Where this stops being true
+
+The test renderer counts renders. It doesn't measure how long a render takes, and on a device a cheap extra render of a `Text` is often irrelevant. Five renders in this table could cost nothing, or could be the reason a `FlatList` drops frames. Measure frames on a real device before you spend a review cycle on it.
+
+Eight hand-written cases aren't a survey of real codebases either. They're the common shapes, isolated. Real screens combine several, and the compiler's coverage depends on how much of your code follows the Rules of React. A codebase full of components the compiler skips will still need memoization in places, and the old advice still applies there.
+
+Six agent runs is an anecdote, not an eval. What I'm confident about is the direction, not a rate: when the cause is in the agent's context it fixes the right thing, and when it isn't, it can't.
+
+The context row is also more nuanced than the table makes it look. The compiler shielded the child, so the consumer's re-render was cheap: it re-ran, compared its inputs, and returned cached JSX. Splitting the context, as both agents did, is the textbook fix, but it's a bigger change than the problem may justify once the compiler is doing its part. Sometimes the right call is to leave it.
+
+## Further reading
+
+- [React Compiler v1.0](https://react.dev/blog/2025/10/07/react-compiler-1), React blog
+- [React Native DevTools](https://reactnative.dev/docs/react-native-devtools), React Native docs
+- [Render optimizations](https://tanstack.com/query/latest/docs/framework/react/guides/render-optimizations), TanStack Query docs on structural sharing
+- [Adopting React Compiler Without Breaking Production](/react-compiler-production-checklist), the rollout order for turning the compiler on
