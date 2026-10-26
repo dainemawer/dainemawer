@@ -10,4 +10,6 @@ export const TAG = {
   settings: "settings",
   recurring: "recurring",
   expenses: "expenses",
+  /** Linear projects: expired by its webhook, not by a table write. */
+  projects: "projects",
 } as const;
