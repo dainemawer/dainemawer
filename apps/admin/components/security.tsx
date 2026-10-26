@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { signOutOtherSessions } from "@/lib/actions/security";
+import { sendTestTelegram, signOutOtherSessions } from "@/lib/actions/security";
 import { authClient } from "@/lib/auth-client";
 import { describeDevice } from "@/lib/user-agent";
 
@@ -93,6 +93,19 @@ export function SignOutOthersButton() {
       onClick={() => run(signOutOtherSessions, "Other sessions signed out.")}
     >
       {pending ? "Signing out…" : "Sign out other sessions"}
+    </Button>
+  );
+}
+
+export function TestTelegramButton() {
+  const [pending, run] = useSecurityAction();
+  return (
+    <Button
+      variant="outline"
+      disabled={pending}
+      onClick={() => run(sendTestTelegram, "Sent. Check Telegram.")}
+    >
+      {pending ? "Sending…" : "Send a test message"}
     </Button>
   );
 }
