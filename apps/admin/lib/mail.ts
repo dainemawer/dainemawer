@@ -1,5 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
+import { UserError } from "@/lib/errors";
 
 // Every email this app sends goes through here: magic links and documents.
 // Without RESEND_API_KEY (local dev) nothing is sent and the message is
@@ -49,6 +50,7 @@ export async function sendMail(mail: Mail): Promise<{ id: string | null }> {
     },
     mail.idempotencyKey ? { idempotencyKey: mail.idempotencyKey } : undefined,
   );
-  if (error) throw new Error(`Resend: ${error.message}`);
+  // Resend's message says what to fix ("invalid to address").
+  if (error) throw new UserError(`Resend: ${error.message}`);
   return { id: data?.id ?? null };
 }

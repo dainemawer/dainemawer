@@ -1,4 +1,5 @@
 import "server-only";
+import { UserError } from "@/lib/errors";
 import type { Transaction } from "@/lib/expenses/transactions";
 
 // Investec Private Banking API (read-only use): accounts and posted
@@ -24,7 +25,7 @@ let token: { value: string; expiresAt: number } | null = null;
 
 async function accessToken(): Promise<string> {
   if (token && token.expiresAt > Date.now()) return token.value;
-  if (!investecConfigured()) throw new Error("Investec isn't configured.");
+  if (!investecConfigured()) throw new UserError("Investec isn't configured.");
   const basic = Buffer.from(
     `${process.env.INVESTEC_CLIENT_ID}:${process.env.INVESTEC_CLIENT_SECRET}`,
   ).toString("base64");
@@ -40,7 +41,7 @@ async function accessToken(): Promise<string> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(`Investec sign-in failed (${response.status}).`);
+    throw new UserError(`Investec sign-in failed (${response.status}).`);
   }
   const body = (await response.json()) as {
     access_token: string;
@@ -64,7 +65,7 @@ async function get<T>(path: string): Promise<T> {
   });
   if (response.status === 401) token = null;
   if (!response.ok) {
-    throw new Error(`Investec request failed (${response.status}).`);
+    throw new UserError(`Investec request failed (${response.status}).`);
   }
   return (await response.json()) as T;
 }

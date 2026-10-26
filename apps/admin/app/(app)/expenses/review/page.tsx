@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { Loading, TableSkeleton } from "@/components/skeletons";
 import { getReviewQueue, listCategories } from "@/lib/expenses/queries";
 
-export const metadata: Metadata = { title: "Review" };
+export const metadata: Metadata = { title: "Review expenses" };
 
 export default function ReviewPage() {
   return (

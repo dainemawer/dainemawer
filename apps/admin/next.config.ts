@@ -54,6 +54,13 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "same-origin" },
+          // Nothing here needs device features. Loosen one deliberately
+          // (e.g. microphone=(self) for a voice feature) when it does.
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), serial=(), hid=(), midi=(), browsing-topics=(), interest-cohort=()",
+          },
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains",

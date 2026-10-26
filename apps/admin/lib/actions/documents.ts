@@ -14,6 +14,7 @@ import {
   type DocumentKind,
   todayISO,
 } from "@/lib/documents";
+import { errorMessage, UserError } from "@/lib/errors";
 import { CURRENCIES } from "@/lib/money";
 import { allocateNumber } from "@/lib/numbering";
 import { getDocument, getSettings } from "@/lib/queries";
@@ -116,9 +117,9 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
           .from(documents)
           .where(and(eq(documents.id, doc.id), eq(documents.kind, doc.kind)))
           .for("update");
-        if (!existing) throw new Error("Document not found.");
+        if (!existing) throw new UserError("Document not found.");
         if (!allowedActions(existing.kind, existing.status).edit) {
-          throw new Error(
+          throw new UserError(
             `A ${existing.status} ${existing.kind} can't be edited.`,
           );
         }
@@ -158,7 +159,7 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
       return documentId;
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Couldn't save." };
+    return { error: errorMessage(error, "Couldn't save.") };
   }
 
   revalidateDocuments();

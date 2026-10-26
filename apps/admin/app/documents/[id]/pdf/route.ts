@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { auth } from "@/lib/auth";
 import { getDocument, getSettings } from "@/lib/queries";
 import { pdfFilename, renderDocumentPdf } from "@/pdf/render";
@@ -15,10 +16,28 @@ export async function GET(
   const full = await getDocument(id);
   if (!full) return new Response("Not found", { status: 404 });
 
-  const pdf = await renderDocumentPdf({
-    settings: await getSettings(),
-    ...full,
-  });
+  const input = { settings: await getSettings(), ...full };
+  // Rendering is the slow part, and the preview reloads on every visit. The
+  // ETag is a hash of everything the PDF is drawn from (plus the deployment,
+  // for template changes), so an unchanged document is a 304, not a render.
+  const etag = `"${createHash("sha256")
+    .update(process.env.VERCEL_DEPLOYMENT_ID ?? "local")
+    .update(
+      JSON.stringify(input, (_, value) =>
+        typeof value === "bigint" ? value.toString() : value,
+      ),
+    )
+    .digest("base64url")}"`;
+  const headers = {
+    ETag: etag,
+    // Kept by the browser, but checked with the server on every use.
+    "Cache-Control": "private, no-cache",
+  };
+  if (request.headers.get("if-none-match") === etag) {
+    return new Response(null, { status: 304, headers });
+  }
+
+  const pdf = await renderDocumentPdf(input);
   const filename = pdfFilename(full.document.number, full.customer.company);
   const disposition = new URL(request.url).searchParams.has("download")
     ? "attachment"
@@ -27,7 +46,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${disposition}; filename="${filename}"`,
-      "Cache-Control": "private, no-store",
+      ...headers,
     },
   });
 }

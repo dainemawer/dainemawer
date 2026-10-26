@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils";
 // filled in ink to the project's progress. A project without a target date
 // runs to today on a track that fades out, so the open end reads as unknown
 // rather than finished. HTML rather than SVG so the labels stay legible at phone
-// width; the sr-only table is the text view.
+// width. Only the drawn timeline is hidden from screen readers: the project
+// links and progress beside it stay reachable, and the sr-only table gives
+// the dates.
 
 type Scheduled = Project & { startDate: string };
 
@@ -46,7 +48,7 @@ export function GanttChart({
         />
       </div>
 
-      <div aria-hidden="true">
+      <div>
         <Row label={null}>
           {months.map((m) => (
             <span
@@ -176,7 +178,10 @@ function Row({
       >
         {label}
       </div>
-      <div className={cn("relative", label ? "h-7 md:h-12" : "h-5")}>
+      <div
+        aria-hidden="true"
+        className={cn("relative", label ? "h-7 md:h-12" : "h-5")}
+      >
         {children}
       </div>
     </div>

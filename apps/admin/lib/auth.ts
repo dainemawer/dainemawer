@@ -15,7 +15,9 @@ export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? "hello@dainemawer.com")
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
-  session: { expiresIn: 60 * 60 * 24 * 30 },
+  // A week, sliding: each day you use the app pushes it out again, so an
+  // idle session (a lost laptop, a shared browser) ends within 7 days.
+  session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
   rateLimit: {
     storage: "database",
     customRules: { "/sign-in/magic-link": { window: 15 * 60, max: 5 } },
