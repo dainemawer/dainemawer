@@ -7,12 +7,14 @@ import {
   integer,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import type { DocumentKind, StoredStatus } from "@/lib/documents";
+import type { CategoryKind, LabelSource } from "@/lib/expenses/transactions";
 import type { Currency } from "@/lib/money";
 import type { Interval } from "@/lib/recurring-dates";
 
@@ -291,6 +293,96 @@ export const settings = pgTable("settings", {
     .$onUpdate(() => new Date()),
 });
 
+/* ---------- Expenses (personal Investec accounts) ---------- */
+// Transactions themselves are never stored: they're fetched from Investec
+// on demand. What's kept is only what the app adds: a category per
+// transaction ID, the rules and notes the classifier learns from, and
+// monthly totals so trends outlive Investec's history window.
+
+/** Investec accounts the app has seen; only `included` ones are analysed. */
+export const expenseAccounts = pgTable("expense_accounts", {
+  accountId: text().primaryKey(),
+  name: text().notNull(),
+  productName: text().notNull(),
+  included: boolean().notNull().default(false),
+  ...timestamps,
+});
+
+export const expenseCategories = pgTable("expense_categories", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull().unique(),
+  /** Spending and income count towards totals; transfers between your own accounts don't. */
+  kind: text().$type<CategoryKind>().notNull(),
+  /** What belongs here, in words: the classifier reads it. */
+  description: text(),
+  position: integer().notNull().default(0),
+  ...timestamps,
+});
+
+/** One per Investec transaction (its `uuid`): the category and nothing else about it. */
+export const expenseLabels = pgTable(
+  "expense_labels",
+  {
+    transactionId: text().primaryKey(),
+    accountId: text().notNull(),
+    categoryId: uuid()
+      .notNull()
+      .references(() => expenseCategories.id),
+    deductible: boolean().notNull().default(false),
+    source: text().$type<LabelSource>().notNull(),
+    /** The classifier's confidence (0–1); null for rules and your own labels. */
+    confidence: real(),
+    /** Set when the classifier wasn't sure; cleared once you confirm or correct it. */
+    needsReview: boolean().notNull().default(false),
+    ...timestamps,
+  },
+  (t) => [
+    index("expense_labels_review_idx")
+      .on(t.needsReview)
+      .where(sql`${t.needsReview}`),
+  ],
+);
+
+/** "Descriptions containing PATTERN are CATEGORY": learned from your corrections. */
+export const expenseRules = pgTable("expense_rules", {
+  id: uuid().primaryKey().defaultRandom(),
+  /** Matched against the normalised merchant (lib/expenses/transactions.ts). */
+  pattern: text().notNull().unique(),
+  categoryId: uuid()
+    .notNull()
+    .references(() => expenseCategories.id, { onDelete: "cascade" }),
+  deductible: boolean().notNull().default(false),
+  ...timestamps,
+});
+
+/** Free-text context the classifier reads on every run. */
+export const expenseNotes = pgTable("expense_notes", {
+  id: uuid().primaryKey().defaultRandom(),
+  body: text().notNull(),
+  ...timestamps,
+});
+
+/** Totals per category per month (month = its first day), recomputed from Investec. */
+export const expenseMonthly = pgTable(
+  "expense_monthly",
+  {
+    month: date({ mode: "string" }).notNull(),
+    categoryId: uuid()
+      .notNull()
+      .references(() => expenseCategories.id, { onDelete: "cascade" }),
+    /** Debits and credits kept apart: a refund is money in on a spending category. */
+    outMinor: money().notNull().default(0),
+    inMinor: money().notNull().default(0),
+    deductibleOutMinor: money().notNull().default(0),
+    count: integer().notNull().default(0),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [primaryKey({ columns: [t.month, t.categoryId] })],
+);
+
 export type Customer = typeof customers.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
@@ -298,3 +390,6 @@ export type Send = typeof sends.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type RecurringInvoice = typeof recurringInvoices.$inferSelect;
 export type RecurringLine = typeof recurringLines.$inferSelect;
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type ExpenseLabel = typeof expenseLabels.$inferSelect;
+export type ExpenseRule = typeof expenseRules.$inferSelect;
