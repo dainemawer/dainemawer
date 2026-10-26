@@ -9,4 +9,5 @@ export const TAG = {
   documents: "documents",
   settings: "settings",
   recurring: "recurring",
+  expenses: "expenses",
 } as const;

@@ -15,6 +15,7 @@
     "@dm/ui": "workspace:*",
     "@react-pdf/renderer": "4.9.0",
     "@vercel/blob": "2.8.2",
+    "ai": "7.0.153",
     "better-auth": "1.7.12",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
