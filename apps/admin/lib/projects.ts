@@ -1,9 +1,13 @@
-// Static mock of the Linear workspace (team Yield) as it stood on
-// 2026-10-25, for designing the timeline before the real integration.
-// Names, statuses and dates are copied from Linear; progress figures are
-// illustrative except Silver Lake Marine's, which averages its milestones.
+// The Projects page's data: live from Linear (lib/linear.ts) when
+// LINEAR_API_KEY is set. Without it (local dev), SAMPLE_PROJECTS stands in:
+// the workspace as it stood on 2026-10-25, with illustrative progress.
 
-export type ProjectStatus = "backlog" | "started" | "paused" | "completed";
+export type ProjectStatus =
+  | "backlog"
+  | "planned"
+  | "started"
+  | "paused"
+  | "completed";
 
 export type Project = {
   id: string;
@@ -17,10 +21,16 @@ export type Project = {
   url: string;
 };
 
+/** Linear reports project progress as 0–1 and milestones as a "%"; accept either. */
+export function fraction(value: number) {
+  const v = value > 1 ? value / 100 : value;
+  return Math.min(1, Math.max(0, v));
+}
+
 const linear = (slug: string) =>
   `https://linear.app/weareyield/project/${slug}`;
 
-export const projects: Project[] = [
+export const SAMPLE_PROJECTS: Project[] = [
   {
     id: "P-YIELD-5",
     name: "Silver Lake Marine",
