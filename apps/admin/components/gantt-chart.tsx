@@ -1,3 +1,4 @@
+import { Bone, times, widthFor } from "@/components/skeletons";
 import { addDays, formatDate } from "@/lib/documents";
 import type { Project } from "@/lib/projects";
 import { cn } from "@/lib/utils";
@@ -221,4 +222,53 @@ function monthLabel(iso: string) {
     month: "short",
     timeZone: "UTC",
   }).format(new Date(`${iso}T00:00:00Z`));
+}
+
+/** The chart's frame while it loads: legend, rows and bars, no data. */
+export function GanttChartSkeleton({ rows = 6 }: { rows?: number }) {
+  const bars = [
+    [4, 38],
+    [18, 30],
+    [30, 46],
+    [8, 22],
+    [44, 34],
+    [56, 26],
+  ];
+  return (
+    <div aria-hidden="true">
+      <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <Legend className="bg-ink" label="Done" />
+        <Legend className="bg-[#e4e4e4]" label="Remaining" />
+        <Legend
+          className="bg-linear-to-r from-[#e4e4e4] to-transparent"
+          label="No target date"
+        />
+      </div>
+      <Row label={null}>{null}</Row>
+      {times(rows, (i) => {
+        const [left, width] = bars[i % bars.length];
+        return (
+          <Row
+            key={i}
+            label={
+              <>
+                <span className="block text-sm font-medium">
+                  <Bone w={widthFor(i, 2)} />
+                </span>
+                <span className="block text-2xs">
+                  <Bone w="12ch" />
+                </span>
+              </>
+            }
+          >
+            <span
+              className="absolute top-1/2 h-3 -translate-y-1/2 animate-pulse rounded bg-muted motion-reduce:animate-none"
+              style={{ left: `${left}%`, width: `${width}%` }}
+            />
+          </Row>
+        );
+      })}
+      <Row label={null}>{null}</Row>
+    </div>
+  );
 }
