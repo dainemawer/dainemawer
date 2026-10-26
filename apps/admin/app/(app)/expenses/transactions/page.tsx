@@ -3,9 +3,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { ExpensesGate, InvestecError } from "@/components/expenses/gate";
-import { TransactionTable } from "@/components/expenses/transaction-table";
+import {
+  TransactionTable,
+  TransactionTableSkeleton,
+} from "@/components/expenses/transaction-table";
 import { PageHeader } from "@/components/page-header";
-import { Loading, TableSkeleton } from "@/components/skeletons";
+import { Bone, Loading, PillBone, times } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import {
   type LabelledTransaction,
@@ -31,7 +34,7 @@ export default function TransactionsPage({
       <Suspense
         fallback={
           <Loading>
-            <TableSkeleton rows={12} />
+            <TransactionsSkeleton />
           </Loading>
         }
       >
@@ -39,6 +42,35 @@ export default function TransactionsPage({
           <Transactions searchParams={searchParams} />
         </ExpensesGate>
       </Suspense>
+    </>
+  );
+}
+
+function TransactionsSkeleton() {
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled>
+            ←
+          </Button>
+          <span className="min-w-36 text-center font-medium">
+            <Bone w="12ch" />
+          </span>
+          <Button variant="outline" size="sm" disabled>
+            →
+          </Button>
+        </div>
+        <p className="text-sm">
+          <Bone w="26ch" />
+        </p>
+      </div>
+      <div className="mb-6 flex flex-wrap gap-1.5">
+        {times(9, (i) => (
+          <PillBone key={i} w={["2.25rem", "5rem", "4rem", "6rem"][i % 4]} />
+        ))}
+      </div>
+      <TransactionTableSkeleton rows={12} />
     </>
   );
 }

@@ -10,7 +10,13 @@ import {
 import { CategoryEditor } from "@/components/expenses/categories";
 import { ExpensesGate } from "@/components/expenses/gate";
 import { PageHeader } from "@/components/page-header";
-import { Loading, Skeleton, TableSkeleton } from "@/components/skeletons";
+import {
+  Bone,
+  Loading,
+  Skeleton,
+  times,
+  widthFor,
+} from "@/components/skeletons";
 import { getExpenseSettings, getExpensesState } from "@/lib/expenses/queries";
 
 export const metadata: Metadata = { title: "Expenses settings" };
@@ -25,8 +31,7 @@ export default function ExpensesSettingsPage() {
       <Suspense
         fallback={
           <Loading>
-            <Skeleton className="mb-10 h-24" />
-            <TableSkeleton rows={8} />
+            <SettingsSkeleton />
           </Loading>
         }
       >
@@ -35,6 +40,71 @@ export default function ExpensesSettingsPage() {
         </ExpensesGate>
       </Suspense>
     </>
+  );
+}
+
+/** The real section headings, with placeholder accounts, categories and rules. */
+function SettingsSkeleton() {
+  return (
+    <div className="grid gap-12">
+      <Section
+        id="accounts"
+        title="Accounts"
+        description="Only included accounts are analysed. Including one labels its last six months; excluding one takes it out of the totals."
+      >
+        <ul className="mb-3 grid gap-2">
+          {times(3, (i) => (
+            <li key={i} className="flex items-center gap-2 text-sm">
+              <span className="size-4 rounded-sm border" />
+              <Bone w={widthFor(i, 4)} />
+              <span className="text-xs">
+                <Bone w="10ch" />
+              </span>
+            </li>
+          ))}
+        </ul>
+        <Skeleton className="h-9 w-36" />
+      </Section>
+      <Section
+        id="categories"
+        title="Categories"
+        description="The AI reads each description to decide what goes where. A category can only be deleted once nothing uses it."
+      >
+        <ul className="divide-y border-y">
+          {times(6, (i) => (
+            <li
+              key={i}
+              className="grid gap-2 py-3 sm:grid-cols-[12rem_auto_1fr_auto] sm:items-center"
+            >
+              <div className="flex h-9 items-center rounded-md border px-3 text-sm">
+                <Bone w={widthFor(i, 1)} />
+              </div>
+              <div className="h-9 rounded-md border sm:w-52" />
+              <div className="flex h-9 items-center rounded-md border px-3 text-sm">
+                <Bone w={widthFor(i, 4)} />
+              </div>
+              <div className="flex gap-1 px-3 text-sm text-muted-foreground">
+                <span className="px-1">Save</span>
+                <span className="px-1">Delete</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section
+        id="rules"
+        title="Rules"
+        description="Learned when you change a category and tick “Always do this”. Rules apply before the AI, so these merchants are never guessed."
+      >
+        <ul className="divide-y border-y">
+          {times(4, (i) => (
+            <li key={i} className="py-2 text-sm">
+              <Bone w={widthFor(i, 2)} />
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </div>
   );
 }
 

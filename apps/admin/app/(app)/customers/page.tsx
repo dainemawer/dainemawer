@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { Loading, TableSkeleton } from "@/components/skeletons";
+import { Bone, Loading, times, widthFor } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -25,13 +25,64 @@ export default function CustomersPage({
     <Suspense
       fallback={
         <Loading>
-          <PageHeader title="Customers" />
-          <TableSkeleton />
+          <CustomersSkeleton />
         </Loading>
       }
     >
       <Customers searchParams={searchParams} />
     </Suspense>
+  );
+}
+
+function CustomersSkeleton() {
+  return (
+    <>
+      <PageHeader
+        title="Customers"
+        actions={<Button disabled>New customer</Button>}
+      />
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="h-9 w-64 rounded-md border border-input" />
+        <span className="text-sm text-muted-foreground">Show archived</span>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Customer</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Currency</TableHead>
+            <TableHead className="text-right">Outstanding</TableHead>
+            <TableHead className="text-right">Paid</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {times(5, (i) => (
+            <TableRow key={i} className="hover:bg-transparent">
+              <TableCell>
+                <div className="font-medium">
+                  <Bone w={widthFor(i)} />
+                </div>
+                <div className="text-xs">
+                  <Bone w={widthFor(i, 5)} />
+                </div>
+              </TableCell>
+              <TableCell>
+                <Bone w={widthFor(i, 2)} />
+              </TableCell>
+              <TableCell>
+                <Bone w="3ch" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Bone w="9ch" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Bone w="9ch" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </>
   );
 }
 

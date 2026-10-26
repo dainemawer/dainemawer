@@ -6,10 +6,12 @@ import { ExpensesGate } from "@/components/expenses/gate";
 import { SpendingChart } from "@/components/expenses/spending-chart";
 import { PageHeader } from "@/components/page-header";
 import {
+  BarChartSkeleton,
+  Bone,
   Loading,
-  Skeleton,
-  StatsSkeleton,
-  TableSkeleton,
+  StatBone,
+  times,
+  widthFor,
 } from "@/components/skeletons";
 import {
   Table,
@@ -47,9 +49,7 @@ export default function ExpensesPage() {
       <Suspense
         fallback={
           <Loading>
-            <StatsSkeleton count={4} />
-            <Skeleton className="mb-12 h-48" />
-            <TableSkeleton rows={8} />
+            <OverviewSkeleton />
           </Loading>
         }
       >
@@ -57,6 +57,72 @@ export default function ExpensesPage() {
           <Overview />
         </ExpensesGate>
       </Suspense>
+    </>
+  );
+}
+
+/** The overview's layout, with placeholders for Investec's numbers. */
+function OverviewSkeleton() {
+  return (
+    <>
+      <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <StatBone note />
+        <StatBone note />
+        <StatBone label="Deductible this tax year" note />
+        <StatBone label="To review" note />
+      </div>
+      <p className="mb-10 text-sm">
+        <Bone w="34ch" />
+      </p>
+      <section className="mb-12">
+        <h2 className="text-lg font-bold">Spending per month</h2>
+        <p className="mb-4 text-sm">
+          <Bone w="48ch" />
+        </p>
+        <BarChartSkeleton height={200} />
+      </section>
+      <section>
+        <h2 className="mb-1 text-lg font-bold">
+          <Bone w="16ch" />
+        </h2>
+        <p className="mb-4 text-sm">
+          <Bone w="56ch" />
+        </p>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead className="hidden w-1/3 sm:table-cell" />
+              <TableHead className="text-right">This month</TableHead>
+              <TableHead className="text-right">Average</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">
+                Change
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {times(8, (i) => (
+              <TableRow key={i} className="hover:bg-transparent">
+                <TableCell className="font-medium">
+                  <Bone w={widthFor(i, 3)} />
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">
+                  <div className="h-2 rounded-full bg-muted" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Bone w="9ch" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Bone w="9ch" />
+                </TableCell>
+                <TableCell className="hidden text-right sm:table-cell">
+                  <Bone w="8ch" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </section>
     </>
   );
 }
@@ -145,7 +211,13 @@ async function Overview() {
         </Stat>
       </dl>
 
-      <Suspense fallback={<p className="mb-10 h-5" />}>
+      <Suspense
+        fallback={
+          <p className="mb-10 text-sm">
+            <Bone w="34ch" />
+          </p>
+        }
+      >
         <Balance />
       </Suspense>
 

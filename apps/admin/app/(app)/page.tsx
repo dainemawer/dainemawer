@@ -5,10 +5,11 @@ import { EmptyState } from "@/components/empty-state";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { PageHeader } from "@/components/page-header";
 import {
+  BarChartSkeleton,
+  Bone,
   Loading,
-  Skeleton,
-  StatsSkeleton,
-  TableSkeleton,
+  times,
+  widthFor,
 } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { activeCurrencies, getDashboard } from "@/lib/dashboard";
@@ -41,17 +42,72 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
       <Suspense
         fallback={
           <Loading>
-            <StatsSkeleton count={6} />
-            <Skeleton className="mb-12 h-56" />
-            <div className="grid gap-12 lg:grid-cols-2">
-              <TableSkeleton rows={3} />
-              <TableSkeleton rows={3} />
-            </div>
+            <DashboardSkeleton />
           </Loading>
         }
       >
         <Dashboard searchParams={searchParams} />
       </Suspense>
+    </>
+  );
+}
+
+/** The dashboard as it will look, with placeholders where the numbers go. */
+function DashboardSkeleton() {
+  const value = <Bone w="9ch" />;
+  const note = <Bone w="11ch" />;
+  const rows = (secondary: boolean) =>
+    times(4, (i) => (
+      <Row
+        key={i}
+        primary={<Bone w={widthFor(i)} />}
+        secondary={secondary ? <Bone w={widthFor(i, 3)} /> : undefined}
+        amount={<Bone w="8ch" />}
+      />
+    ));
+  return (
+    <>
+      <dl className="mb-12 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-3 xl:grid-cols-6">
+        <Tile label="Outstanding" value={value} note={note} />
+        <Tile label="Overdue" value={value} note={note} />
+        <Tile label="Paid this month" value={value} />
+        <Tile label="Paid this year" value={value} />
+        <Tile label="Open quotes" value={value} note={note} />
+        <Tile label="Quote win rate" value={<Bone w="4ch" />} note={note} />
+      </dl>
+      <section className="mb-12">
+        <h2 className="mb-4 text-lg font-bold">
+          Invoiced and paid, last 12 months
+        </h2>
+        <figure>
+          <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-sm bg-[#c4c4c4]" />
+              Invoiced
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-sm bg-ink" />
+              Paid
+            </span>
+          </div>
+          <BarChartSkeleton height={220} paired />
+        </figure>
+      </section>
+      <div className="grid gap-12 lg:grid-cols-2">
+        {(
+          [
+            ["Overdue", true],
+            ["Quotes awaiting a reply", true],
+            ["Top customers this year", false],
+            ["Recent activity", true],
+          ] as const
+        ).map(([title, secondary]) => (
+          <section key={title}>
+            <h2 className="mb-3 text-lg font-bold">{title}</h2>
+            <List>{rows(secondary)}</List>
+          </section>
+        ))}
+      </div>
     </>
   );
 }
@@ -236,8 +292,8 @@ function Tile({
   tone,
 }: {
   label: string;
-  value: string;
-  note?: string;
+  value: React.ReactNode;
+  note?: React.ReactNode;
   href?: string;
   tone?: "alert";
 }) {
@@ -274,33 +330,41 @@ function List({ children }: { children: React.ReactNode }) {
   return <ul className="divide-y border-y">{children}</ul>;
 }
 
+/** Without `href` (the skeleton) the row is plain, not a link. */
 function Row({
   href,
   primary,
   secondary,
   amount,
 }: {
-  href: string;
-  primary: string;
-  secondary?: string;
-  amount: string;
+  href?: string;
+  primary: React.ReactNode;
+  secondary?: React.ReactNode;
+  amount: React.ReactNode;
 }) {
+  const content = (
+    <>
+      <span className="min-w-0">
+        <span className="block truncate font-medium">{primary}</span>
+        {secondary ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            {secondary}
+          </span>
+        ) : null}
+      </span>
+      <span className="shrink-0 tabular-nums">{amount}</span>
+    </>
+  );
+  const className = "flex items-baseline justify-between gap-4 py-2.5 text-sm";
   return (
     <li>
-      <Link
-        href={href}
-        className="flex items-baseline justify-between gap-4 py-2.5 text-sm hover:bg-muted/60"
-      >
-        <span className="min-w-0">
-          <span className="block truncate font-medium">{primary}</span>
-          {secondary ? (
-            <span className="block truncate text-xs text-muted-foreground">
-              {secondary}
-            </span>
-          ) : null}
-        </span>
-        <span className="shrink-0 tabular-nums">{amount}</span>
-      </Link>
+      {href ? (
+        <Link href={href} className={cn(className, "hover:bg-muted/60")}>
+          {content}
+        </Link>
+      ) : (
+        <div className={className}>{content}</div>
+      )}
     </li>
   );
 }
