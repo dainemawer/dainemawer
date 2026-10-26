@@ -19,6 +19,8 @@ type Mail = {
   replyTo?: string;
   subject: string;
   text: string;
+  /** Optional HTML version; `text` is always sent alongside it. */
+  html?: string;
   attachments?: { filename: string; content: Buffer }[];
   idempotencyKey?: string;
 };
@@ -42,6 +44,7 @@ export async function sendMail(mail: Mail): Promise<{ id: string | null }> {
       replyTo: mail.replyTo,
       subject: mail.subject,
       text: mail.text,
+      html: mail.html,
       attachments: mail.attachments,
     },
     mail.idempotencyKey ? { idempotencyKey: mail.idempotencyKey } : undefined,

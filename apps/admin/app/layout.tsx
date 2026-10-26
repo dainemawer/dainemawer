@@ -27,7 +27,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${figtree.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // The script below may set data-sidebar before React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        {/* Restores a collapsed sidebar before first paint, so the
+            prerendered shell doesn't flash open (sidebar-toggle.tsx). */}
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no user input
+          dangerouslySetInnerHTML={{
+            __html: `try{localStorage.getItem("sidebar")==="collapsed"&&(document.documentElement.dataset.sidebar="collapsed")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full font-sans">
         {children}
         <Toaster position="bottom-right" />
