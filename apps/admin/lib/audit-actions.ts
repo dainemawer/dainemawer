@@ -15,3 +15,21 @@ export const AUDIT_LABEL = {
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_LABEL;
+
+/**
+ * Which audit events also go to Telegram (lib/audit.ts): "alert" buzzes
+ * your phone, "quiet" arrives silently, null stays in the log only.
+ */
+export const AUDIT_TELEGRAM: Record<AuditAction, "alert" | "quiet" | null> = {
+  "sign-in": "alert",
+  "sign-in-blocked": "alert",
+  "sessions-revoked": "alert",
+  "passkey-added": "alert",
+  "passkey-removed": "alert",
+  "settings-saved": "alert",
+  "cron-failed": "alert",
+  "document-sent": "quiet",
+  "expense-rule-saved": null,
+  "expense-rule-deleted": null,
+  "expense-account-changed": null,
+};
