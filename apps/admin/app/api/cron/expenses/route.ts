@@ -1,6 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { TAG } from "@/lib/cache-tags";
-import { isCronRequest } from "@/lib/cron-auth";
+import { isCronRequest, reportCronFailure } from "@/lib/cron-auth";
 import { runRecon } from "@/lib/expenses/recon";
 
 // The daily expenses recon (vercel.json): labels new Investec transactions,
@@ -17,7 +17,11 @@ export async function GET(request: Request) {
     return Response.json(result);
   } catch (error) {
     console.error("[expenses] recon failed", error);
-    // A failed run shows up in Vercel's cron log; tomorrow's catches up.
+    // Tomorrow's run catches up; the email says it happened.
+    await reportCronFailure(
+      "Expenses sync",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return Response.json({ error: "Recon failed." }, { status: 500 });
   }
 }

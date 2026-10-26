@@ -12,6 +12,7 @@
     "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=../../.env.local db/seed.mts"
   },
   "dependencies": {
+    "@better-auth/passkey": "1.7.12",
     "@dm/ui": "workspace:*",
     "@react-pdf/renderer": "4.9.0",
     "@vercel/blob": "2.8.2",
