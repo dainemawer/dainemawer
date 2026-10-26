@@ -3,16 +3,21 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DocumentActions } from "@/components/document-actions";
 import { type CustomerOption, DocumentForm } from "@/components/document-form";
-import { DocumentTable } from "@/components/document-table";
+import {
+  DocumentTable,
+  DocumentTableSkeleton,
+} from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import {
+  Bone,
   FormSkeleton,
   HeaderSkeleton,
   Loading,
+  PillBone,
   Skeleton,
-  StatsSkeleton,
-  TableSkeleton,
+  StatBone,
+  times,
 } from "@/components/skeletons";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -73,8 +78,8 @@ export function DocumentListPage({
       <Suspense
         fallback={
           <Loading>
-            <Skeleton className="mb-6 h-7 w-80 rounded-full" />
-            <TableSkeleton />
+            <FilterChips kind={kind} />
+            <DocumentTableSkeleton kind={kind} />
           </Loading>
         }
       >
@@ -100,29 +105,7 @@ async function DocumentList({
 
   return (
     <>
-      <nav aria-label="Filter by status" className="mb-6 flex flex-wrap gap-1">
-        {[undefined, ...FILTERS[kind]].map((s) => {
-          const count = s
-            ? all.filter((row) => row.status === s).length
-            : all.length;
-          return (
-            <Link
-              key={s ?? "all"}
-              href={s ? `${base(kind)}?status=${s}` : base(kind)}
-              aria-current={filter === s ? "page" : undefined}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs capitalize transition-colors",
-                filter === s
-                  ? "border-ink bg-ink text-surface"
-                  : "text-muted-foreground hover:border-ink/40 hover:text-ink",
-              )}
-            >
-              {s ?? "All"}{" "}
-              <span className="tabular-nums opacity-70">{count}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <FilterChips kind={kind} filter={filter} all={all} />
       {rows.length ? (
         <DocumentTable rows={rows} />
       ) : (
@@ -135,6 +118,47 @@ async function DocumentList({
         />
       )}
     </>
+  );
+}
+
+/** The status filter; without `all` (still loading) the counts are placeholders. */
+function FilterChips({
+  kind,
+  filter,
+  all,
+}: {
+  kind: DocumentKind;
+  filter?: DisplayStatus;
+  all?: { status: DisplayStatus }[];
+}) {
+  return (
+    <nav aria-label="Filter by status" className="mb-6 flex flex-wrap gap-1">
+      {[undefined, ...FILTERS[kind]].map((s) => {
+        const count = !all
+          ? null
+          : s
+            ? all.filter((row) => row.status === s).length
+            : all.length;
+        return (
+          <Link
+            key={s ?? "all"}
+            href={s ? `${base(kind)}?status=${s}` : base(kind)}
+            aria-current={filter === s ? "page" : undefined}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs capitalize transition-colors",
+              filter === s
+                ? "border-ink bg-ink text-surface"
+                : "text-muted-foreground hover:border-ink/40 hover:text-ink",
+            )}
+          >
+            {s ?? "All"}{" "}
+            <span className="tabular-nums opacity-70">
+              {count ?? <Bone w="1ch" />}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -338,9 +362,7 @@ export function DocumentDetailPage({
     <Suspense
       fallback={
         <Loading>
-          <HeaderSkeleton />
-          <StatsSkeleton />
-          <Skeleton className="aspect-[1/1.414] w-full xl:w-[calc(100%-24.5rem)]" />
+          <DocumentDetailSkeleton kind={kind} />
         </Loading>
       }
     >
@@ -559,5 +581,65 @@ function Stat({
         {value}
       </dd>
     </div>
+  );
+}
+
+/** The detail page while it loads: same header, stats, preview and send log. */
+function DocumentDetailSkeleton({ kind }: { kind: DocumentKind }) {
+  const isQuote = kind === "quote";
+  return (
+    <>
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-1 text-xs text-muted-foreground">
+            {PLURAL[kind]}
+          </div>
+          <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold">
+            <Bone w="11ch" />
+            <PillBone w="3.25rem" />
+          </h1>
+          <p className="mt-1 text-sm">
+            <Bone w="20ch" />
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {times(3, (i) => (
+            <Skeleton key={i} className="h-9 w-24" />
+          ))}
+        </div>
+      </header>
+      <div className="mb-8 grid gap-6 sm:grid-cols-4">
+        <StatBone label={isQuote ? "Total" : undefined} />
+        <StatBone label="Issued" strong={false} />
+        <StatBone label={isQuote ? "Valid until" : "Due"} strong={false} />
+      </div>
+      <div className="grid gap-10 xl:grid-cols-[1fr_22rem]">
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold">Preview</h2>
+            <span className="text-sm text-muted-foreground">Download PDF</span>
+          </div>
+          <Skeleton className="aspect-[1/1.414] w-full rounded-lg border" />
+        </section>
+        <section>
+          <h2 className="mb-3 text-lg font-bold">Sent</h2>
+          <div className="grid gap-4">
+            {times(2, (i) => (
+              <div key={i} className="grid border-t pt-3 text-sm">
+                <span className="font-medium">
+                  <Bone w="16ch" />
+                </span>
+                <span>
+                  <Bone w="22ch" />
+                </span>
+                <span>
+                  <Bone w="18ch" />
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </>
   );
 }

@@ -2,14 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArchiveButton } from "@/components/archive-button";
-import { DocumentTable } from "@/components/document-table";
+import {
+  DocumentTable,
+  DocumentTableSkeleton,
+} from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import {
-  HeaderSkeleton,
+  Bone,
   Loading,
-  StatsSkeleton,
-  TableSkeleton,
+  Skeleton,
+  StatBone,
+  times,
 } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { type AmountsByCurrency, addAmount, formatAmounts } from "@/lib/money";
@@ -27,14 +31,49 @@ export default function CustomerPage({ params }: PageProps<"/customers/[id]">) {
     <Suspense
       fallback={
         <Loading>
-          <HeaderSkeleton />
-          <StatsSkeleton count={3} />
-          <TableSkeleton rows={4} />
+          <CustomerSkeleton />
         </Loading>
       }
     >
       <Customer params={params} />
     </Suspense>
+  );
+}
+
+function CustomerSkeleton() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="Customers"
+        title={<Bone w="14ch" />}
+        description={<Bone w="12ch" />}
+        actions={times(4, (i) => <Skeleton key={i} className="h-9 w-24" />)}
+      />
+      <dl className="mb-10 grid gap-6 sm:grid-cols-3">
+        <StatBone label="Billed" />
+        <StatBone label="Outstanding" />
+        <StatBone label="Paid" />
+      </dl>
+      <div className="mb-10 grid gap-x-10 gap-y-4 text-sm sm:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
+        <Detail label="Emails">
+          <Bone w="20ch" />
+        </Detail>
+        <Detail label="Address">
+          <Bone w="16ch" />
+        </Detail>
+        <Detail label="Terms">
+          <Bone w="11ch" />
+        </Detail>
+      </div>
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-bold">Invoices</h2>
+        <DocumentTableSkeleton kind="invoice" rows={3} customer={false} />
+      </section>
+      <section>
+        <h2 className="mb-3 text-lg font-bold">Quotes</h2>
+        <DocumentTableSkeleton kind="quote" rows={2} customer={false} />
+      </section>
+    </>
   );
 }
 

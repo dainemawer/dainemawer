@@ -2,16 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { DocumentTable } from "@/components/document-table";
+import {
+  DocumentTable,
+  DocumentTableSkeleton,
+} from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RecurringActions } from "@/components/recurring-actions";
 import { RecurringStatusBadge } from "@/components/recurring-status";
 import {
-  HeaderSkeleton,
+  Bone,
   Loading,
-  StatsSkeleton,
-  TableSkeleton,
+  PillBone,
+  Skeleton,
+  StatBone,
+  times,
+  widthFor,
 } from "@/components/skeletons";
 import { formatDate } from "@/lib/documents";
 import { formatMoney } from "@/lib/money";
@@ -33,14 +39,54 @@ export default function RecurringDetailPage({
     <Suspense
       fallback={
         <Loading>
-          <HeaderSkeleton />
-          <StatsSkeleton />
-          <TableSkeleton rows={3} />
+          <RecurringDetailSkeleton />
         </Loading>
       }
     >
       <RecurringDetail params={params} />
     </Suspense>
+  );
+}
+
+function RecurringDetailSkeleton() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="Recurring"
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            <Bone w="14ch" />
+            <PillBone w="3.5rem" />
+          </span>
+        }
+        description={<Bone w="18ch" />}
+        actions={times(3, (i) => <Skeleton key={i} className="h-9 w-24" />)}
+      />
+      <dl className="mb-10 grid gap-6 sm:grid-cols-4">
+        <StatBone label="Each invoice" />
+        <StatBone label="Repeats" strong={false} />
+        <StatBone label="Next invoice" strong={false} />
+        <StatBone label="Ends" strong={false} />
+      </dl>
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-bold">Line items</h2>
+        <ul className="divide-y border-y text-sm">
+          {times(2, (i) => (
+            <li key={i} className="flex justify-between gap-4 py-3">
+              <Bone w={widthFor(i, 2)} />
+              <Bone w="12ch" />
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm">
+          <Bone w="26ch" />
+        </p>
+      </section>
+      <section>
+        <h2 className="mb-3 text-lg font-bold">Invoices created</h2>
+        <DocumentTableSkeleton kind="invoice" rows={3} customer={false} />
+      </section>
+    </>
   );
 }
 

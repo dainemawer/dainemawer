@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Bone, PillBone, times, widthFor } from "@/components/skeletons";
 import { StatusBadge } from "@/components/status-badge";
 import {
   Table,
@@ -67,6 +68,66 @@ export function DocumentTable({ rows }: { rows: DocumentTableRow[] }) {
             </TableCell>
             <TableCell className="text-right tabular-nums">
               {formatMoney(document.totalMinor, document.currency)}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+/** DocumentTable while it loads: the same columns, placeholder rows. */
+export function DocumentTableSkeleton({
+  kind,
+  rows = 6,
+  customer = true,
+}: {
+  kind: "quote" | "invoice";
+  rows?: number;
+  /** The Customer column (left out on a customer's own page). */
+  customer?: boolean;
+}) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Number</TableHead>
+          {customer ? <TableHead>Customer</TableHead> : null}
+          <TableHead>Issued</TableHead>
+          <TableHead>{kind === "quote" ? "Valid until" : "Due"}</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Total</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {times(rows, (i) => (
+          <TableRow key={i} className="hover:bg-transparent">
+            <TableCell>
+              <div className="font-medium">
+                <Bone w="11ch" />
+              </div>
+              {i % 3 !== 2 ? (
+                <div className="text-xs">
+                  <Bone w={widthFor(i, 2)} />
+                </div>
+              ) : null}
+            </TableCell>
+            {customer ? (
+              <TableCell>
+                <Bone w={widthFor(i)} />
+              </TableCell>
+            ) : null}
+            <TableCell>
+              <Bone w="10ch" />
+            </TableCell>
+            <TableCell>
+              <Bone w="10ch" />
+            </TableCell>
+            <TableCell>
+              <PillBone w="3.25rem" />
+            </TableCell>
+            <TableCell className="text-right">
+              <Bone w="9ch" />
             </TableCell>
           </TableRow>
         ))}
