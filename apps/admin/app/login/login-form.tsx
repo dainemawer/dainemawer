@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { canRequestLink, SIGN_IN_DOMAIN } from "@/lib/sign-in-domain";
 
 export function LoginForm({ linkError }: { linkError: string | null }) {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
   const [email, setEmail] = useState("");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const allowed = canRequestLink(email);
   const [passkey, setPasskey] = useState<"idle" | "waiting" | "error">("idle");
   const router = useRouter();
 
@@ -27,12 +30,15 @@ export function LoginForm({ linkError }: { linkError: string | null }) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!allowed) return;
     setState("sending");
     const { error } = await authClient.signIn.magicLink({
       email,
       callbackURL: "/",
       errorCallbackURL: "/login?error=link",
     });
+    // A 400 is the server's own domain check; anything else is a hiccup.
+    setServerError(error?.status === 400 ? (error.message ?? null) : null);
     setState(error ? "error" : "sent");
   }
 
@@ -83,14 +89,23 @@ export function LoginForm({ linkError }: { linkError: string | null }) {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            aria-describedby="email-hint"
           />
+          <p id="email-hint" className="text-xs text-muted-foreground">
+            Only @{SIGN_IN_DOMAIN} addresses can get a link.
+          </p>
         </div>
-        <Button type="submit" variant="outline" disabled={state === "sending"}>
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!allowed || state === "sending"}
+        >
           {state === "sending" ? "Sending…" : "Email me a sign-in link"}
         </Button>
         {state === "error" ? (
           <p className="text-sm text-destructive" role="alert">
-            Couldn't send right now. Wait a minute and try again.
+            {serverError ??
+              "Couldn't send right now. Wait a minute and try again."}
           </p>
         ) : null}
       </form>

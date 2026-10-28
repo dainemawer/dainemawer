@@ -11,6 +11,7 @@ import { audit, requestOrigin } from "@/lib/audit";
 import { signInAlertEmail } from "@/lib/emails/security";
 import { emailSignInOffEmail, signInEmail } from "@/lib/emails/sign-in";
 import { sendMail } from "@/lib/mail";
+import { canRequestLink, SIGN_IN_DOMAIN } from "@/lib/sign-in-domain";
 
 /** The one address that can log in. The matching user row is created by `pnpm db:seed`. */
 export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? "hello@dainemawer.com")
@@ -46,6 +47,19 @@ export const auth = betterAuth({
     },
   },
   hooks: {
+    // Links are only for @dainemawer.com, checked before anything else runs
+    // (the form disables its button too, but a request can skip the form).
+    // Within the domain, only ADMIN_EMAIL receives one: see sendMagicLink.
+    before: createAuthMiddleware(async (ctx) => {
+      if (
+        ctx.path === "/sign-in/magic-link" &&
+        !canRequestLink(ctx.body?.email)
+      ) {
+        throw new APIError("BAD_REQUEST", {
+          message: `Email links are only for @${SIGN_IN_DOMAIN} addresses.`,
+        });
+      }
+    }),
     // Every new session is logged and emailed, so a sign-in you didn't make
     // doesn't go unnoticed. Passkey changes are logged too.
     after: createAuthMiddleware(async (ctx) => {
