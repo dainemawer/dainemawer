@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -7,6 +8,7 @@ import {
 } from "@/components/security-section";
 import { SettingsForm } from "@/components/settings-form";
 import { FormSkeleton, Loading } from "@/components/skeletons";
+import { Button } from "@/components/ui/button";
 import { getSettings } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -17,6 +19,11 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Changes show on the next PDF you open or send; PDFs already sent stay as they were."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/settings/import">Import from Zoho</Link>
+          </Button>
+        }
       />
       <Suspense
         fallback={

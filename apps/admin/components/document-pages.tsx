@@ -439,6 +439,9 @@ async function DocumentDetail({
               {customer.company}
             </Link>
             {document.title ? ` · ${document.title}` : null}
+            {document.importedNumber
+              ? ` · ${document.importedNumber} in Zoho`
+              : null}
           </>
         }
         actions={

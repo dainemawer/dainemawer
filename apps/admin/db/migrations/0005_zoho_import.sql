@@ -1,0 +1,2 @@
+ALTER TABLE "documents" ADD COLUMN "imported_number" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "documents_kind_imported_number_idx" ON "documents" USING btree ("kind","imported_number") WHERE "documents"."imported_number" is not null;

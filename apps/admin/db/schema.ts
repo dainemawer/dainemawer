@@ -189,12 +189,18 @@ export const documents = pgTable(
     paidAt: date({ mode: "string" }),
     paymentRef: text(),
     voidedAt: timestamp({ withTimezone: true }),
+    /** Its number in the system it was imported from (Zoho Invoice), for matching old paperwork. */
+    importedNumber: text(),
     /** Last change to what the PDF shows; status changes don't touch it. */
     editedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     ...timestamps,
   },
   (t) => [
     uniqueIndex("documents_kind_number_idx").on(t.kind, t.number),
+    // Re-running an import skips what's already in, rather than duplicating.
+    uniqueIndex("documents_kind_imported_number_idx")
+      .on(t.kind, t.importedNumber)
+      .where(sql`${t.importedNumber} is not null`),
     index("documents_customer_idx").on(t.customerId),
     index("documents_kind_status_idx").on(t.kind, t.status),
     // One live invoice per quote: a double-clicked Convert can't create two.
