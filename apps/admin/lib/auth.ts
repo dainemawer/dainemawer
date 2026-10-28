@@ -19,6 +19,12 @@ export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? "hello@dainemawer.com")
 
 const APP_URL = new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3001");
 
+/** The routes that sign you in, and how the alert describes each. */
+const SIGN_IN_METHODS: Record<string, string> = {
+  "/magic-link/verify": "Email link",
+  "/passkey/verify-authentication": "Passkey",
+};
+
 /**
  * Once a passkey exists, email links stop working, so someone with access
  * to the inbox alone can't get in. ALLOW_EMAIL_SIGN_IN=1 in the environment
@@ -50,10 +56,11 @@ export const auth = betterAuth({
     // doesn't go unnoticed. Passkey changes are logged too.
     after: createAuthMiddleware(async (ctx) => {
       const headers = ctx.request?.headers ?? ctx.headers ?? null;
-      if (ctx.context.newSession) {
-        const method = ctx.path.startsWith("/passkey")
-          ? "Passkey"
-          : "Email link";
+      // Only these two routes are sign-ins. Better Auth also reports a
+      // "new session" when it refreshes one (once a day, on /get-session)
+      // or adds a passkey, and alerting on those cried wolf.
+      const method = SIGN_IN_METHODS[ctx.path];
+      if (ctx.context.newSession && method) {
         await audit("sign-in", method, headers);
         await sendMail({
           to: [ADMIN_EMAIL],
