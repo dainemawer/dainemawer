@@ -1,0 +1,126 @@
+---
+title: Your Leveling Matrix Still Grades the Work Agents Took Over
+dek: When commits per engineer can rise fivefold in six months, a career ladder built on delivery scope stops telling you who is senior. Promote on the judgment you can audit instead.
+date: '2026-10-28'
+topics:
+  - staff-engineering
+  - engineering-management
+  - ai
+shortAnswer: Most engineering ladders define seniority by how much an engineer delivers alone, and coding agents have inflated that measure. Anthropic reported commits per engineer at 5x in six months. Keep delivery as a floor, then promote on decisions checked against outcomes, on checks other people's agents run on, and on problems caught before shipping.
+takeaways:
+  - "Anthropic's October 2026 workforce report found commits per engineer at 5x their level of six months earlier, with no difference in how often agent-written lines were later removed or reverted. A rubric that measures delivered scope now measures agent adoption."
+  - "What's scarce in senior work now is choosing the problem, telling the agent what it must never do, and noticing when the output is wrong. Anthropic's agent sessions spend around 80% of their time waiting for human input."
+  - "Level engineers on three kinds of evidence: decisions written down before the outcome was known, leverage through the instructions, evals and checks other people's agents run on, and catches, meaning problems they stopped."
+  - "The strongest objection is that judgment is harder to assess than output and rewards whoever writes the best promo packet. Answer it with artifacts that have outcomes attached, not with a rubric that only sounds better."
+  - "Run the new criteria in shadow for one cycle. Score last cycle's promotion packets against both rubrics and look hard at whoever moves."
+faq:
+  - question: How should engineering promotion criteria change with AI coding agents?
+    answer: Stop defining levels by how much an engineer can deliver alone, because agents inflate that number for everyone who adopts them. Keep delivery as a minimum bar, then look for evidence of judgment, such as written decisions checked against outcomes, instructions and checks other engineers' agents rely on, and problems the engineer caught before they reached production.
+  - question: Do lines of code or commit counts still measure engineer productivity?
+    answer: Less than they ever did. Anthropic reported in October 2026 that commits per engineer reached about 5x their level of six months earlier after coding agents spread internally. When volume can move that fast because of tooling, it tells you who adopted the tools, not who is operating at a higher level.
+  - question: What does a staff engineer do when AI agents write most of the code?
+    answer: Decides what gets built and what the agents must never do. In practice that means choosing which problems are worth solving, writing the standing instructions, evals and guardrails other teams' agents run on, and reviewing for intent rather than syntax. The code is cheap. Deciding which code should exist is where staff-level leverage now sits.
+  - question: How do you measure engineering judgment for promotions?
+    answer: Ask for decisions written down before the outcome was known, including the options rejected, and check them against what happened. Add leverage, meaning things other engineers or their agents use without being told to, and catches, meaning reverted, blocked or redesigned work the engineer stopped. Each needs a link to a real artifact.
+needsRewrite: false
+---
+
+Anthropic's own workforce report, published on October 16, says commits per engineer reached [5x their level of six months earlier](https://www.anthropic.com/research/employment-at-anthropic), and found no difference in how often agent-written lines were later removed or reverted. If your senior rung says something like "independently delivers large, well-scoped features," then every engineer who adopted an agent this year just met it on paper.
+
+That's the problem with most leveling matrices right now. They grade the size of what an engineer can produce on their own, and producing is the part of the job agents took over. The ladder needs to grade what's still scarce: choosing what to build, telling the agent what it must never do, and noticing when the output is wrong.
+
+## What Anthropic's report measured
+
+The report, from Anthropic's economics team, uses internal records, surveys, Slack and calendar data and hiring scorecards. A few findings matter for leveling.
+
+- Output went up fast without quality going down. Commits per engineer rose about fivefold in six months. Agent-written code showed no difference in lines later removed or reverted.
+- The work moved up a layer. "Meta-work," building tools for agents and monitoring them, went from 10% of employees' interactive Claude sessions in fall 2025 to 22% in spring 2026. Written standing instructions for agents grew from a few hundred in July 2025 to 8,500 a year later.
+- The human became the constraint. Claude sessions spend "around 80% idly waiting for human input." One employee described "an army of Claudes, with every one asking for my attention."
+- Hiring already moved. On technical interview scorecards, "the single biggest increases were in comments on applicants' autonomy and judgment," while comments on domain expertise shrank.
+
+That's one company, and an unusual one: it builds the model its engineers use. The authors say plainly that much of it won't generalize. But Google's 2025 DORA report, a survey of nearly 5,000 technology professionals, found 90% of them using AI at work and called AI ["the great amplifier"](https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report) of whatever a team already is. Anthropic is just further down the same road.
+
+Anthropic's interviewers started writing about judgment. Most promotion rubrics haven't caught up, which means a company can hire for one thing and promote for another.
+
+## Delivery scope stopped telling you who is senior
+
+Classic ladders climb on scope. A mid-level engineer ships a feature, a senior ships a project, a staff engineer ships something spanning several teams. Scope worked as a proxy because delivering a lot alone used to take skill: knowing the codebase, sequencing the work, not breaking things on the way.
+
+Agents broke the proxy. An engineer who is mediocre at choosing problems and excellent at keeping six agent sessions busy can now produce staff-sized diffs. Their promo packet looks great. Meanwhile the engineer who spent the quarter deciding which three of those six projects shouldn't exist has a thin packet, because a project that never started leaves nothing to point at.
+
+If 80% of an agent's time is spent waiting on a person, the person's attention is the bottleneck. What they point it at, and what they refuse to point it at, is the thing worth leveling.
+
+## Three kinds of evidence to promote on
+
+Judgment is easy to praise and hard to assess, so it needs evidence types concrete enough to argue about in calibration.
+
+**Decisions with outcomes.** A decision written down before the outcome was known: the options considered, the one picked, what would prove it wrong. Then check it a quarter later. An engineer with a record of calls that held up, and honest write-ups of the ones that didn't, is showing judgment you can audit. Hindsight praise doesn't count.
+
+**Leverage through other people's agents.** This is the meta-work line from the report, made legible. Standing instructions, evals, review checklists, safeguard checks and shared skills that other engineers' agents run on every day. At staff level, the test is whether people use it without being told to. A [safeguard manifest](/agents-delete-safeguards-in-migrations) that a dozen teams' agents respect is more leverage than a dozen features.
+
+**Catches.** Work the engineer stopped, reverted or redesigned before it shipped, and why. Strong [review of agent-written code](/reviewing-ai-generated-code) is mostly invisible when it works, so the rubric has to ask for it explicitly or it will never appear in a packet.
+
+Delivery doesn't vanish. It becomes a floor. You still have to ship, and someone who ships nothing isn't senior no matter how good their memos are. But clearing the floor by a wider margin than your peers stops being the thing that moves you up.
+
+## The strongest case against this
+
+The best objection goes like this: output is objective and judgment is not. Commits, shipped projects and closed tickets are countable, and countable things are fair, at least in the sense that a manager can't wave them away. "Judgment" gets assessed by people, so it rewards whoever is most articulate in calibration or has a sponsor in the room. Moving from output to judgment can make promotions more political, not less.
+
+That objection is right about the risk and wrong about the alternative. Output was never as objective as it looked, because scope was assigned, and the engineer handed the big project got the big packet. Now output is also inflated by tooling. Counting it more carefully won't fix that.
+
+The answer is to make judgment evidence as countable as possible. A decision record has a date and an outcome. A shared eval has a list of the teams running it. A catch has a link to the blocked PR. If a claim of judgment can't point to an artifact, it doesn't count, and that rule does more for fairness than any rubric wording.
+
+## Where this breaks down
+
+**Small teams that are still shipping their way to product-market fit.** When there's one obvious thing to build and the risk is not building it fast enough, delivery is the job, and grading on judgment is a luxury.
+
+**Teams that haven't adopted agents.** If output hasn't inflated, the old proxy still mostly works. Fix the measure where it broke and leave it alone elsewhere.
+
+**Meta-work can be farmed.** If writing standing instructions becomes promotable, people will write a lot of them. Anthropic went from a few hundred to 8,500 in a year, and nobody should believe all 8,500 matter. Count use, not volume.
+
+**There's no rung for learning.** Anthropic's junior share of technical hires fell from 27% to 9%. A ladder built entirely on judgment has nowhere for people to [build that judgment](/keeping-the-junior-pipeline-alive), and the bottom two levels still need criteria about learning in public and getting reviewed.
+
+**Managers have to be able to read the evidence.** Assessing a decision record or an eval suite takes technical depth. That's another reason the [tech lead manager track](/ai-forking-engineering-manager-role) is coming back.
+
+## A leveling-matrix diff you can bring to calibration
+
+This is written against a generic senior and staff definition. Adapt the wording, but keep the shape: delivery drops to a floor, and each new criterion names the artifact that proves it.
+
+```diff
+ Senior engineer
+- Independently delivers large, well-scoped features end to end.
+- Consistently high output; trusted with the team's hardest tickets.
++ Floor: ships the team's committed work reliably, with or without agents.
++ Decisions: writes down non-trivial technical calls before building,
++   including rejected options and what would prove the call wrong.
++   Evidence: 2+ decision records per half, revisited with outcomes.
++ Agent direction: maintains the standing instructions, tests and evals
++   their own agents run on, and keeps them current as the code changes.
++ Catches: reviews agent-written changes for intent, not just correctness.
++   Evidence: links to blocked, reverted or redesigned changes, with reasons.
+
+ Staff engineer
+- Leads multi-team projects; delivers initiatives spanning several systems.
+- Drives large technical outcomes through their own contributions.
++ Floor: senior criteria, met across more than one team's codebase.
++ Problem selection: decides which problems are worth solving and which
++   are not. Evidence: at least one proposal they killed or shrank, and why.
++ Leverage: owns instructions, evals, guardrails or safeguard checks that
++   other teams' agents run on without being asked to.
++   Evidence: list of consuming teams; measured change in their review
++   rejections, reverts or incidents.
++ Track record: a decision history checked against outcomes, including
++   the calls that were wrong and what they changed afterwards.
+- Lines of code, commit counts or PR counts as promotion evidence.
++ Volume metrics are context for the floor only, never a reason to promote.
+```
+
+The last two lines matter most. If commit counts are still allowed in a promotion packet, people will keep submitting them, because they're the cheapest evidence there is.
+
+## How to roll it out without a fight
+
+Don't announce a new ladder. Run it in shadow for one cycle.
+
+Take last cycle's promotion packets and score each one against both rubrics. Look hardest at the people who move. Someone who was promoted under the old rubric but scores weakly under the new one probably got promoted on agent throughput. Someone who was passed over but scores well under the new one is exactly the engineer your current ladder can't see. Bring both lists to calibration. A real name that the old rubric missed will persuade more people than any argument about what seniority means.
+
+Then ask your interviewers what they wrote on scorecards this year. If, like Anthropic's, they're writing about autonomy and judgment, your hiring bar has already moved. The promotion bar should catch up.
