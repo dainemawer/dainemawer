@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { Clock } from "@/components/hud/clock";
+import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -39,6 +41,12 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
           </>
         }
       />
+      {/* The HUD only fetches from the browser (weather) or reads its clock,
+          so it sits in the static shell, outside the data's boundary. */}
+      <div className="mb-12 grid gap-x-12 gap-y-8 md:grid-cols-2">
+        <Clock />
+        <WeatherTile />
+      </div>
       <Suspense
         fallback={
           <Loading>
