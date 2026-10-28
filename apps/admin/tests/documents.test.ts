@@ -5,6 +5,7 @@ import {
   allowedActions,
   displayStatus,
   formatDocumentNumber,
+  statusTargets,
   todayISO,
 } from "../lib/documents.ts";
 
@@ -57,7 +58,12 @@ test("displayStatus derives expired and overdue from dates", () => {
 
 test("allowedActions follows the lifecycle", () => {
   assert.equal(allowedActions("quote", "accepted").convert, true);
-  assert.equal(allowedActions("quote", "sent").convert, false);
+  assert.equal(allowedActions("quote", "sent").convert, true);
+  assert.equal(allowedActions("quote", "draft").convert, true);
+  assert.equal(allowedActions("quote", "declined").convert, false);
+  assert.equal(allowedActions("quote", "draft").accept, true);
+  assert.equal(allowedActions("invoice", "draft").markPaid, true);
+  assert.equal(allowedActions("invoice", "paid").markPaid, false);
   assert.equal(allowedActions("invoice", "sent").edit, true);
   assert.equal(allowedActions("invoice", "sent").markPaid, true);
   assert.equal(allowedActions("invoice", "paid").void, false);
@@ -65,6 +71,17 @@ test("allowedActions follows the lifecycle", () => {
   assert.equal(allowedActions("invoice", "draft").delete, false);
   assert.equal(allowedActions("invoice", "draft").void, true);
   assert.equal(allowedActions("quote", "draft").delete, true);
+});
+
+test("statusTargets offers every other status of the kind", () => {
+  assert.deepEqual(statusTargets("quote", "draft"), [
+    "sent",
+    "accepted",
+    "declined",
+  ]);
+  // Between paid and void, an invoice goes back to draft or sent first.
+  assert.deepEqual(statusTargets("invoice", "void"), ["draft", "sent"]);
+  assert.deepEqual(statusTargets("invoice", "paid"), ["draft", "sent"]);
 });
 
 test("todayISO uses Cape Town time", () => {

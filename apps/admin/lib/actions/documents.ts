@@ -12,6 +12,8 @@ import {
   allowedActions,
   DOCUMENT_KINDS,
   type DocumentKind,
+  type StoredStatus,
+  statusTargets,
   todayISO,
 } from "@/lib/documents";
 import { errorMessage, UserError } from "@/lib/errors";
@@ -166,57 +168,57 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
   redirect(pathFor(doc.kind, id));
 }
 
-type Transition = "accept" | "decline" | "void" | "reopen";
-
 // The detail page's buttons. These return `{ error }` rather than throw:
 // thrown messages are redacted in production builds.
 type ActionResult = { error?: string };
 
-/** Manual status changes from the detail page. Each is checked against allowedActions. */
-export async function transitionDocument(
+/**
+ * Sets a status by hand (the detail page's Change status menu and its
+ * Mark accepted shortcut). Each status keeps only its own timestamp, so
+ * moving back clears the later ones; sentAt stays unless it goes back to
+ * draft. Paid goes through markPaid, which records the date.
+ */
+export async function setStatus(
   id: string,
-  transition: Transition,
+  target: StoredStatus,
 ): Promise<ActionResult> {
   await requireSession();
   const [doc] = await db.select().from(documents).where(eq(documents.id, id));
   if (!doc) return { error: "Document not found." };
-  const allowed = allowedActions(doc.kind, doc.status);
+  if (!statusTargets(doc.kind, doc.status).includes(target)) {
+    return { error: `A ${doc.status} ${doc.kind} can't be marked ${target}.` };
+  }
+  if (target === "paid") {
+    return { error: "Use Mark paid, so the payment date is recorded." };
+  }
   const now = new Date();
-
-  if (transition === "accept" && allowed.accept) {
+  const cleared = {
+    acceptedAt: null,
+    declinedAt: null,
+    paidAt: null,
+    paymentRef: null,
+    voidedAt: null,
+  };
+  const stamps = {
+    draft: { sentAt: null },
+    sent: { sentAt: doc.sentAt ?? now },
+    accepted: { acceptedAt: now },
+    declined: { declinedAt: now },
+    void: { voidedAt: now },
+  }[target];
+  try {
     await db
       .update(documents)
-      .set({ status: "accepted", acceptedAt: now })
+      .set({ status: target, ...cleared, ...stamps })
       .where(eq(documents.id, id));
-  } else if (transition === "decline" && allowed.decline) {
-    await db
-      .update(documents)
-      .set({ status: "declined", declinedAt: now })
-      .where(eq(documents.id, id));
-  } else if (transition === "void" && allowed.void) {
-    await db
-      .update(documents)
-      .set({ status: "void", voidedAt: now })
-      .where(eq(documents.id, id));
-  } else if (
-    transition === "reopen" &&
-    (doc.status === "accepted" ||
-      doc.status === "declined" ||
-      doc.status === "paid")
-  ) {
-    // Undo a manual mark: back to sent (or draft if it was never emailed).
-    await db
-      .update(documents)
-      .set({
-        status: doc.sentAt ? "sent" : "draft",
-        acceptedAt: null,
-        declinedAt: null,
-        paidAt: null,
-        paymentRef: null,
-      })
-      .where(eq(documents.id, id));
-  } else {
-    return { error: `Can't ${transition} a ${doc.status} ${doc.kind}.` };
+  } catch (error) {
+    // Restoring a voided invoice whose quote has since been invoiced again.
+    if (isUniqueViolation(error)) {
+      return {
+        error: "Its quote already has another invoice. Void that one first.",
+      };
+    }
+    return { error: errorMessage(error, "Couldn't change the status.") };
   }
   revalidateDocuments();
   return {};
@@ -239,7 +241,7 @@ export async function markPaid(
   }
   const [doc] = await db.select().from(documents).where(eq(documents.id, id));
   if (!doc || !allowedActions(doc.kind, doc.status).markPaid) {
-    return { error: "Only a sent invoice can be marked paid." };
+    return { error: "Only an unpaid invoice can be marked paid." };
   }
   await db
     .update(documents)
@@ -262,7 +264,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
   redirect(pathFor(doc.kind));
 }
 
-/** Copies a document into a new draft: an accepted quote into an invoice, or any document into another of its kind. */
+/** Copies a document into a new draft: a quote into an invoice (accepting it), or any document into another of its kind. */
 async function copyInto(sourceId: string, kind: DocumentKind) {
   const source = await getDocument(sourceId);
   if (!source) throw new Error("Document not found.");
@@ -302,6 +304,17 @@ async function copyInto(sourceId: string, kind: DocumentKind) {
             : null,
       })
       .returning({ id: documents.id });
+    // An invoice means the quote was accepted, whether or not it was marked.
+    if (
+      source.document.kind === "quote" &&
+      kind === "invoice" &&
+      source.document.status !== "accepted"
+    ) {
+      await tx
+        .update(documents)
+        .set({ status: "accepted", acceptedAt: new Date(), declinedAt: null })
+        .where(eq(documents.id, sourceId));
+    }
     if (source.lines.length) {
       await tx.insert(lineItems).values(
         source.lines.map(({ id: _id, documentId: _doc, ...line }) => ({
@@ -323,7 +336,9 @@ export async function convertToInvoice(quoteId: string): Promise<ActionResult> {
     .from(documents)
     .where(eq(documents.id, quoteId));
   if (!quote || !allowedActions(quote.kind, quote.status).convert) {
-    return { error: "Only an accepted quote can be converted." };
+    return {
+      error: "A declined quote can't be converted; change its status first.",
+    };
   }
   const existing = await liveInvoiceFor(quoteId);
   if (existing) redirect(`/invoices/${existing}`);
