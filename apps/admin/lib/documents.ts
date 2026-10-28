@@ -51,15 +51,42 @@ export function displayStatus(doc: StatusInput, today: string): DisplayStatus {
   return "sent";
 }
 
+/** The statuses each kind moves through, in order. */
+export const MANUAL_STATUSES: Record<DocumentKind, StoredStatus[]> = {
+  quote: ["draft", "sent", "accepted", "declined"],
+  invoice: ["draft", "sent", "paid", "void"],
+};
+
+/**
+ * Every status a document can be set to by hand from the detail page's
+ * Change status menu: any status of its kind, except between paid and
+ * void (an invoice goes back to draft or sent first). Paid itself goes
+ * through markPaid, which records the date.
+ */
+export function statusTargets(
+  kind: DocumentKind,
+  status: StoredStatus,
+): StoredStatus[] {
+  return MANUAL_STATUSES[kind].filter(
+    (target) =>
+      target !== status &&
+      !(status === "paid" && target === "void") &&
+      !(status === "void" && target === "paid"),
+  );
+}
+
 /** Which manual transitions the detail page offers for a stored status. */
 export function allowedActions(kind: DocumentKind, status: StoredStatus) {
   return {
     edit: status !== "void" && status !== "paid",
     send: status !== "void" && status !== "declined",
-    accept: kind === "quote" && status === "sent",
-    decline: kind === "quote" && status === "sent",
-    convert: kind === "quote" && status === "accepted",
-    markPaid: kind === "invoice" && status === "sent",
+    // Not only after emailing from here: a quote or invoice may have gone
+    // out some other way (or been imported), so drafts can be decided too.
+    accept: kind === "quote" && (status === "draft" || status === "sent"),
+    decline: kind === "quote" && (status === "draft" || status === "sent"),
+    // Converting accepts the quote if it wasn't already.
+    convert: kind === "quote" && status !== "declined",
+    markPaid: kind === "invoice" && (status === "draft" || status === "sent"),
     void: kind === "invoice" && (status === "draft" || status === "sent"),
     // Deleting an invoice would leave a gap in its numbering, so invoices
     // are voided instead.

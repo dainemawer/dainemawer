@@ -19,6 +19,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -28,14 +33,16 @@ import {
   deleteDocument,
   duplicateDocument,
   markPaid,
-  transitionDocument,
+  setStatus,
 } from "@/lib/actions/documents";
 import { initialFormState } from "@/lib/actions/form-state";
 import { sendDocument } from "@/lib/actions/send";
 import {
   allowedActions,
   type DocumentKind,
+  MANUAL_STATUSES,
   type StoredStatus,
+  statusTargets,
   todayISO,
 } from "@/lib/documents";
 
@@ -55,7 +62,9 @@ export function DocumentActions({
   hasBeenSent: boolean;
 }) {
   const allowed = allowedActions(kind, status);
+  const targets = statusTargets(kind, status);
   const [pending, startTransition] = useTransition();
+  const [paying, setPaying] = useState(false);
   const path = `/${kind === "quote" ? "quotes" : "invoices"}/${id}`;
 
   // Actions that redirect (convert, duplicate, delete) navigate away on
@@ -66,6 +75,25 @@ export function DocumentActions({
       if (result?.error) toast.error(result.error);
       else if (success) toast.success(success);
     });
+
+  const changeStatus = (target: StoredStatus) => {
+    if (target === status) return;
+    if (target === "paid") return setPaying(true);
+    if (
+      target === "void" &&
+      !confirm(
+        "Void this invoice? It keeps its number but drops out of every total.",
+      )
+    ) {
+      return;
+    }
+    run(
+      () => setStatus(id, target),
+      target === "sent"
+        ? "Marked sent. Nothing was emailed."
+        : `Marked ${target}.`,
+    );
+  };
 
   return (
     <>
@@ -82,7 +110,7 @@ export function DocumentActions({
           variant="outline"
           disabled={pending}
           onClick={() =>
-            run(() => transitionDocument(id, "accept"), "Marked accepted.")
+            run(() => setStatus(id, "accepted"), "Marked accepted.")
           }
         >
           Mark accepted
@@ -90,13 +118,16 @@ export function DocumentActions({
       ) : null}
       {allowed.convert ? (
         <Button
+          variant={status === "accepted" ? "default" : "outline"}
           disabled={pending}
           onClick={() => run(() => convertToInvoice(id))}
         >
           Convert to invoice
         </Button>
       ) : null}
-      {allowed.markPaid ? <MarkPaidDialog id={id} /> : null}
+      {allowed.markPaid ? (
+        <MarkPaidDialog id={id} open={paying} onOpenChange={setPaying} />
+      ) : null}
       {allowed.edit ? (
         <Button asChild variant="outline">
           <Link href={`${path}/edit`}>Edit</Link>
@@ -121,42 +152,26 @@ export function DocumentActions({
           <DropdownMenuItem onSelect={() => run(() => duplicateDocument(id))}>
             Duplicate
           </DropdownMenuItem>
-          {allowed.decline ? (
-            <DropdownMenuItem
-              onSelect={() =>
-                run(() => transitionDocument(id, "decline"), "Marked declined.")
-              }
-            >
-              Mark declined
-            </DropdownMenuItem>
-          ) : null}
-          {status === "accepted" ||
-          status === "declined" ||
-          status === "paid" ? (
-            <DropdownMenuItem
-              onSelect={() =>
-                run(() => transitionDocument(id, "reopen"), "Reopened.")
-              }
-            >
-              {status === "paid" ? "Mark unpaid" : "Undo decision"}
-            </DropdownMenuItem>
-          ) : null}
-          {allowed.void ? (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => {
-                if (
-                  confirm(
-                    "Void this invoice? It keeps its number but drops out of every total.",
-                  )
-                ) {
-                  run(() => transitionDocument(id, "void"), "Invoice voided.");
-                }
-              }}
-            >
-              Void invoice
-            </DropdownMenuItem>
-          ) : null}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Change status</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={status}
+                onValueChange={(value) => changeStatus(value as StoredStatus)}
+              >
+                {MANUAL_STATUSES[kind].map((option) => (
+                  <DropdownMenuRadioItem
+                    key={option}
+                    value={option}
+                    disabled={option !== status && !targets.includes(option)}
+                    className="capitalize"
+                  >
+                    {option}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           {allowed.delete ? (
             <DropdownMenuItem
               variant="destructive"
@@ -263,8 +278,16 @@ function SendDialog({
   );
 }
 
-function MarkPaidDialog({ id }: { id: string }) {
-  const [open, setOpen] = useState(false);
+/** Opened by its own button, or from Change status → Paid. */
+function MarkPaidDialog({
+  id,
+  open,
+  onOpenChange: setOpen,
+}: {
+  id: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [state, action, pending] = useActionState(
     markPaid.bind(null, id),
     initialFormState,
@@ -276,7 +299,7 @@ function MarkPaidDialog({ id }: { id: string }) {
       setOpen(false);
       toast.success("Marked paid.");
     }
-  }, [state]);
+  }, [state, setOpen]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
