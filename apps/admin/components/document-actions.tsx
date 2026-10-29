@@ -54,14 +54,17 @@ export function DocumentActions({
   status,
   emailDefaults,
   hasBeenSent,
+  recurring,
 }: {
   id: string;
   kind: DocumentKind;
   status: StoredStatus;
   emailDefaults: EmailDefaults;
   hasBeenSent: boolean;
+  /** Issued by a recurring schedule: never emailed, only marked sent. */
+  recurring: boolean;
 }) {
-  const allowed = allowedActions(kind, status);
+  const allowed = allowedActions(kind, status, { recurring });
   const targets = statusTargets(kind, status);
   const [pending, startTransition] = useTransition();
   const [paying, setPaying] = useState(false);
@@ -104,6 +107,11 @@ export function DocumentActions({
           defaults={emailDefaults}
           resend={hasBeenSent}
         />
+      ) : null}
+      {allowed.markSent ? (
+        <Button disabled={pending} onClick={() => changeStatus("sent")}>
+          Mark sent
+        </Button>
       ) : null}
       {allowed.accept ? (
         <Button

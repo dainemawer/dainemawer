@@ -42,6 +42,7 @@ export default function ExpensesPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={false}
         title="Expenses"
         description="Your personal Investec accounts, sorted into categories. Synced every morning at 06:00."
         actions={<SyncButton />}

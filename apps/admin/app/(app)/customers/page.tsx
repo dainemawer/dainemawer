@@ -103,6 +103,10 @@ async function Customers({
   return (
     <>
       <PageHeader
+        breadcrumbs={
+          showArchived ? [{ label: "Customers", href: "/customers" }] : []
+        }
+        current={showArchived ? "Archived" : undefined}
         title={showArchived ? "Archived customers" : "Customers"}
         actions={
           <Button asChild>

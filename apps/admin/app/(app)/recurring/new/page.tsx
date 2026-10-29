@@ -19,11 +19,7 @@ export default function NewRecurringPage({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href="/recurring" className="hover:text-ink">
-            Recurring
-          </Link>
-        }
+        breadcrumbs={[{ label: "Recurring", href: "/recurring" }]}
         title="New recurring invoice"
       />
       <Suspense

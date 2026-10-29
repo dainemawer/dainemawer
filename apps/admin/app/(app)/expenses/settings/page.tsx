@@ -25,6 +25,7 @@ export default function ExpensesSettingsPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={false}
         title="Settings"
         description="Accounts, categories, and the memory the classifier learns from."
       />

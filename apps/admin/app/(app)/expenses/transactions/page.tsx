@@ -28,6 +28,7 @@ export default function TransactionsPage({
   return (
     <>
       <PageHeader
+        breadcrumbs={false}
         title="Transactions"
         description="Live from Investec. Click a category to change it, and to teach the classifier."
       />

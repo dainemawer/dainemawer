@@ -17,6 +17,7 @@ export default function ReviewPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={false}
         title="Review"
         description="Transactions the AI wasn't sure about. Confirm the ones it got right; change the rest, and tick “Always do this” so it learns."
       />

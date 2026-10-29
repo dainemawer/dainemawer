@@ -10,10 +10,11 @@ import { requireSession } from "@/lib/session";
 // email streams in, and each page gates its own data (lib/queries.ts), so
 // nothing here waits on the session. Collapsing is pure CSS off
 // <html data-sidebar> (components/sidebar-toggle.tsx), so it stays static too.
-// Collapsed, the shell drops its max width so the icon rail sits on the
-// screen's left edge, and the content takes the shell's width instead.
-// A page holding [data-wide] (the dashboard) drops both caps and fills the
-// screen either way.
+// Collapsed, the shell widens to the screen so the icon rail sits on its
+// left edge, and the content keeps the shell's width, centred. The
+// dashboard drops both caps and fills the screen either way (the
+// `dashboard` variant in globals.css). Collapsing animates: the sidebar column and
+// the shell's width are both interpolable (100vw, not none, for that).
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
@@ -24,7 +25,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       >
         Skip to content
       </a>
-      <div className="mx-auto grid min-h-svh max-w-shell content-start md:grid-cols-shell md:sidebar-collapsed:max-w-none md:sidebar-collapsed:grid-cols-[4.25rem_1fr] md:has-[[data-wide]]:max-w-none">
+      <div className="mx-auto grid min-h-svh max-w-shell content-start transition-[grid-template-columns,max-width] duration-300 ease-out motion-reduce:transition-none md:grid-cols-shell md:sidebar-collapsed:max-w-[100vw] md:sidebar-collapsed:grid-cols-[4.25rem_1fr] md:dashboard:max-w-none">
         <aside className="flex flex-col gap-8 border-b px-4 py-5 md:sticky md:top-0 md:h-svh md:overflow-x-hidden md:overflow-y-auto md:border-r md:border-b-0 md:px-6 md:py-8 md:sidebar-collapsed:items-center md:sidebar-collapsed:px-0">
           <div className="flex items-start justify-between gap-2 md:sidebar-collapsed:flex-col md:sidebar-collapsed:items-center md:sidebar-collapsed:gap-4">
             <Link
@@ -60,7 +61,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <main
           id="main"
           tabIndex={-1}
-          className="min-w-0 focus:outline-none px-4 py-6 md:px-10 md:py-8 md:sidebar-collapsed:mx-auto md:sidebar-collapsed:w-full md:sidebar-collapsed:max-w-shell md:has-[[data-wide]]:max-w-none"
+          className="min-w-0 focus:outline-none px-4 py-6 md:mx-auto md:w-full md:max-w-shell md:px-10 md:py-8 md:dashboard:max-w-none"
         >
           {children}
         </main>
