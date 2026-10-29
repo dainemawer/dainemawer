@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { activeCurrencies, getDashboard } from "@/lib/dashboard";
 import { formatDate, todayISO } from "@/lib/documents";
+import { getIncomeSummary } from "@/lib/income-report";
 import { type Currency, formatMoney, isCurrency } from "@/lib/money";
 import { getSettings } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,15 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
       <Suspense
         fallback={
           <Loading>
+            <IncomeSkeleton />
+          </Loading>
+        }
+      >
+        <IncomeInRand />
+      </Suspense>
+      <Suspense
+        fallback={
+          <Loading>
             <DashboardSkeleton />
           </Loading>
         }
@@ -74,6 +84,77 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         <Dashboard searchParams={searchParams} />
       </Suspense>
     </>
+  );
+}
+
+/**
+ * Every currency's paid invoices in rand (ECB rate on the day paid): the
+ * one place the dashboard adds currencies together. /income has the detail.
+ */
+async function IncomeInRand() {
+  const income = await getIncomeSummary();
+  const rand = (minor: number) => formatMoney(minor, "ZAR");
+  return (
+    <IncomeTiles
+      month={rand(income.month)}
+      year={rand(income.year)}
+      lastYear={rand(income.lastYear)}
+      yearLabel={income.current.label}
+      lastYearLabel={income.previous.label}
+      note={
+        income.missing
+          ? `${income.missing} payment${income.missing === 1 ? "" : "s"} missing a rate`
+          : "So far · by invoice"
+      }
+    />
+  );
+}
+
+function IncomeSkeleton() {
+  const value = <Bone w="11ch" />;
+  return (
+    <IncomeTiles
+      month={value}
+      year={value}
+      lastYear={value}
+      yearLabel={<Bone w="12ch" />}
+      lastYearLabel={<Bone w="12ch" />}
+    />
+  );
+}
+
+function IncomeTiles({
+  month,
+  year,
+  lastYear,
+  yearLabel,
+  lastYearLabel,
+  note,
+}: {
+  month: React.ReactNode;
+  year: React.ReactNode;
+  lastYear: React.ReactNode;
+  yearLabel: React.ReactNode;
+  lastYearLabel: React.ReactNode;
+  note?: string;
+}) {
+  return (
+    <section aria-label="Income in rand" className="mb-12">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-3 xl:grid-cols-6">
+        <Tile
+          label="Income this month"
+          value={month}
+          note="In rand, every currency"
+        />
+        <Tile
+          label={<>Income, {yearLabel}</>}
+          value={year}
+          note={note}
+          href={note ? "/income" : undefined}
+        />
+        <Tile label={<>Income, {lastYearLabel}</>} value={lastYear} />
+      </dl>
+    </section>
   );
 }
 
@@ -333,7 +414,7 @@ function Tile({
   href,
   tone,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: React.ReactNode;
   note?: React.ReactNode;
   href?: string;
