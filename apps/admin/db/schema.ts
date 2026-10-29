@@ -431,6 +431,26 @@ export const expenseMonthly = pgTable(
   (t) => [primaryKey({ columns: [t.month, t.categoryId] })],
 );
 
+/* ---------- Telegram assistant ---------- */
+
+/**
+ * The bot's recent conversation (lib/assistant), so a follow-up question
+ * ("and last month?") has its context. Only a short window is ever read,
+ * and anything older than a day is deleted.
+ */
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    role: text().$type<"user" | "assistant">().notNull(),
+    content: text().notNull(),
+    /** Telegram's update_id on your messages: a redelivered update is refused. */
+    updateId: bigint({ mode: "number" }).unique(),
+  },
+  (t) => [index("assistant_messages_at_idx").on(t.at)],
+);
+
 export type Customer = typeof customers.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;

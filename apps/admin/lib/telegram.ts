@@ -1,9 +1,13 @@
 import "server-only";
-import { formatTelegram, type TelegramMessage } from "@/lib/telegram-format";
+import {
+  formatTelegram,
+  splitTelegram,
+  type TelegramMessage,
+} from "@/lib/telegram-format";
 
 // Notifications to your own Telegram chat: the only channel for them. The bot
-// only ever sends to TELEGRAM_CHAT_ID and has no webhook, so nothing it
-// receives is ever read. Without TELEGRAM_BOT_TOKEN (local dev) the message
+// only ever sends to TELEGRAM_CHAT_ID. What you send it arrives at
+// app/api/webhooks/telegram, which answers questions (lib/assistant). Without TELEGRAM_BOT_TOKEN (local dev) the message
 // is logged instead, like lib/mail.ts does for email.
 
 export function telegramConfigured() {
@@ -32,18 +36,47 @@ export async function sendTelegram(
     );
     return false;
   }
+  return callTelegram("sendMessage", {
+    text,
+    parse_mode: "HTML",
+    disable_notification: quiet,
+    link_preview_options: { is_disabled: true },
+  });
+}
+
+/** The assistant's answer, as plain text, in as many messages as it takes. */
+export async function replyTelegram(text: string) {
+  if (!telegramConfigured()) {
+    console.info(`[telegram] reply:\n${text}\n`);
+    return false;
+  }
+  let ok = true;
+  for (const part of splitTelegram(text)) {
+    ok =
+      (await callTelegram("sendMessage", {
+        text: part,
+        link_preview_options: { is_disabled: true },
+      })) && ok;
+  }
+  return ok;
+}
+
+/** Shows "typing…" in the chat for about five seconds. */
+export async function typingTelegram() {
+  if (!telegramConfigured()) return false;
+  return callTelegram("sendChatAction", { action: "typing" });
+}
+
+async function callTelegram(method: string, body: Record<string, unknown>) {
   try {
     const response = await fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/${method}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: process.env.TELEGRAM_CHAT_ID,
-          text,
-          parse_mode: "HTML",
-          disable_notification: quiet,
-          link_preview_options: { is_disabled: true },
+          ...body,
         }),
         signal: AbortSignal.timeout(5000),
       },
@@ -55,14 +88,14 @@ export async function sendTelegram(
         description?: string;
       };
       console.error(
-        `[telegram] ${response.status}: ${description ?? "send failed"}`,
+        `[telegram] ${method} ${response.status}: ${description ?? "failed"}`,
       );
       return false;
     }
     return true;
   } catch (error) {
     console.error(
-      "[telegram] send failed:",
+      `[telegram] ${method} failed:`,
       error instanceof Error ? error.name : "unknown error",
     );
     return false;
