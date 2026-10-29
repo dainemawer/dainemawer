@@ -75,11 +75,20 @@ export function statusTargets(
   );
 }
 
-/** Which manual transitions the detail page offers for a stored status. */
-export function allowedActions(kind: DocumentKind, status: StoredStatus) {
+/**
+ * Which manual transitions the detail page offers for a stored status.
+ * Invoices a recurring schedule issued are never emailed from here: they
+ * reach the client some other way, and get marked sent by hand.
+ */
+export function allowedActions(
+  kind: DocumentKind,
+  status: StoredStatus,
+  { recurring = false }: { recurring?: boolean } = {},
+) {
   return {
     edit: status !== "void" && status !== "paid",
-    send: status !== "void" && status !== "declined",
+    send: !recurring && status !== "void" && status !== "declined",
+    markSent: recurring && status === "draft",
     // Not only after emailing from here: a quote or invoice may have gone
     // out some other way (or been imported), so drafts can be decided too.
     accept: kind === "quote" && (status === "draft" || status === "sent"),

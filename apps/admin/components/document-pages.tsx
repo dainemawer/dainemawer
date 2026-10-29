@@ -441,6 +441,7 @@ async function DocumentDetail({
             status={document.status}
             emailDefaults={emailDefaults}
             hasBeenSent={sends.length > 0}
+            recurring={document.recurringId !== null}
           />
         }
       />

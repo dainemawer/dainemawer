@@ -71,6 +71,20 @@ test("allowedActions follows the lifecycle", () => {
   assert.equal(allowedActions("invoice", "draft").delete, false);
   assert.equal(allowedActions("invoice", "draft").void, true);
   assert.equal(allowedActions("quote", "draft").delete, true);
+  assert.equal(allowedActions("invoice", "draft").send, true);
+  assert.equal(
+    allowedActions("invoice", "draft", { recurring: true }).send,
+    false,
+  );
+  assert.equal(
+    allowedActions("invoice", "sent", { recurring: true }).send,
+    false,
+  );
+  assert.equal(
+    allowedActions("invoice", "draft", { recurring: true }).markSent,
+    true,
+  );
+  assert.equal(allowedActions("invoice", "draft").markSent, false);
 });
 
 test("statusTargets offers every other status of the kind", () => {
