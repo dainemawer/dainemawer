@@ -13,9 +13,16 @@ const ENDPOINT = "https://api.frankfurter.dev/v1";
 /** A little over a month, so the sparkline has ~22 working days. */
 const HISTORY_DAYS = 35;
 
-export async function getFxRates(): Promise<FxRates> {
+/** The rates, or null when Frankfurter is down (the tile says so). */
+export async function getFxRates(): Promise<FxRates | null> {
   await requireSession();
-  return fetchFx(await getToday());
+  const today = await getToday();
+  // Only the fetch is caught: the session check's own signals (a redirect,
+  // or the prerender stopping at it) must reach Next.
+  return fetchFx(today).catch((error) => {
+    console.error("[fx]", error);
+    return null;
+  });
 }
 
 async function fetchFx(today: string): Promise<FxRates> {
