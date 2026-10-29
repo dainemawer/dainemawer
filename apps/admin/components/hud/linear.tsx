@@ -29,10 +29,7 @@ export async function LinearTile() {
       </Frame>
     );
   }
-  const today = await getLinearToday().catch((error) => {
-    console.error("[linear today]", error);
-    return null;
-  });
+  const today = await getLinearToday();
   if (!today) {
     return (
       <Frame>

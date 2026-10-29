@@ -82,11 +82,17 @@ const TODAY_QUERY = `query Today($filter: IssueFilter) {
   }
 }`;
 
-/** What needs you in Linear today, for the HUD. */
+/** What needs you in Linear today, for the HUD, or null when Linear is down. */
 export async function getLinearToday() {
   await requireSession();
   const today = await getToday();
-  return linearToday(await fetchMyIssues(today), today);
+  // Only the fetch is caught: the session check's own signals (a redirect,
+  // or the prerender stopping at it) must reach Next.
+  const issues = await fetchMyIssues(today).catch((error) => {
+    console.error("[linear today]", error);
+    return null;
+  });
+  return issues && linearToday(issues, today);
 }
 
 /**
