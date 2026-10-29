@@ -1,12 +1,16 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export type Crumb = { label: React.ReactNode; href: string };
+
+export const DASHBOARD: Crumb = { label: "Dashboard", href: "/" };
 
 /**
  * The page's title, with a breadcrumb trail above it: Dashboard, then
  * `breadcrumbs` (the pages above this one), then this page, as `current`
- * or the title. Pass `breadcrumbs={false}` on the dashboard itself.
+ * or the title. Pass `breadcrumbs={false}` on the dashboard itself, and on
+ * Expenses pages, whose layout shows the trail above its tabs.
  */
 export function PageHeader({
   title,
@@ -27,7 +31,7 @@ export function PageHeader({
       <div className="min-w-0">
         {breadcrumbs ? (
           <Breadcrumbs
-            trail={[{ label: "Dashboard", href: "/" }, ...breadcrumbs]}
+            trail={[DASHBOARD, ...breadcrumbs]}
             current={current ?? (typeof title === "string" ? title : null)}
           />
         ) : null}
@@ -41,17 +45,20 @@ export function PageHeader({
   );
 }
 
-function Breadcrumbs({
+/** The trail on its own, for a section whose pages share one (Expenses, above its tabs). */
+export function Breadcrumbs({
   trail,
   current,
+  className = "mb-1.5",
 }: {
   trail: Crumb[];
   current: React.ReactNode;
+  className?: string;
 }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="mb-1.5 text-xs text-muted-foreground"
+      className={cn(className, "text-xs text-muted-foreground")}
     >
       <ol className="flex flex-wrap items-center gap-1">
         {trail.map((crumb, i) => (
