@@ -2,10 +2,10 @@ import { revalidateTag } from "next/cache";
 import { TAG } from "@/lib/cache-tags";
 import { validSignature } from "@/lib/linear-signature";
 
-// Linear calls this when a project or milestone changes (Linear → Settings
-// → API → Webhooks, data types Projects and Project milestones, URL
-// https://admin.dainemawer.com/api/webhooks/linear). It only expires the
-// cached projects; the next visit to /projects fetches them fresh. Signed
+// Linear calls this when a project, milestone or issue changes (Linear →
+// Settings → API → Webhooks, data types Projects, Project milestones and
+// Issues, URL https://admin.dainemawer.com/api/webhooks/linear). It only
+// expires the cached projects or issues; the next visit fetches them. Signed
 // with LINEAR_WEBHOOK_SECRET; anything unsigned, stale or forged gets 401.
 
 const MAX_AGE_MS = 60_000;
@@ -29,6 +29,9 @@ export async function POST(request: Request) {
   }
   if (payload.type?.startsWith("Project")) {
     revalidateTag(TAG.projects, { expire: 0 });
+  }
+  if (payload.type === "Issue") {
+    revalidateTag(TAG.issues, { expire: 0 });
   }
   return new Response(null, { status: 204 });
 }
