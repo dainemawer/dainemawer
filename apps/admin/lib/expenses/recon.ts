@@ -9,7 +9,6 @@ import {
   expenseNotes,
   expenseRules,
 } from "@/db/schema";
-import { ADMIN_EMAIL } from "@/lib/auth";
 import { addDays, todayISO } from "@/lib/documents";
 import {
   classifyMerchants,
@@ -28,7 +27,6 @@ import {
   netFor,
   type Transaction,
 } from "@/lib/expenses/transactions";
-import { sendMail } from "@/lib/mail";
 import { formatMoney } from "@/lib/money";
 import { sendTelegram } from "@/lib/telegram";
 
@@ -262,16 +260,16 @@ export async function backfill(today = todayISO()) {
 }
 
 /**
- * The daily run (app/api/cron/expenses): label what's new and email a
- * summary. It reads the whole history window (one request per account), so
- * a missed run, a late-posting card or an earlier failed AI call is caught
- * up, and every month's totals are recomputed from scratch.
+ * The daily run (app/api/cron/expenses): label what's new and send a
+ * summary to Telegram. It reads the whole history window (one request per
+ * account), so a missed run, a late-posting card or an earlier failed AI
+ * call is caught up, and every month's totals are recomputed from scratch.
  */
 export async function runRecon({
-  email = true,
+  notify = true,
   today = todayISO(),
 }: {
-  email?: boolean;
+  notify?: boolean;
   today?: string;
 } = {}) {
   const [category] = await db
@@ -284,7 +282,7 @@ export async function runRecon({
   await syncAccounts();
   const labelled = await backfill(today);
   const review = labelled.filter((l) => l.needsReview).length;
-  if (email && labelled.length) await sendSummary(labelled, today);
+  if (notify && labelled.length) await sendSummary(labelled, today);
   return { skipped: null, labelled: labelled.length, review };
 }
 
@@ -372,68 +370,30 @@ async function sendSummary(labelled: Labelled[], today: string) {
   }).format(new Date(`${month}T00:00:00Z`));
 
   const lines = [
-    `${labelled.length} new transaction${labelled.length === 1 ? "" : "s"}: ${money(out)} out, ${money(incoming)} in (transfers between your accounts left out).`,
-    "",
-    `${monthName} so far: ${money(spentThisMonth)} spent${average ? `; you average ${money(average)} a month` : ""}.`,
+    `${monthName} so far: ${money(spentThisMonth)} spent${average ? `, you average ${money(average)} a month` : ""}`,
+    perCategory.size
+      ? `By category: ${[...perCategory.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, minor]) => `${name} ${money(minor)}`)
+          .join(" · ")}`
+      : null,
+    ...largest.map(
+      (tx) =>
+        `Largest: ${money(tx.amountMinor)} · ${tx.description} (${tx.date})`,
+    ),
+    ...duplicates.map(
+      (group) =>
+        `Possible duplicate: ${group.length} × ${money(group[0].amountMinor)} · ${group[0].description} (${group[0].date})`,
+    ),
+    pending.length
+      ? `${pending.length} transaction${pending.length === 1 ? "" : "s"} to review`
+      : null,
   ];
-  if (perCategory.size) {
-    lines.push(
-      "",
-      "By category:",
-      ...[...perCategory.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([name, minor]) => `  ${name}: ${money(minor)}`),
-    );
-  }
-  if (largest.length) {
-    lines.push(
-      "",
-      "Largest:",
-      ...largest.map(
-        (tx) => `  ${money(tx.amountMinor)} · ${tx.description} (${tx.date})`,
-      ),
-    );
-  }
-  if (duplicates.length) {
-    lines.push(
-      "",
-      "Possible duplicate charges:",
-      ...duplicates.map(
-        (group) =>
-          `  ${group.length} × ${money(group[0].amountMinor)} · ${group[0].description} (${group[0].date})`,
-      ),
-    );
-  }
-  if (pending.length) {
-    lines.push(
-      "",
-      `${pending.length} transaction${pending.length === 1 ? "" : "s"} to review: ${base}/expenses/review`,
-    );
-  }
-  lines.push("", `${base}/expenses`);
 
-  try {
-    await sendMail({
-      to: [ADMIN_EMAIL],
-      subject: `Expenses: ${money(out)} out, ${money(incoming)} in${pending.length ? ` · ${pending.length} to review` : ""}`,
-      text: `${lines.join("\n")}\n`,
-      idempotencyKey: `expenses-${today}-${ids.length}-${ids[0]}`,
-    });
-  } catch (error) {
-    // The labels are saved either way; a failed email mustn't fail the run.
-    console.error("[expenses] summary email failed", error);
-  }
   await sendTelegram(
     {
-      title: `Expenses: ${money(out)} out, ${money(incoming)} in`,
-      lines: [
-        pending.length
-          ? `${pending.length} transaction${pending.length === 1 ? "" : "s"} to review`
-          : null,
-        duplicates.length
-          ? `${duplicates.length} possible duplicate charge${duplicates.length === 1 ? "" : "s"}`
-          : null,
-      ],
+      title: `Expenses: ${labelled.length} new · ${money(out)} out, ${money(incoming)} in`,
+      lines,
       url: pending.length ? `${base}/expenses/review` : `${base}/expenses`,
     },
     { quiet: true },

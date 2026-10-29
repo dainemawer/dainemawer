@@ -4,7 +4,7 @@ import { isCronRequest, reportCronFailure } from "@/lib/cron-auth";
 import { runRecon } from "@/lib/expenses/recon";
 
 // The daily expenses recon (vercel.json): labels new Investec transactions,
-// refreshes the monthly totals and emails a summary. See lib/expenses.
+// refreshes the monthly totals and sends a summary to Telegram. See lib/expenses.
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     return Response.json(result);
   } catch (error) {
     console.error("[expenses] recon failed", error);
-    // Tomorrow's run catches up; the email says it happened.
+    // Tomorrow's run catches up; Telegram says it happened.
     await reportCronFailure(
       "Expenses sync",
       error instanceof Error ? error.message : "Unknown error",

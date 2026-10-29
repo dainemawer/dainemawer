@@ -1,9 +1,6 @@
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { audit } from "@/lib/audit";
-import { ADMIN_EMAIL } from "@/lib/auth";
-import { cronFailedEmail } from "@/lib/emails/security";
-import { sendMail } from "@/lib/mail";
 
 /**
  * Vercel Cron sends CRON_SECRET as a bearer token. Without the secret
@@ -21,17 +18,10 @@ export function isCronRequest(request: Request) {
 }
 
 /**
- * A cron run failed: log it in the audit trail and email the admin, since
- * nothing else would say so. Never throws, so the route still answers 500.
+ * A cron run failed: log it in the audit trail, which also sends it to
+ * Telegram, since nothing else would say so. Never throws, so the route
+ * still answers 500.
  */
 export async function reportCronFailure(job: string, message: string) {
   await audit("cron-failed", `${job}: ${message}`);
-  await sendMail({
-    to: [ADMIN_EMAIL],
-    ...cronFailedEmail({
-      origin: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
-      job,
-      message,
-    }),
-  }).catch((error) => console.error("cron failure email failed", error));
 }

@@ -8,9 +8,7 @@ import {
   recurringInvoices,
   recurringLines,
 } from "@/db/schema";
-import { ADMIN_EMAIL } from "@/lib/auth";
 import { addDays, formatDate, todayISO } from "@/lib/documents";
-import { sendMail } from "@/lib/mail";
 import { formatMoney } from "@/lib/money";
 import { allocateNumber } from "@/lib/numbering";
 import { dueIssueDates, nextIssueDate } from "@/lib/recurring-dates";
@@ -150,37 +148,19 @@ async function issueSchedule(id: string, today: string): Promise<Issued[]> {
   });
 }
 
-/** One email (and a Telegram message) to the admin listing the new drafts; nothing goes to clients. */
+/** One Telegram message listing the new drafts; nothing goes to clients. */
 async function notify(issued: Issued[], today: string) {
   const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
   const count = issued.length;
-  const list = issued
-    .map(
-      (invoice) =>
-        `${invoice.number} · ${invoice.company} · ${invoice.total}` +
-        (invoice.issueDate === today
-          ? ""
-          : ` (for ${formatDate(invoice.issueDate)})`) +
-        `\n${base}/invoices/${invoice.id}`,
-    )
-    .join("\n\n");
-  try {
-    await sendMail({
-      to: [ADMIN_EMAIL],
-      subject: `${count} recurring invoice${count === 1 ? "" : "s"} ready to review`,
-      text: `These drafts were created from your recurring invoices. Check each one, then send it from its page.\n\n${list}\n`,
-      idempotencyKey: `recurring-${issued[0].id}-${count}`,
-    });
-  } catch (error) {
-    // The drafts exist either way; a failed heads-up shouldn't fail the run.
-    console.error("[recurring] notification failed", error);
-  }
   await sendTelegram(
     {
       title: `${count} recurring invoice${count === 1 ? "" : "s"} ready to review`,
       lines: issued.map(
         (invoice) =>
-          `${invoice.number} · ${invoice.company} · ${invoice.total}`,
+          `${invoice.number} · ${invoice.company} · ${invoice.total}` +
+          (invoice.issueDate === today
+            ? ""
+            : ` (for ${formatDate(invoice.issueDate)})`),
       ),
       url:
         count === 1
