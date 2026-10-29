@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { CalendarSkeleton, CalendarTile } from "@/components/hud/calendar";
 import { Clock } from "@/components/hud/clock";
+import { FxSkeleton, FxTile } from "@/components/hud/fx";
 import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { PageHeader } from "@/components/page-header";
@@ -43,7 +44,8 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         }
       />
       {/* The clock and weather only run in the browser, so they sit in the
-          static shell; the calendar is data and streams in its own boundary.
+          static shell; the calendar and rates are data and stream in their
+          own boundaries.
           data-wide: the dashboard uses the whole screen (see the layout). */}
       <div
         data-wide
@@ -53,6 +55,9 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         <WeatherTile />
         <Suspense fallback={<CalendarSkeleton />}>
           <CalendarTile />
+        </Suspense>
+        <Suspense fallback={<FxSkeleton />}>
+          <FxTile />
         </Suspense>
       </div>
       <Suspense
