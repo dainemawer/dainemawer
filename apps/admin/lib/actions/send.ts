@@ -62,6 +62,9 @@ export async function sendDocument(
   const full = await getDocument(id);
   if (!full) return { error: "Document not found." };
   const { document, customer, lines } = full;
+  if (document.recurringId) {
+    return { error: "Recurring invoices are never emailed." };
+  }
   if (!allowedActions(document.kind, document.status).send) {
     return { error: `A ${document.status} ${document.kind} can't be sent.` };
   }
