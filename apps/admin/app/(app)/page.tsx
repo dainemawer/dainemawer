@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { CalendarSkeleton, CalendarTile } from "@/components/hud/calendar";
 import { Clock } from "@/components/hud/clock";
 import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
@@ -41,11 +42,14 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
           </>
         }
       />
-      {/* The HUD only fetches from the browser (weather) or reads its clock,
-          so it sits in the static shell, outside the data's boundary. */}
-      <div className="mb-12 grid gap-x-12 gap-y-8 md:grid-cols-2">
+      {/* The clock and weather only run in the browser, so they sit in the
+          static shell; the calendar is data and streams in its own boundary. */}
+      <div className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
         <Clock />
         <WeatherTile />
+        <Suspense fallback={<CalendarSkeleton />}>
+          <CalendarTile />
+        </Suspense>
       </div>
       <Suspense
         fallback={
