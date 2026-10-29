@@ -43,8 +43,12 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         }
       />
       {/* The clock and weather only run in the browser, so they sit in the
-          static shell; the calendar is data and streams in its own boundary. */}
-      <div className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
+          static shell; the calendar is data and streams in its own boundary.
+          data-wide: the dashboard uses the whole screen (see the layout). */}
+      <div
+        data-wide
+        className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3"
+      >
         <Clock />
         <WeatherTile />
         <Suspense fallback={<CalendarSkeleton />}>
@@ -87,39 +91,41 @@ function DashboardSkeleton() {
         <Tile label="Open quotes" value={value} note={note} />
         <Tile label="Quote win rate" value={<Bone w="4ch" />} note={note} />
       </dl>
-      <section className="mb-12">
-        <h2 className="mb-4 text-lg font-bold">
-          Invoiced and paid, last 12 months
-        </h2>
-        <figure>
-          <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-sm bg-[#c4c4c4]" />
-              Invoiced
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-sm bg-ink" />
-              Paid
-            </span>
-          </div>
-          <BarChartSkeleton height={220} paired />
-        </figure>
-      </section>
-      <div className="grid gap-12 lg:grid-cols-2">
-        {(
-          [
-            ["Overdue", true],
-            ["Quotes awaiting a reply", true],
-            ["Top customers this year", false],
-            ["Recent activity", true],
-          ] as const
-        ).map(([title, secondary]) => (
-          <section key={title}>
-            <h2 className="mb-3 text-lg font-bold">{title}</h2>
-            <List>{rows(secondary)}</List>
-          </section>
-        ))}
-      </div>
+      <Split>
+        <section>
+          <h2 className="mb-4 text-lg font-bold">
+            Invoiced and paid, last 12 months
+          </h2>
+          <figure>
+            <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-sm bg-[#c4c4c4]" />
+                Invoiced
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-sm bg-ink" />
+                Paid
+              </span>
+            </div>
+            <BarChartSkeleton height={220} paired />
+          </figure>
+        </section>
+        <div className="grid gap-12 lg:grid-cols-2">
+          {(
+            [
+              ["Overdue", true],
+              ["Quotes awaiting a reply", true],
+              ["Top customers this year", false],
+              ["Recent activity", true],
+            ] as const
+          ).map(([title, secondary]) => (
+            <section key={title}>
+              <h2 className="mb-3 text-lg font-bold">{title}</h2>
+              <List>{rows(secondary)}</List>
+            </section>
+          ))}
+        </div>
+      </Split>
     </>
   );
 }
@@ -199,100 +205,115 @@ async function Dashboard({
         />
       </dl>
 
-      <section className="mb-12" aria-labelledby="monthly">
-        <h2 id="monthly" className="mb-4 text-lg font-bold">
-          Invoiced and paid, last 12 months
-        </h2>
-        <MonthlyChart data={months} currency={currency} />
-      </section>
-
-      <div className="grid gap-12 lg:grid-cols-2">
-        <section aria-labelledby="overdue">
-          <h2 id="overdue" className="mb-3 text-lg font-bold">
-            Overdue
+      <Split>
+        <section aria-labelledby="monthly">
+          <h2 id="monthly" className="mb-4 text-lg font-bold">
+            Invoiced and paid, last 12 months
           </h2>
-          {overdue.length ? (
-            <List>
-              {overdue.map(({ document, company }) => (
-                <Row
-                  key={document.id}
-                  href={docPath("invoice", document.id)}
-                  primary={`${document.number} · ${company}`}
-                  secondary={`Due ${formatDate(document.dueDate)} · ${daysLate(document.dueDate)} days late`}
-                  amount={money(document.totalMinor)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="Nothing overdue" />
-          )}
+          <MonthlyChart data={months} currency={currency} />
         </section>
 
-        <section aria-labelledby="awaiting">
-          <h2 id="awaiting" className="mb-3 text-lg font-bold">
-            Quotes awaiting a reply
-          </h2>
-          {awaiting.length ? (
-            <List>
-              {awaiting.map(({ document, company }) => (
-                <Row
-                  key={document.id}
-                  href={docPath("quote", document.id)}
-                  primary={`${document.number} · ${company}`}
-                  secondary={`Valid until ${formatDate(document.validUntil)}`}
-                  amount={money(document.totalMinor)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="No open quotes" />
-          )}
-        </section>
+        <div className="grid gap-12 lg:grid-cols-2">
+          <section aria-labelledby="overdue">
+            <h2 id="overdue" className="mb-3 text-lg font-bold">
+              Overdue
+            </h2>
+            {overdue.length ? (
+              <List>
+                {overdue.map(({ document, company }) => (
+                  <Row
+                    key={document.id}
+                    href={docPath("invoice", document.id)}
+                    primary={`${document.number} · ${company}`}
+                    secondary={`Due ${formatDate(document.dueDate)} · ${daysLate(document.dueDate)} days late`}
+                    amount={money(document.totalMinor)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="Nothing overdue" />
+            )}
+          </section>
 
-        <section aria-labelledby="top">
-          <h2 id="top" className="mb-3 text-lg font-bold">
-            Top customers this year
-          </h2>
-          {top.length ? (
-            <List>
-              {top.map((customer) => (
-                <Row
-                  key={customer.id}
-                  href={`/customers/${customer.id}`}
-                  primary={customer.company}
-                  amount={money(customer.paid)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="No payments yet this year" />
-          )}
-        </section>
+          <section aria-labelledby="awaiting">
+            <h2 id="awaiting" className="mb-3 text-lg font-bold">
+              Quotes awaiting a reply
+            </h2>
+            {awaiting.length ? (
+              <List>
+                {awaiting.map(({ document, company }) => (
+                  <Row
+                    key={document.id}
+                    href={docPath("quote", document.id)}
+                    primary={`${document.number} · ${company}`}
+                    secondary={`Valid until ${formatDate(document.validUntil)}`}
+                    amount={money(document.totalMinor)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="No open quotes" />
+            )}
+          </section>
 
-        <section aria-labelledby="activity">
-          <h2 id="activity" className="mb-3 text-lg font-bold">
-            Recent activity
-          </h2>
-          {activity.length ? (
-            <List>
-              {activity.map((event) => (
-                <Row
-                  key={`${event.kind}-${event.documentId}-${event.at}`}
-                  href={docPath(event.documentKind, event.documentId)}
-                  primary={`${event.number} ${event.kind}`}
-                  secondary={`${event.company} · ${formatDate(todayISO(new Date(event.at)))}`}
-                  amount={formatMoney(event.totalMinor, event.currency)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="Nothing yet">
-              Send your first quote to see activity here.
-            </EmptyState>
-          )}
-        </section>
-      </div>
+          <section aria-labelledby="top">
+            <h2 id="top" className="mb-3 text-lg font-bold">
+              Top customers this year
+            </h2>
+            {top.length ? (
+              <List>
+                {top.map((customer) => (
+                  <Row
+                    key={customer.id}
+                    href={`/customers/${customer.id}`}
+                    primary={customer.company}
+                    amount={money(customer.paid)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="No payments yet this year" />
+            )}
+          </section>
+
+          <section aria-labelledby="activity">
+            <h2 id="activity" className="mb-3 text-lg font-bold">
+              Recent activity
+            </h2>
+            {activity.length ? (
+              <List>
+                {activity.map((event) => (
+                  <Row
+                    key={`${event.kind}-${event.documentId}-${event.at}`}
+                    href={docPath(event.documentKind, event.documentId)}
+                    primary={`${event.number} ${event.kind}`}
+                    secondary={`${event.company} · ${formatDate(todayISO(new Date(event.at)))}`}
+                    amount={formatMoney(event.totalMinor, event.currency)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="Nothing yet">
+                Send your first quote to see activity here.
+              </EmptyState>
+            )}
+          </section>
+        </div>
+      </Split>
     </>
+  );
+}
+
+/**
+ * The chart, then the lists. Stacked, unless the dashboard has the room
+ * (a wide screen): then side by side, which keeps the chart, whose text
+ * scales with its width, at a readable size.
+ */
+function Split({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="grid gap-12 @min-[100rem]:grid-cols-2">{children}</div>
+    </div>
   );
 }
 
