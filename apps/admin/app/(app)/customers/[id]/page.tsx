@@ -44,7 +44,8 @@ function CustomerSkeleton() {
   return (
     <>
       <PageHeader
-        eyebrow="Customers"
+        breadcrumbs={[{ label: "Customers", href: "/customers" }]}
+        current={<Bone w="14ch" />}
         title={<Bone w="14ch" />}
         description={<Bone w="12ch" />}
         actions={times(4, (i) => <Skeleton key={i} className="h-9 w-24" />)}
@@ -103,11 +104,7 @@ async function Customer({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href="/customers" className="hover:text-ink">
-            Customers
-          </Link>
-        }
+        breadcrumbs={[{ label: "Customers", href: "/customers" }]}
         title={customer.company}
         description={customer.archivedAt ? "Archived" : customer.contactName}
         actions={

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { customerOptions } from "@/components/document-pages";
@@ -41,11 +40,11 @@ async function EditRecurring({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href={`/recurring/${id}`} className="hover:text-ink">
-            {customer.company}
-          </Link>
-        }
+        breadcrumbs={[
+          { label: "Recurring", href: "/recurring" },
+          { label: customer.company, href: `/recurring/${id}` },
+        ]}
+        current="Edit"
         title="Edit recurring invoice"
         description="Changes apply to invoices created from now on. Ones already created keep what they had."
       />

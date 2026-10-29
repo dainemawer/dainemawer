@@ -198,11 +198,7 @@ export function NewDocumentPage({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href={base(kind)} className="hover:text-ink">
-            {PLURAL[kind]}
-          </Link>
-        }
+        breadcrumbs={[{ label: PLURAL[kind], href: base(kind) }]}
         title={`New ${kind}`}
       />
       <Suspense
@@ -308,11 +304,11 @@ async function EditDocument({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href={`${base(kind)}/${id}`} className="hover:text-ink">
-            {document.number}
-          </Link>
-        }
+        breadcrumbs={[
+          { label: PLURAL[kind], href: base(kind) },
+          { label: document.number, href: `${base(kind)}/${id}` },
+        ]}
+        current="Edit"
         title={`Edit ${kind}`}
         description={
           document.status === "sent"
@@ -419,11 +415,8 @@ async function DocumentDetail({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href={base(kind)} className="hover:text-ink">
-            {PLURAL[kind]}
-          </Link>
-        }
+        breadcrumbs={[{ label: PLURAL[kind], href: base(kind) }]}
+        current={document.number}
         title={
           <span className="flex flex-wrap items-center gap-3">
             <span className="tabular-nums">{document.number}</span>

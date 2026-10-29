@@ -33,7 +33,14 @@ async function EditCustomer({
   if (!customer) notFound();
   return (
     <>
-      <PageHeader eyebrow="Edit customer" title={customer.company} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Customers", href: "/customers" },
+          { label: customer.company, href: `/customers/${id}` },
+        ]}
+        current="Edit"
+        title="Edit customer"
+      />
       <CustomerForm
         customer={customer}
         defaults={{
