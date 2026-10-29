@@ -6,20 +6,16 @@ import {
   formatChange,
   formatRand,
 } from "@/lib/fx";
+import { getFxRates } from "@/lib/fx-rates";
 
 const ARROW = { up: "▲", down: "▼", flat: "•" } as const;
-
-import { getFxRates } from "@/lib/fx-rates";
 
 // The HUD's exchange rates: rand per dollar, euro and pound, each with its
 // change on the day and a sparkline of the last month. Data, so it streams
 // inside its own <Suspense> on the dashboard.
 
 export async function FxTile() {
-  const fx = await getFxRates().catch((error) => {
-    console.error("[fx]", error);
-    return null;
-  });
+  const fx = await getFxRates();
   if (!fx?.rates.length) {
     return (
       <Frame>
