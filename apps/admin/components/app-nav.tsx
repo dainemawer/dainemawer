@@ -4,6 +4,7 @@ import {
   ChartGantt,
   ChevronRight,
   FileText,
+  Landmark,
   LayoutDashboard,
   type LucideIcon,
   Receipt,
@@ -35,7 +36,10 @@ const dashboard: NavItem = {
 const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Finance",
-    items: [{ href: "/expenses", label: "Expenses", icon: Wallet }],
+    items: [
+      { href: "/expenses", label: "Expenses", icon: Wallet },
+      { href: "/income", label: "Income", icon: Landmark },
+    ],
   },
   {
     label: "Work",

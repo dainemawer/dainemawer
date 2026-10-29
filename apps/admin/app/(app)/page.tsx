@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { CalendarSkeleton, CalendarTile } from "@/components/hud/calendar";
 import { Clock } from "@/components/hud/clock";
+import { FxSkeleton, FxTile } from "@/components/hud/fx";
+import { LinearSkeleton, LinearTile } from "@/components/hud/linear";
 import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { PageHeader } from "@/components/page-header";
@@ -17,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { activeCurrencies, getDashboard } from "@/lib/dashboard";
 import { formatDate, todayISO } from "@/lib/documents";
+import { getIncomeSummary } from "@/lib/income-report";
 import { type Currency, formatMoney, isCurrency } from "@/lib/money";
 import { getSettings } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -43,14 +46,34 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         }
       />
       {/* The clock and weather only run in the browser, so they sit in the
-          static shell; the calendar is data and streams in its own boundary. */}
-      <div className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
+          static shell; the calendar, rates and Linear are data and stream in
+          their own boundaries.
+          data-wide: the dashboard uses the whole screen (see the layout). */}
+      <div
+        data-wide
+        className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3"
+      >
         <Clock />
         <WeatherTile />
         <Suspense fallback={<CalendarSkeleton />}>
           <CalendarTile />
         </Suspense>
+        <Suspense fallback={<FxSkeleton />}>
+          <FxTile />
+        </Suspense>
+        <Suspense fallback={<LinearSkeleton />}>
+          <LinearTile />
+        </Suspense>
       </div>
+      <Suspense
+        fallback={
+          <Loading>
+            <IncomeSkeleton />
+          </Loading>
+        }
+      >
+        <IncomeInRand />
+      </Suspense>
       <Suspense
         fallback={
           <Loading>
@@ -61,6 +84,77 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         <Dashboard searchParams={searchParams} />
       </Suspense>
     </>
+  );
+}
+
+/**
+ * Every currency's paid invoices in rand (ECB rate on the day paid): the
+ * one place the dashboard adds currencies together. /income has the detail.
+ */
+async function IncomeInRand() {
+  const income = await getIncomeSummary();
+  const rand = (minor: number) => formatMoney(minor, "ZAR");
+  return (
+    <IncomeTiles
+      month={rand(income.month)}
+      year={rand(income.year)}
+      lastYear={rand(income.lastYear)}
+      yearLabel={income.current.label}
+      lastYearLabel={income.previous.label}
+      note={
+        income.missing
+          ? `${income.missing} payment${income.missing === 1 ? "" : "s"} missing a rate`
+          : "So far · by invoice"
+      }
+    />
+  );
+}
+
+function IncomeSkeleton() {
+  const value = <Bone w="11ch" />;
+  return (
+    <IncomeTiles
+      month={value}
+      year={value}
+      lastYear={value}
+      yearLabel={<Bone w="12ch" />}
+      lastYearLabel={<Bone w="12ch" />}
+    />
+  );
+}
+
+function IncomeTiles({
+  month,
+  year,
+  lastYear,
+  yearLabel,
+  lastYearLabel,
+  note,
+}: {
+  month: React.ReactNode;
+  year: React.ReactNode;
+  lastYear: React.ReactNode;
+  yearLabel: React.ReactNode;
+  lastYearLabel: React.ReactNode;
+  note?: string;
+}) {
+  return (
+    <section aria-label="Income in rand" className="mb-12">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-3 xl:grid-cols-6">
+        <Tile
+          label="Income this month"
+          value={month}
+          note="In rand, every currency"
+        />
+        <Tile
+          label={<>Income, {yearLabel}</>}
+          value={year}
+          note={note}
+          href={note ? "/income" : undefined}
+        />
+        <Tile label={<>Income, {lastYearLabel}</>} value={lastYear} />
+      </dl>
+    </section>
   );
 }
 
@@ -87,39 +181,41 @@ function DashboardSkeleton() {
         <Tile label="Open quotes" value={value} note={note} />
         <Tile label="Quote win rate" value={<Bone w="4ch" />} note={note} />
       </dl>
-      <section className="mb-12">
-        <h2 className="mb-4 text-lg font-bold">
-          Invoiced and paid, last 12 months
-        </h2>
-        <figure>
-          <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-sm bg-[#c4c4c4]" />
-              Invoiced
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-sm bg-ink" />
-              Paid
-            </span>
-          </div>
-          <BarChartSkeleton height={220} paired />
-        </figure>
-      </section>
-      <div className="grid gap-12 lg:grid-cols-2">
-        {(
-          [
-            ["Overdue", true],
-            ["Quotes awaiting a reply", true],
-            ["Top customers this year", false],
-            ["Recent activity", true],
-          ] as const
-        ).map(([title, secondary]) => (
-          <section key={title}>
-            <h2 className="mb-3 text-lg font-bold">{title}</h2>
-            <List>{rows(secondary)}</List>
-          </section>
-        ))}
-      </div>
+      <Split>
+        <section>
+          <h2 className="mb-4 text-lg font-bold">
+            Invoiced and paid, last 12 months
+          </h2>
+          <figure>
+            <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-sm bg-[#c4c4c4]" />
+                Invoiced
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-sm bg-ink" />
+                Paid
+              </span>
+            </div>
+            <BarChartSkeleton height={220} paired />
+          </figure>
+        </section>
+        <div className="grid gap-12 lg:grid-cols-2">
+          {(
+            [
+              ["Overdue", true],
+              ["Quotes awaiting a reply", true],
+              ["Top customers this year", false],
+              ["Recent activity", true],
+            ] as const
+          ).map(([title, secondary]) => (
+            <section key={title}>
+              <h2 className="mb-3 text-lg font-bold">{title}</h2>
+              <List>{rows(secondary)}</List>
+            </section>
+          ))}
+        </div>
+      </Split>
     </>
   );
 }
@@ -199,100 +295,115 @@ async function Dashboard({
         />
       </dl>
 
-      <section className="mb-12" aria-labelledby="monthly">
-        <h2 id="monthly" className="mb-4 text-lg font-bold">
-          Invoiced and paid, last 12 months
-        </h2>
-        <MonthlyChart data={months} currency={currency} />
-      </section>
-
-      <div className="grid gap-12 lg:grid-cols-2">
-        <section aria-labelledby="overdue">
-          <h2 id="overdue" className="mb-3 text-lg font-bold">
-            Overdue
+      <Split>
+        <section aria-labelledby="monthly">
+          <h2 id="monthly" className="mb-4 text-lg font-bold">
+            Invoiced and paid, last 12 months
           </h2>
-          {overdue.length ? (
-            <List>
-              {overdue.map(({ document, company }) => (
-                <Row
-                  key={document.id}
-                  href={docPath("invoice", document.id)}
-                  primary={`${document.number} · ${company}`}
-                  secondary={`Due ${formatDate(document.dueDate)} · ${daysLate(document.dueDate)} days late`}
-                  amount={money(document.totalMinor)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="Nothing overdue" />
-          )}
+          <MonthlyChart data={months} currency={currency} />
         </section>
 
-        <section aria-labelledby="awaiting">
-          <h2 id="awaiting" className="mb-3 text-lg font-bold">
-            Quotes awaiting a reply
-          </h2>
-          {awaiting.length ? (
-            <List>
-              {awaiting.map(({ document, company }) => (
-                <Row
-                  key={document.id}
-                  href={docPath("quote", document.id)}
-                  primary={`${document.number} · ${company}`}
-                  secondary={`Valid until ${formatDate(document.validUntil)}`}
-                  amount={money(document.totalMinor)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="No open quotes" />
-          )}
-        </section>
+        <div className="grid gap-12 lg:grid-cols-2">
+          <section aria-labelledby="overdue">
+            <h2 id="overdue" className="mb-3 text-lg font-bold">
+              Overdue
+            </h2>
+            {overdue.length ? (
+              <List>
+                {overdue.map(({ document, company }) => (
+                  <Row
+                    key={document.id}
+                    href={docPath("invoice", document.id)}
+                    primary={`${document.number} · ${company}`}
+                    secondary={`Due ${formatDate(document.dueDate)} · ${daysLate(document.dueDate)} days late`}
+                    amount={money(document.totalMinor)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="Nothing overdue" />
+            )}
+          </section>
 
-        <section aria-labelledby="top">
-          <h2 id="top" className="mb-3 text-lg font-bold">
-            Top customers this year
-          </h2>
-          {top.length ? (
-            <List>
-              {top.map((customer) => (
-                <Row
-                  key={customer.id}
-                  href={`/customers/${customer.id}`}
-                  primary={customer.company}
-                  amount={money(customer.paid)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="No payments yet this year" />
-          )}
-        </section>
+          <section aria-labelledby="awaiting">
+            <h2 id="awaiting" className="mb-3 text-lg font-bold">
+              Quotes awaiting a reply
+            </h2>
+            {awaiting.length ? (
+              <List>
+                {awaiting.map(({ document, company }) => (
+                  <Row
+                    key={document.id}
+                    href={docPath("quote", document.id)}
+                    primary={`${document.number} · ${company}`}
+                    secondary={`Valid until ${formatDate(document.validUntil)}`}
+                    amount={money(document.totalMinor)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="No open quotes" />
+            )}
+          </section>
 
-        <section aria-labelledby="activity">
-          <h2 id="activity" className="mb-3 text-lg font-bold">
-            Recent activity
-          </h2>
-          {activity.length ? (
-            <List>
-              {activity.map((event) => (
-                <Row
-                  key={`${event.kind}-${event.documentId}-${event.at}`}
-                  href={docPath(event.documentKind, event.documentId)}
-                  primary={`${event.number} ${event.kind}`}
-                  secondary={`${event.company} · ${formatDate(todayISO(new Date(event.at)))}`}
-                  amount={formatMoney(event.totalMinor, event.currency)}
-                />
-              ))}
-            </List>
-          ) : (
-            <EmptyState title="Nothing yet">
-              Send your first quote to see activity here.
-            </EmptyState>
-          )}
-        </section>
-      </div>
+          <section aria-labelledby="top">
+            <h2 id="top" className="mb-3 text-lg font-bold">
+              Top customers this year
+            </h2>
+            {top.length ? (
+              <List>
+                {top.map((customer) => (
+                  <Row
+                    key={customer.id}
+                    href={`/customers/${customer.id}`}
+                    primary={customer.company}
+                    amount={money(customer.paid)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="No payments yet this year" />
+            )}
+          </section>
+
+          <section aria-labelledby="activity">
+            <h2 id="activity" className="mb-3 text-lg font-bold">
+              Recent activity
+            </h2>
+            {activity.length ? (
+              <List>
+                {activity.map((event) => (
+                  <Row
+                    key={`${event.kind}-${event.documentId}-${event.at}`}
+                    href={docPath(event.documentKind, event.documentId)}
+                    primary={`${event.number} ${event.kind}`}
+                    secondary={`${event.company} · ${formatDate(todayISO(new Date(event.at)))}`}
+                    amount={formatMoney(event.totalMinor, event.currency)}
+                  />
+                ))}
+              </List>
+            ) : (
+              <EmptyState title="Nothing yet">
+                Send your first quote to see activity here.
+              </EmptyState>
+            )}
+          </section>
+        </div>
+      </Split>
     </>
+  );
+}
+
+/**
+ * The chart, then the lists. Stacked, unless the dashboard has the room
+ * (a wide screen): then side by side, which keeps the chart, whose text
+ * scales with its width, at a readable size.
+ */
+function Split({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="grid gap-12 @min-[100rem]:grid-cols-2">{children}</div>
+    </div>
   );
 }
 
@@ -303,7 +414,7 @@ function Tile({
   href,
   tone,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: React.ReactNode;
   note?: React.ReactNode;
   href?: string;
