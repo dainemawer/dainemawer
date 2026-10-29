@@ -7,8 +7,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { audit, requestOrigin } from "@/lib/audit";
-import { signInAlertEmail } from "@/lib/emails/security";
+import { audit } from "@/lib/audit";
 import { emailSignInOffEmail, signInEmail } from "@/lib/emails/sign-in";
 import { sendMail } from "@/lib/mail";
 import { canRequestLink, SIGN_IN_DOMAIN } from "@/lib/sign-in-domain";
@@ -66,8 +65,8 @@ export const auth = betterAuth({
         });
       }
     }),
-    // Every new session is logged and emailed, so a sign-in you didn't make
-    // doesn't go unnoticed. Passkey changes are logged too.
+    // Every new session is logged and sent to Telegram (lib/audit.ts), so a
+    // sign-in you didn't make doesn't go unnoticed. Passkey changes too.
     after: createAuthMiddleware(async (ctx) => {
       const headers = ctx.request?.headers ?? ctx.headers ?? null;
       // Only these two routes are sign-ins. Better Auth also reports a
@@ -76,15 +75,6 @@ export const auth = betterAuth({
       const method = SIGN_IN_METHODS[ctx.path];
       if (ctx.context.newSession && method) {
         await audit("sign-in", method, headers);
-        await sendMail({
-          to: [ADMIN_EMAIL],
-          ...signInAlertEmail({
-            origin: APP_URL.origin,
-            method,
-            from: requestOrigin(headers),
-            at: new Date(),
-          }),
-        }).catch((error) => console.error("sign-in alert failed", error));
       }
       const failed = ctx.context.returned instanceof APIError;
       if (ctx.path === "/passkey/verify-registration" && !failed) {

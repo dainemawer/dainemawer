@@ -1,7 +1,7 @@
 import "server-only";
 import { formatTelegram, type TelegramMessage } from "@/lib/telegram-format";
 
-// Notifications to your own Telegram chat, alongside the emails. The bot
+// Notifications to your own Telegram chat: the only channel for them. The bot
 // only ever sends to TELEGRAM_CHAT_ID and has no webhook, so nothing it
 // receives is ever read. Without TELEGRAM_BOT_TOKEN (local dev) the message
 // is logged instead, like lib/mail.ts does for email.

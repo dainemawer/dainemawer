@@ -392,13 +392,13 @@ export async function refreshAccounts(): Promise<ActionResult> {
   return {};
 }
 
-/** The daily recon on demand, without the email. */
+/** The daily recon on demand, without the Telegram summary. */
 export async function syncNow(): Promise<
   ActionResult & { labelled?: number; review?: number }
 > {
   await requireSession();
   try {
-    const result = await runRecon({ email: false });
+    const result = await runRecon({ notify: false });
     if (result.skipped) return { error: result.skipped };
     updateTag(TAG.expenses);
     return { labelled: result.labelled, review: result.review };
