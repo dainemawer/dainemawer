@@ -17,7 +17,7 @@ import { appUrl } from "@/lib/telegram";
 // tools return for it (business figures, customer names, calendar titles,
 // bank descriptions and amounts). Never tokens, passwords or account numbers.
 
-const MODEL = "anthropic/claude-opus-5.5";
+const MODEL = "anthropic/claude-sonnet-5.5";
 /** Tool calls per question before it has to answer with what it has. */
 const MAX_STEPS = 8;
 /** A follow-up within this long carries the conversation before it. */
