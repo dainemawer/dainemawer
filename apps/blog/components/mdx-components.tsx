@@ -13,6 +13,7 @@ type CodeElement = ReactElement<{ className?: string; children: string }>;
 // slug via closure (from getMdxComponents below) so CodeBlock can tag its
 // copy-tracking event with which post it happened on.
 function createPre(postSlug: string) {
+  // biome-ignore lint/correctness/noComponentHookFactories: an async server component with no hooks; MDX takes a component map, so the slug comes in by closure
   return async function Pre({ children }: { children: CodeElement }) {
     const lang = children.props.className?.replace("language-", "") ?? "text";
     // An empty fenced block (```\n```) compiles to `children.props.children`

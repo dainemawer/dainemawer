@@ -186,6 +186,7 @@ export async function listMonthTransactions(month: string) {
   await requireSession();
   await connection();
   const today = await getToday();
+  // biome-ignore lint/complexity/useMathMinMax: ISO date strings, not numbers
   const end = monthEnd(month) < today ? monthEnd(month) : today;
   return withLabels(await fetchIncluded(month, end));
 }

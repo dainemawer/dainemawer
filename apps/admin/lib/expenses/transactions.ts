@@ -176,6 +176,7 @@ export function categoryTrends(
   window = 3,
 ): CategoryTrend[] {
   const earliest = totals.reduce(
+    // biome-ignore lint/complexity/useMathMinMax: ISO date strings, not numbers
     (min, t) => (t.month < min ? t.month : min),
     month,
   );
