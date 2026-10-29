@@ -93,13 +93,11 @@ export function times<T>(n: number, render: (i: number) => T): T[] {
   return Array.from({ length: n }, (_, i) => render(i));
 }
 
-/** A page header whose title (and eyebrow) are data. */
+/** A page header whose title (and breadcrumb trail) are data. */
 export function HeaderSkeleton({
-  eyebrow = true,
   description = false,
   actions = 0,
 }: {
-  eyebrow?: boolean;
   description?: boolean;
   /** How many action buttons to outline. */
   actions?: number;
@@ -107,11 +105,9 @@ export function HeaderSkeleton({
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        {eyebrow ? (
-          <div className="mb-1 text-xs">
-            <Bone w="9ch" />
-          </div>
-        ) : null}
+        <div className="mb-1.5 text-xs">
+          <Bone w="24ch" />
+        </div>
         <div className="text-2xl font-bold">
           <Bone w="12ch" />
         </div>

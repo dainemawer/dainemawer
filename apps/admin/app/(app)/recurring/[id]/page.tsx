@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import {
@@ -52,7 +51,8 @@ function RecurringDetailSkeleton() {
   return (
     <>
       <PageHeader
-        eyebrow="Recurring"
+        breadcrumbs={[{ label: "Recurring", href: "/recurring" }]}
+        current={<Bone w="14ch" />}
         title={
           <span className="flex flex-wrap items-center gap-3">
             <Bone w="14ch" />
@@ -102,11 +102,8 @@ async function RecurringDetail({
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link href="/recurring" className="hover:text-ink">
-            Recurring
-          </Link>
-        }
+        breadcrumbs={[{ label: "Recurring", href: "/recurring" }]}
+        current={customer.company}
         title={
           <span className="flex flex-wrap items-center gap-3">
             {customer.company}

@@ -12,6 +12,15 @@
     html:not([data-sidebar="collapsed"]) *
   ));
 
+/* The dashboard fills the screen: true on the app shell and its <main>
+   while the dashboard's [data-wide] block is showing. Next keeps a page
+   you've left in the DOM, its top-level elements hidden with an inline
+   display: none (React's <Activity>), so a hidden one doesn't count. */
+@custom-variant dashboard (&:is(
+    :has(> main > [data-wide]:not([style*="display: none"])),
+    :has(> [data-wide]:not([style*="display: none"]))
+  ));
+
 /*
  * shadcn/ui's semantic variables, pointed at the blog's palette from
  * @dm/ui/theme.css so the admin reads as the same site: white surface,

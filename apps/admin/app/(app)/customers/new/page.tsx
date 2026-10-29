@@ -13,7 +13,10 @@ export default function NewCustomerPage({
 }: PageProps<"/customers/new">) {
   return (
     <>
-      <PageHeader title="New customer" />
+      <PageHeader
+        breadcrumbs={[{ label: "Customers", href: "/customers" }]}
+        title="New customer"
+      />
       <Suspense
         fallback={
           <Loading>

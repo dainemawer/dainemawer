@@ -34,6 +34,7 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
     <>
       <PageHeader
         title="Dashboard"
+        breadcrumbs={false}
         actions={
           <>
             <Button asChild variant="outline">
@@ -48,7 +49,8 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
       {/* The clock and weather only run in the browser, so they sit in the
           static shell; the calendar, rates and Linear are data and stream in
           their own boundaries.
-          data-wide: the dashboard uses the whole screen (see the layout). */}
+          data-wide: the dashboard fills the screen (the `dashboard` variant
+          in globals.css); it must stay a direct child of <main>. */}
       <div
         data-wide
         className="mb-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2 xl:grid-cols-3"

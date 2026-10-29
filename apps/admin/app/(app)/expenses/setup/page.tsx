@@ -17,6 +17,7 @@ export default function SetupPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Expenses", href: "/expenses" }]}
         title="Set up expenses"
         description="Two steps: pick the accounts, then agree the categories. After that it runs by itself every morning."
       />
