@@ -1,0 +1,31 @@
+---
+title: Hide Claude Code's attribution in commits and PRs
+date: '2026-10-29'
+tags:
+  - ai
+  - claude-code
+  - git
+---
+
+By default, Claude Code adds a `Co-Authored-By` trailer to the commits it writes and a "Generated with Claude Code" line to the pull request descriptions it opens. Both come from one setting, `attribution`, and an empty string turns each one off:
+
+```json
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
+}
+```
+
+The two keys are independent. `commit` controls the trailer and `pr` controls the description footer, so setting only one leaves the other in place.
+
+Where you put it decides who it applies to:
+
+- `~/.claude/settings.json` for you, in every project.
+- `.claude/settings.local.json` for you, in one project. Claude Code keeps it out of git.
+- `.claude/settings.json` for everyone who clones the repo, if you commit it.
+
+Two things to know. The change only affects commits and PRs from now on, so existing commits keep their trailers. And cloud and Remote Control sessions can append a claude.ai session link, which has its own switch, `attribution.sessionUrl`.
+
+The older `includeCoAuthoredBy` key still turns up in guides. It's deprecated in favour of `attribution`.
