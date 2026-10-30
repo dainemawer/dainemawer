@@ -50,6 +50,13 @@
       "when": 1793348594297,
       "tag": "0006_health_days",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793349492003,
+      "tag": "0007_health_cravings",
+      "breakpoints": true
     }
   ]
 }

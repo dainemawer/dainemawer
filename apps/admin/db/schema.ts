@@ -475,6 +475,22 @@ export const healthDays = pgTable("health_days", {
   ...timestamps,
 });
 
+/**
+ * Each craving you message the bot about ("craving 4 work"): when, how
+ * strong (1–5) and what set it off, so the Sunday review can show the
+ * pattern. Nothing about what was or wasn't eaten.
+ */
+export const healthCravings = pgTable(
+  "health_cravings",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    level: integer(),
+    note: text(),
+  },
+  (t) => [index("health_cravings_at_idx").on(t.at)],
+);
+
 export type Customer = typeof customers.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
