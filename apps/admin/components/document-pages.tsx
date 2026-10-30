@@ -9,6 +9,7 @@ import {
 } from "@/components/document-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { PaymentList } from "@/components/payment-list";
 import {
   Bone,
   FormSkeleton,
@@ -383,7 +384,7 @@ async function DocumentDetail({
   const { id } = await params;
   const full = await getDocument(id);
   if (!full || full.document.kind !== kind) notFound();
-  const { document, customer, sends, status } = full;
+  const { document, customer, sends, payments, status } = full;
   const settings = await getSettings();
   const money = (minor: number) => formatMoney(minor, document.currency);
 
@@ -410,6 +411,8 @@ async function DocumentDetail({
     ),
   };
   const lastSend = sends[0];
+  const dueMinor = document.totalMinor - document.paidMinor;
+  const partPaid = !isQuote && document.paidMinor > 0 && status !== "paid";
   const changedSinceSend = lastSend && document.editedAt > lastSend.sentAt;
 
   return (
@@ -442,6 +445,10 @@ async function DocumentDetail({
             emailDefaults={emailDefaults}
             hasBeenSent={sends.length > 0}
             recurring={document.recurringId !== null}
+            due={{
+              label: money(dueMinor),
+              input: minorToInput(dueMinor),
+            }}
           />
         }
       />
@@ -457,7 +464,9 @@ async function DocumentDetail({
       <dl className="mb-8 grid gap-6 sm:grid-cols-4">
         <Stat
           label={isQuote ? "Total" : status === "paid" ? "Paid" : "Amount due"}
-          value={money(document.totalMinor)}
+          value={money(
+            isQuote || status === "paid" ? document.totalMinor : dueMinor,
+          )}
           strong
         />
         <Stat label="Issued" value={formatDate(document.issueDate)} />
@@ -469,6 +478,11 @@ async function DocumentDetail({
           <Stat
             label="Paid on"
             value={`${formatDate(document.paidAt)}${document.paymentRef ? ` · ${document.paymentRef}` : ""}`}
+          />
+        ) : partPaid ? (
+          <Stat
+            label="Paid so far"
+            value={`${money(document.paidMinor)} of ${money(document.totalMinor)}`}
           />
         ) : document.recurringId ? (
           <div className="border-t pt-3">
@@ -515,45 +529,63 @@ async function DocumentDetail({
           />
         </section>
 
-        <section aria-labelledby="send-log">
-          <h2 id="send-log" className="mb-3 text-lg font-bold">
-            Sent
-          </h2>
-          {sends.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Not sent yet.</p>
-          ) : (
-            <ol className="grid gap-4">
-              {sends.map((send) => (
-                <li key={send.id} className="border-t pt-3 text-sm">
-                  <div className="font-medium">
-                    {new Intl.DateTimeFormat("en-GB", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                      timeZone: "Africa/Johannesburg",
-                    }).format(send.sentAt)}
-                  </div>
-                  <div className="text-muted-foreground">
-                    To {send.to.join(", ")}
-                    {send.cc.length ? `, cc ${send.cc.join(", ")}` : ""}
-                  </div>
-                  <div className="truncate text-muted-foreground">
-                    “{send.subject}”
-                  </div>
-                  {send.pdfPathname ? (
-                    <a
-                      href={`/sends/${send.id}/pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 inline-block underline underline-offset-4"
-                    >
-                      PDF as sent
-                    </a>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
+        <div className="grid content-start gap-10">
+          {payments.length ? (
+            <section aria-labelledby="payments">
+              <h2 id="payments" className="mb-3 text-lg font-bold">
+                Payments
+              </h2>
+              <PaymentList
+                locked={document.status === "void"}
+                payments={payments.map((payment) => ({
+                  id: payment.id,
+                  amount: money(payment.amountMinor),
+                  date: formatDate(payment.paidAt),
+                  reference: payment.reference,
+                }))}
+              />
+            </section>
+          ) : null}
+          <section aria-labelledby="send-log">
+            <h2 id="send-log" className="mb-3 text-lg font-bold">
+              Sent
+            </h2>
+            {sends.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Not sent yet.</p>
+            ) : (
+              <ol className="grid gap-4">
+                {sends.map((send) => (
+                  <li key={send.id} className="border-t pt-3 text-sm">
+                    <div className="font-medium">
+                      {new Intl.DateTimeFormat("en-GB", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        timeZone: "Africa/Johannesburg",
+                      }).format(send.sentAt)}
+                    </div>
+                    <div className="text-muted-foreground">
+                      To {send.to.join(", ")}
+                      {send.cc.length ? `, cc ${send.cc.join(", ")}` : ""}
+                    </div>
+                    <div className="truncate text-muted-foreground">
+                      “{send.subject}”
+                    </div>
+                    {send.pdfPathname ? (
+                      <a
+                        href={`/sends/${send.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block underline underline-offset-4"
+                      >
+                        PDF as sent
+                      </a>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </div>
       </div>
     </>
   );

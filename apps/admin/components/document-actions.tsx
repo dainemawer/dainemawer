@@ -32,10 +32,10 @@ import {
   convertToInvoice,
   deleteDocument,
   duplicateDocument,
-  markPaid,
   setStatus,
 } from "@/lib/actions/documents";
 import { initialFormState } from "@/lib/actions/form-state";
+import { recordPayment } from "@/lib/actions/payments";
 import { sendDocument } from "@/lib/actions/send";
 import {
   allowedActions,
@@ -55,6 +55,7 @@ export function DocumentActions({
   emailDefaults,
   hasBeenSent,
   recurring,
+  due,
 }: {
   id: string;
   kind: DocumentKind;
@@ -63,6 +64,8 @@ export function DocumentActions({
   hasBeenSent: boolean;
   /** Issued by a recurring schedule: never emailed, only marked sent. */
   recurring: boolean;
+  /** What's still owed, formatted and as a form value (an invoice's balance). */
+  due: { label: string; input: string };
 }) {
   const allowed = allowedActions(kind, status, { recurring });
   const targets = statusTargets(kind, status);
@@ -134,7 +137,12 @@ export function DocumentActions({
         </Button>
       ) : null}
       {allowed.markPaid ? (
-        <MarkPaidDialog id={id} open={paying} onOpenChange={setPaying} />
+        <PaymentDialog
+          id={id}
+          due={due}
+          open={paying}
+          onOpenChange={setPaying}
+        />
       ) : null}
       {allowed.edit ? (
         <Button asChild variant="outline">
@@ -287,17 +295,19 @@ function SendDialog({
 }
 
 /** Opened by its own button, or from Change status → Paid. */
-function MarkPaidDialog({
+function PaymentDialog({
   id,
+  due,
   open,
   onOpenChange: setOpen,
 }: {
   id: string;
+  due: { label: string; input: string };
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [state, action, pending] = useActionState(
-    markPaid.bind(null, id),
+    recordPayment.bind(null, id),
     initialFormState,
   );
   const errors = state.fieldErrors ?? {};
@@ -305,22 +315,36 @@ function MarkPaidDialog({
   useEffect(() => {
     if (state.ok) {
       setOpen(false);
-      toast.success("Marked paid.");
+      toast.success("Payment recorded.");
     }
   }, [state, setOpen]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Mark paid</Button>
+        <Button variant="outline">Record payment</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Mark paid</DialogTitle>
-          <DialogDescription>Record when the money arrived.</DialogDescription>
+          <DialogTitle>Record payment</DialogTitle>
+          <DialogDescription>
+            {due.label} is due. Record all of it, or the part that arrived; it's
+            paid once the payments cover the total.
+          </DialogDescription>
         </DialogHeader>
-        <form action={action} className="grid gap-4">
-          <Field id="paidAt" label="Paid on" errors={errors.paidAt}>
+        {/* Keyed by the balance, so it reopens with the new one. */}
+        <form key={due.input} action={action} className="grid gap-4">
+          <Field id="amount" label="Amount" errors={errors.amount}>
+            <Input
+              id="amount"
+              name="amount"
+              inputMode="decimal"
+              required
+              defaultValue={due.input}
+              {...invalid("amount", errors.amount)}
+            />
+          </Field>
+          <Field id="paidAt" label="Received on" errors={errors.paidAt}>
             <Input
               id="paidAt"
               name="paidAt"
@@ -331,11 +355,11 @@ function MarkPaidDialog({
             />
           </Field>
           <Field
-            id="paymentRef"
+            id="reference"
             label="Reference"
             hint="Optional, e.g. the bank reference."
           >
-            <Input id="paymentRef" name="paymentRef" />
+            <Input id="reference" name="reference" />
           </Field>
           {state.error ? (
             <p className="text-sm text-destructive" role="alert">
@@ -344,7 +368,7 @@ function MarkPaidDialog({
           ) : null}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Mark paid"}
+              {pending ? "Saving…" : "Record payment"}
             </Button>
           </DialogFooter>
         </form>

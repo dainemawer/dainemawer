@@ -1,8 +1,8 @@
 import "server-only";
-import { and, eq, gte, lte, min } from "drizzle-orm";
+import { and, eq, gte, lte, min, ne } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
-import { customers, documents } from "@/db/schema";
+import { customers, documents, payments } from "@/db/schema";
 import { TAG } from "@/lib/cache-tags";
 import { addDays } from "@/lib/documents";
 import {
@@ -90,25 +90,31 @@ async function paidBetween(from: string, to: string): Promise<Payment[]> {
   cacheLife("hours");
   const rows = await db
     .select({
-      id: documents.id,
+      id: payments.id,
+      documentId: documents.id,
       number: documents.number,
       company: customers.company,
       currency: documents.currency,
-      totalMinor: documents.totalMinor,
-      paidAt: documents.paidAt,
+      totalMinor: payments.amountMinor,
+      invoiceMinor: documents.totalMinor,
+      paidAt: payments.paidAt,
     })
-    .from(documents)
+    .from(payments)
+    .innerJoin(documents, eq(documents.id, payments.documentId))
     .innerJoin(customers, eq(customers.id, documents.customerId))
     .where(
       and(
         eq(documents.kind, "invoice"),
-        eq(documents.status, "paid"),
-        gte(documents.paidAt, from),
-        lte(documents.paidAt, to),
+        ne(documents.status, "void"),
+        gte(payments.paidAt, from),
+        lte(payments.paidAt, to),
       ),
     )
-    .orderBy(documents.paidAt, documents.number);
-  return rows.flatMap((r) => (r.paidAt ? [{ ...r, paidAt: r.paidAt }] : []));
+    .orderBy(payments.paidAt, documents.number);
+  return rows.map(({ invoiceMinor, ...row }) => ({
+    ...row,
+    partial: row.totalMinor < invoiceMinor,
+  }));
 }
 
 async function firstPaidAt(): Promise<string | null> {
@@ -116,9 +122,10 @@ async function firstPaidAt(): Promise<string | null> {
   cacheTag(TAG.documents);
   cacheLife("hours");
   const [row] = await db
-    .select({ first: min(documents.paidAt) })
-    .from(documents)
-    .where(and(eq(documents.kind, "invoice"), eq(documents.status, "paid")));
+    .select({ first: min(payments.paidAt) })
+    .from(payments)
+    .innerJoin(documents, eq(documents.id, payments.documentId))
+    .where(ne(documents.status, "void"));
   return row?.first ?? null;
 }
 

@@ -57,6 +57,13 @@
       "when": 1793349492003,
       "tag": "0007_health_cravings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793350389800,
+      "tag": "0008_payments",
+      "breakpoints": true
     }
   ]
 }

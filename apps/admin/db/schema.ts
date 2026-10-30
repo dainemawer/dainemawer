@@ -186,6 +186,12 @@ export const documents = pgTable(
     sentAt: timestamp({ withTimezone: true }),
     acceptedAt: timestamp({ withTimezone: true }),
     declinedAt: timestamp({ withTimezone: true }),
+    /**
+     * Sum of its payments (the payments table), kept in step by the
+     * actions that add or remove one. Paid in full is status "paid", with
+     * paidAt and paymentRef from the payment that settled it.
+     */
+    paidMinor: money().notNull().default(0),
     paidAt: date({ mode: "string" }),
     paymentRef: text(),
     voidedAt: timestamp({ withTimezone: true }),
@@ -207,6 +213,26 @@ export const documents = pgTable(
     uniqueIndex("documents_recurring_date_idx")
       .on(t.recurringId, t.recurringDate)
       .where(sql`${t.recurringId} is not null`),
+  ],
+);
+
+/** Money received against an invoice: one row per payment, part or full. */
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    documentId: uuid()
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    /** In the invoice's currency. */
+    amountMinor: money().notNull(),
+    paidAt: date({ mode: "string" }).notNull(),
+    reference: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("payments_document_idx").on(t.documentId),
+    index("payments_paid_at_idx").on(t.paidAt),
   ],
 );
 
@@ -495,6 +521,7 @@ export type Customer = typeof customers.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
 export type Send = typeof sends.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type RecurringInvoice = typeof recurringInvoices.$inferSelect;
 export type RecurringLine = typeof recurringLines.$inferSelect;

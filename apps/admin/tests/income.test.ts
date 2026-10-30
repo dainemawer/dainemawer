@@ -41,6 +41,8 @@ test("toRand values each payment at its own day's rate, in cents", () => {
     [
       {
         id: "a",
+        documentId: "a",
+        partial: false,
         number: "INV-1",
         company: "Acme",
         currency: "USD",
@@ -49,6 +51,8 @@ test("toRand values each payment at its own day's rate, in cents", () => {
       },
       {
         id: "b",
+        documentId: "b",
+        partial: false,
         number: "INV-2",
         company: "Local",
         currency: "ZAR",
@@ -57,6 +61,8 @@ test("toRand values each payment at its own day's rate, in cents", () => {
       },
       {
         id: "c",
+        documentId: "c",
+        partial: false,
         number: "INV-3",
         company: "Early",
         currency: "USD",

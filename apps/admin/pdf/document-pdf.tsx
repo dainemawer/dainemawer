@@ -195,7 +195,9 @@ export function DocumentPdf({ settings, customer, document, lines }: PdfData) {
             style={[styles.metaBlock, { paddingRight: 0, textAlign: "right" }]}
           >
             <Text style={styles.label}>{isQuote ? "Total" : "Amount due"}</Text>
-            <Text style={styles.strong}>{money(document.totalMinor)}</Text>
+            <Text style={styles.strong}>
+              {money(document.totalMinor - (isQuote ? 0 : document.paidMinor))}
+            </Text>
           </View>
         </View>
 
@@ -251,6 +253,18 @@ export function DocumentPdf({ settings, customer, document, lines }: PdfData) {
             <Text>Total {document.currency}</Text>
             <Text>{money(document.totalMinor)}</Text>
           </View>
+          {!isQuote && document.paidMinor > 0 ? (
+            <>
+              <View style={styles.totalRow}>
+                <Text>Paid</Text>
+                <Text>−{money(document.paidMinor)}</Text>
+              </View>
+              <View style={[styles.totalRow, styles.grandTotal]}>
+                <Text>Balance due {document.currency}</Text>
+                <Text>{money(document.totalMinor - document.paidMinor)}</Text>
+              </View>
+            </>
+          ) : null}
         </View>
 
         {document.notes ? (

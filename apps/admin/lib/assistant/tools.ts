@@ -162,6 +162,9 @@ export const tools = {
             validUntil: document.validUntil,
             paid: document.paidAt,
             total: formatMoney(document.totalMinor, document.currency),
+            paidSoFar: document.paidMinor
+              ? formatMoney(document.paidMinor, document.currency)
+              : null,
             link: appUrl(
               `/${document.kind === "quote" ? "quotes" : "invoices"}/${document.id}`,
             ),
@@ -172,7 +175,7 @@ export const tools = {
 
   document: tool({
     description:
-      "One invoice or quote in full by its number (e.g. INV-2026-0004 or Q-2026-0002): customer, line items, totals, dates and when it was emailed.",
+      "One invoice or quote in full by its number (e.g. INV-2026-0004 or Q-2026-0002): customer, line items, totals, payments received (an invoice can be paid in parts) and the balance, dates and when it was emailed.",
     inputSchema: z.object({ number: z.string() }),
     execute: safely(async ({ number }) => {
       const wanted = number.trim().toUpperCase();
@@ -183,7 +186,7 @@ export const tools = {
         .find((row) => row.document.number.toUpperCase() === wanted);
       const found = match && (await getDocument(match.document.id));
       if (!found) return { error: `No invoice or quote numbered ${number}.` };
-      const { document, customer, lines, sends, status } = found;
+      const { document, customer, lines, sends, payments, status } = found;
       const m = (minor: number) => formatMoney(minor, document.currency);
       return {
         number: document.number,
@@ -210,6 +213,13 @@ export const tools = {
         discount: document.discountMinor ? m(document.discountMinor) : null,
         tax: m(document.taxMinor),
         total: m(document.totalMinor),
+        paidSoFar: m(document.paidMinor),
+        balanceDue: m(document.totalMinor - document.paidMinor),
+        payments: payments.map((p) => ({
+          on: p.paidAt,
+          amount: m(p.amountMinor),
+          reference: p.reference,
+        })),
         notes: document.notes,
         emailed: sends.map((send) => ({ at: send.sentAt, to: send.to })),
         link: appUrl(
