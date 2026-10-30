@@ -6,6 +6,7 @@ import { customers, documents, payments } from "@/db/schema";
 import { TAG } from "@/lib/cache-tags";
 import { addDays } from "@/lib/documents";
 import {
+  byStream,
   type IncomeLine,
   type Payment,
   randRatesFromEur,
@@ -23,7 +24,7 @@ import { getToday } from "@/lib/today";
 
 const ENDPOINT = "https://api.frankfurter.dev/v1";
 
-/** One tax year's paid invoices in rand, oldest first. */
+/** One tax year's payments in rand, oldest first. */
 export async function getIncomeYear(start: number) {
   await requireSession();
   const year = taxYear(start);
@@ -31,7 +32,10 @@ export async function getIncomeYear(start: number) {
   return { year, lines, total: randTotal(lines) };
 }
 
-/** Rand income this month, this tax year and last, for the dashboard. */
+/**
+ * Rand income this month, this tax year and last, for the dashboard: in
+ * total and per stream (employment, i.e. Fueled, and freelance).
+ */
 export async function getIncomeSummary() {
   await requireSession();
   const today = await getToday();
@@ -39,11 +43,24 @@ export async function getIncomeSummary() {
   const previous = taxYear(current.start - 1);
   const lines = await incomeBetween(previous.from, today, today);
   const within = (from: string, to: string) =>
-    randTotal(lines.filter((l) => l.paidAt >= from && l.paidAt <= to));
+    lines.filter((l) => l.paidAt >= from && l.paidAt <= to);
+  const month = within(`${today.slice(0, 7)}-01`, today);
+  const year = within(current.from, today);
+  const lastYear = within(previous.from, previous.to);
+  // Named from every line, so "Fueled" holds even in a month without pay.
+  const names = byStream(lines);
+  const streams = names.map(({ type, label }, i) => ({
+    type,
+    label,
+    month: byStream(month)[i].total,
+    year: byStream(year)[i].total,
+    lastYear: byStream(lastYear)[i].total,
+  }));
   return {
-    month: within(`${today.slice(0, 7)}-01`, today),
-    year: within(current.from, today),
-    lastYear: within(previous.from, previous.to),
+    month: randTotal(month),
+    year: randTotal(year),
+    lastYear: randTotal(lastYear),
+    streams,
     current,
     previous,
     /** Payments with no rate (the ECB has none for that currency or day). */
@@ -94,6 +111,7 @@ async function paidBetween(from: string, to: string): Promise<Payment[]> {
       documentId: documents.id,
       number: documents.number,
       company: customers.company,
+      incomeType: customers.incomeType,
       currency: documents.currency,
       totalMinor: payments.amountMinor,
       invoiceMinor: documents.totalMinor,

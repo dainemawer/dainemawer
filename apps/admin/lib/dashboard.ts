@@ -35,10 +35,15 @@ function cached() {
   cacheLife("hours");
 }
 
-const sum = (condition: ReturnType<typeof sql>) =>
-  sql<number>`coalesce(sum(${documents.totalMinor}) filter (where ${condition}), 0)`.mapWith(
+const sum = (
+  condition: ReturnType<typeof sql>,
+  amount: ReturnType<typeof sql> = sql`${documents.totalMinor}`,
+) =>
+  sql<number>`coalesce(sum(${amount}) filter (where ${condition}), 0)`.mapWith(
     Number,
   );
+/** What's still owed on an invoice: part payments come off. */
+const balance = sql`${documents.totalMinor} - ${documents.paidMinor}`;
 const count = (condition: ReturnType<typeof sql>) =>
   sql<number>`count(*) filter (where ${condition})`.mapWith(Number);
 
@@ -76,9 +81,9 @@ async function headline(currency: Currency, today: string) {
 
   const [row] = await db
     .select({
-      outstanding: sum(outstanding),
+      outstanding: sum(outstanding, balance),
       outstandingCount: count(outstanding),
-      overdue: sum(overdue),
+      overdue: sum(overdue, balance),
       overdueCount: count(overdue),
       paidMonth: sum(sql`${paid} and ${documents.paidAt} >= ${monthStart}`),
       paidYear: sum(sql`${paid} and ${documents.paidAt} >= ${yearStart}`),

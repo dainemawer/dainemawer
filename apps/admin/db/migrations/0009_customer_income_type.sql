@@ -1,0 +1,1 @@
+ALTER TABLE "customers" ADD COLUMN "income_type" text DEFAULT 'freelance' NOT NULL;

@@ -1,10 +1,17 @@
 import { type Currency, formatMoney } from "@/lib/money";
 
-type Month = { month: string; invoiced: number; paid: number };
+type Month = { month: string; values: [number, number] };
+type Series = { label: string; fill: string; swatch: string };
 
-// Invoiced vs paid per month: paired thin bars on one axis, ink for the
-// money that arrived, light grey for what was billed. Each bar carries a
-// native tooltip; the table under the chart (sr-only) is the text view.
+// Two amounts per month (money in and out on the dashboard): paired thin
+// bars on one axis, the first series in ink, the second light grey. Each
+// bar carries a native tooltip; the table under the chart (sr-only) is the
+// text view.
+
+const SERIES: [Omit<Series, "label">, Omit<Series, "label">] = [
+  { fill: "#111111", swatch: "bg-ink" },
+  { fill: "#c4c4c4", swatch: "bg-[#c4c4c4]" },
+];
 
 const W = 720;
 const H = 220;
@@ -13,12 +20,19 @@ const BAR = 10;
 
 export function MonthlyChart({
   data,
+  labels,
+  title,
   currency,
 }: {
   data: Month[];
+  /** The two series, in the order of `values`. */
+  labels: [string, string];
+  /** What the chart shows, for screen readers. */
+  title: string;
   currency: Currency;
 }) {
-  const max = Math.max(...data.flatMap((d) => [d.invoiced, d.paid]), 1);
+  const series = SERIES.map((s, i) => ({ ...s, label: labels[i] }));
+  const max = Math.max(...data.flatMap((d) => d.values), 1);
   const step = niceStep(max / 4);
   const top = Math.ceil(max / step) * step;
   const ticks = Array.from(
@@ -39,14 +53,15 @@ export function MonthlyChart({
   return (
     <figure>
       <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
-        <Legend swatch="bg-[#c4c4c4]" label="Invoiced" />
-        <Legend swatch="bg-ink" label="Paid" />
+        {series.map((s) => (
+          <Legend key={s.label} swatch={s.swatch} label={s.label} />
+        ))}
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
         role="img"
-        aria-label={`Invoiced and paid per month, last 12 months, ${currency}`}
+        aria-label={`${title}, ${currency}`}
       >
         {ticks.map((t) => (
           <g key={t}>
@@ -72,22 +87,17 @@ export function MonthlyChart({
           const cx = PAD.left + slot * i + slot / 2;
           return (
             <g key={d.month}>
-              <Bar
-                x={cx - BAR - 1}
-                value={d.invoiced}
-                y={y}
-                base={y(0)}
-                fill="#c4c4c4"
-                title={`${monthLabel(d.month)} invoiced: ${formatMoney(d.invoiced, currency)}`}
-              />
-              <Bar
-                x={cx + 1}
-                value={d.paid}
-                y={y}
-                base={y(0)}
-                fill="#111111"
-                title={`${monthLabel(d.month)} paid: ${formatMoney(d.paid, currency)}`}
-              />
+              {series.map((s, j) => (
+                <Bar
+                  key={s.label}
+                  x={j === 0 ? cx - BAR - 1 : cx + 1}
+                  value={d.values[j]}
+                  y={y}
+                  base={y(0)}
+                  fill={s.fill}
+                  title={`${monthLabel(d.month)} ${s.label.toLowerCase()}: ${formatMoney(d.values[j], currency)}`}
+                />
+              ))}
               <text
                 x={cx}
                 y={H - 8}
@@ -109,20 +119,22 @@ export function MonthlyChart({
         />
       </svg>
       <table className="sr-only">
-        <caption>Invoiced and paid per month ({currency})</caption>
+        <caption>
+          {title} ({currency})
+        </caption>
         <thead>
           <tr>
             <th>Month</th>
-            <th>Invoiced</th>
-            <th>Paid</th>
+            <th>{labels[0]}</th>
+            <th>{labels[1]}</th>
           </tr>
         </thead>
         <tbody>
           {data.map((d) => (
             <tr key={d.month}>
               <td>{d.month}</td>
-              <td>{formatMoney(d.invoiced, currency)}</td>
-              <td>{formatMoney(d.paid, currency)}</td>
+              <td>{formatMoney(d.values[0], currency)}</td>
+              <td>{formatMoney(d.values[1], currency)}</td>
             </tr>
           ))}
         </tbody>

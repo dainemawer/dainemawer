@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Customer } from "@/db/schema";
 import { saveCustomer } from "@/lib/actions/customers";
 import { initialFormState } from "@/lib/actions/form-state";
+import { INCOME_TYPE_LABEL, INCOME_TYPES } from "@/lib/income";
 import { CURRENCIES, type Currency } from "@/lib/money";
 
 export function CustomerForm({
@@ -132,6 +133,27 @@ export function CustomerForm({
             />
           </Field>
         </div>
+        <Field
+          id="incomeType"
+          label="Income type"
+          hint="Employment (Fueled) is reported apart from freelance work."
+        >
+          <Select
+            name="incomeType"
+            defaultValue={customer?.incomeType ?? "freelance"}
+          >
+            <SelectTrigger id="incomeType" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INCOME_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {INCOME_TYPE_LABEL[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
         <Field
           id="notes"
           label="Private notes"

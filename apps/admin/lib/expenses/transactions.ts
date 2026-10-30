@@ -155,6 +155,29 @@ export function netFor(
   return 0;
 }
 
+/**
+ * Money in (income categories) and out (spending) for each month, net of
+ * refunds and reversals; transfers between your own accounts don't count.
+ * The same sums as the Expenses page.
+ */
+export function inAndOut(
+  totals: MonthlyTotal[],
+  kinds: Map<string, CategoryKind>,
+  months: string[],
+) {
+  return months.map((month) => {
+    let inMinor = 0;
+    let outMinor = 0;
+    for (const total of totals) {
+      if (total.month !== month) continue;
+      const kind = kinds.get(total.categoryId);
+      if (kind === "income") inMinor += netFor(kind, total);
+      if (kind === "spending") outMinor += netFor(kind, total);
+    }
+    return { month, inMinor, outMinor };
+  });
+}
+
 export type CategoryTrend = {
   categoryId: string;
   current: number;
