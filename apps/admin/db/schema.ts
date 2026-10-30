@@ -16,6 +16,7 @@ import {
 import type { AuditAction } from "@/lib/audit-actions";
 import type { DocumentKind, StoredStatus } from "@/lib/documents";
 import type { CategoryKind, LabelSource } from "@/lib/expenses/transactions";
+import type { IncomeType } from "@/lib/income";
 import type { Currency } from "@/lib/money";
 import type { Interval } from "@/lib/recurring-dates";
 
@@ -148,6 +149,8 @@ export const customers = pgTable("customers", {
   taxNumber: text(),
   currency: text().$type<Currency>().notNull().default("ZAR"),
   termsDays: integer().notNull().default(30),
+  /** Employment (Fueled) or freelance: income reports keep them apart. */
+  incomeType: text().$type<IncomeType>().notNull().default("freelance"),
   notes: text(),
   archivedAt: timestamp({ withTimezone: true }),
   ...timestamps,

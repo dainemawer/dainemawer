@@ -23,8 +23,10 @@ import {
   includedAccountIds,
 } from "@/lib/expenses/recon";
 import {
+  inAndOut,
   monthEnd,
   monthOf,
+  monthsBetween,
   postingDateFromId,
   type Transaction,
 } from "@/lib/expenses/transactions";
@@ -92,6 +94,26 @@ async function cachedOverview(since: string) {
     totals,
     review: review.n,
     lastSyncedAt: last?.at.toISOString() ?? null,
+  };
+}
+
+/**
+ * Money in and out of the included Investec accounts for the last twelve
+ * months (this one so far last), for the dashboard.
+ */
+export async function getMoneyInOut() {
+  await requireSession();
+  const today = await getToday();
+  const { categories, totals } = await cachedOverview(addDays(today, -400));
+  const kinds = new Map(categories.map((c) => [c.id, c.kind]));
+  const current = monthOf(today);
+  // Eleven months back from this month's first day lands in the 12th.
+  const months = monthsBetween(addDays(current, -335), current).slice(-12);
+  return {
+    today,
+    months: inAndOut(totals, kinds, months),
+    /** Anything synced from Investec yet. */
+    connected: totals.length > 0,
   };
 }
 

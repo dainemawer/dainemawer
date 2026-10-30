@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
 import { TAG } from "@/lib/cache-tags";
+import { INCOME_TYPES } from "@/lib/income";
 import { CURRENCIES } from "@/lib/money";
 import { safeLocalPath } from "@/lib/safe-path";
 import { requireSession } from "@/lib/session";
@@ -39,6 +40,7 @@ const customerSchema = z.object({
   address: optional,
   taxNumber: optional,
   currency: z.enum(CURRENCIES),
+  incomeType: z.enum(INCOME_TYPES),
   termsDays: z.coerce
     .number()
     .int()

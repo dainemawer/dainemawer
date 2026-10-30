@@ -52,6 +52,26 @@ export function rateOn(
   return best ? { rate: rates[best][currency] as number, date: best } : null;
 }
 
+/** Where income comes from: your employer (Fueled) or freelance clients. */
+export const INCOME_TYPES = ["freelance", "employment"] as const;
+export type IncomeType = (typeof INCOME_TYPES)[number];
+export const INCOME_TYPE_LABEL: Record<IncomeType, string> = {
+  freelance: "Freelance",
+  employment: "Employment",
+};
+
+/**
+ * A stream's name on screen: employment is named after the company (or
+ * companies) it came from, so it reads "Fueled", not "Employment".
+ */
+export function streamLabel(type: IncomeType, companies: string[]): string {
+  if (type === "freelance") return INCOME_TYPE_LABEL.freelance;
+  const unique = [...new Set(companies)];
+  return unique.length && unique.length <= 2
+    ? unique.join(" & ")
+    : INCOME_TYPE_LABEL.employment;
+}
+
 /** One payment against an invoice (part or all of it). */
 export type Payment = {
   id: string;
@@ -63,6 +83,8 @@ export type Payment = {
   totalMinor: number;
   /** Less than the invoice's total: one of several payments. */
   partial: boolean;
+  /** The customer's income type. */
+  incomeType: IncomeType;
   paidAt: string;
 };
 
@@ -83,6 +105,22 @@ export function toRand(payments: Payment[], rates: RandRates): IncomeLine[] {
       rate: found?.rate ?? null,
       rateDate: payment.currency === "ZAR" ? null : (found?.date ?? null),
       randMinor: found ? Math.round(payment.totalMinor * found.rate) : null,
+    };
+  });
+}
+
+/** Rand totals per income stream, employment first, each named for the screen. */
+export function byStream(lines: IncomeLine[]) {
+  return (["employment", "freelance"] as const).map((type) => {
+    const mine = lines.filter((line) => line.incomeType === type);
+    return {
+      type,
+      label: streamLabel(
+        type,
+        mine.map((line) => line.company),
+      ),
+      total: randTotal(mine),
+      count: mine.length,
     };
   });
 }

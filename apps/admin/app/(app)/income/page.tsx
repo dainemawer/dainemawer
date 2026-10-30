@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/documents";
-import { type IncomeLine, randTotal } from "@/lib/income";
+import { byStream, type IncomeLine, randTotal } from "@/lib/income";
 import { getIncomeYear, incomeYears } from "@/lib/income-report";
 import {
   type AmountsByCurrency,
@@ -54,6 +54,8 @@ function IncomeSkeleton() {
       <dl className="mb-10 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
         <Stat label="Income in rand" value={<Bone w="12ch" />} />
         <Stat label="Payments" value={<Bone w="3ch" />} />
+        <Stat label="Employment" value={<Bone w="12ch" />} />
+        <Stat label="Freelance" value={<Bone w="12ch" />} />
       </dl>
       <Table>
         <TableHeader>
@@ -146,6 +148,14 @@ function Year({
           value={String(lines.length)}
           note={lines.length ? formatAmounts(original, "USD") : undefined}
         />
+        {byStream(lines).map((stream) => (
+          <Stat
+            key={stream.type}
+            label={stream.label}
+            value={rand(stream.total)}
+            note={`${stream.count} payment${stream.count === 1 ? "" : "s"}`}
+          />
+        ))}
       </dl>
       {missing.length ? (
         <p className="mb-6 text-sm text-destructive">

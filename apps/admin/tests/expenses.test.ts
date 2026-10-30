@@ -4,6 +4,7 @@ import { MockLanguageModelV4 } from "ai/test";
 import { classifyMerchants } from "../lib/expenses/ai.ts";
 import {
   categoryTrends,
+  inAndOut,
   matchRule,
   merchantKey,
   monthEnd,
@@ -213,4 +214,42 @@ test("classifyMerchants maps answers back to merchants and never marks money in 
   // Memory reaches the model.
   assert.match(prompt, /FIGMA → Software \(deductible\)/);
   assert.match(prompt, /Vercel is always business\./);
+});
+
+test("inAndOut nets income and spending per month, without transfers", () => {
+  const kinds = new Map<string, "spending" | "income" | "transfer">([
+    ["food", "spending"],
+    ["salary", "income"],
+    ["move", "transfer"],
+  ]);
+  const total = (
+    month: string,
+    categoryId: string,
+    outMinor: number,
+    inMinor: number,
+  ) => ({
+    month,
+    categoryId,
+    outMinor,
+    inMinor,
+    deductibleOutMinor: 0,
+    count: 1,
+  });
+  assert.deepEqual(
+    inAndOut(
+      [
+        total("2026-10-01", "food", 50_000, 2_000),
+        total("2026-10-01", "salary", 0, 900_000),
+        total("2026-10-01", "move", 300_000, 300_000),
+        total("2026-09-01", "food", 10_000, 0),
+      ],
+      kinds,
+      ["2026-09-01", "2026-10-01", "2026-11-01"],
+    ),
+    [
+      { month: "2026-09-01", inMinor: 0, outMinor: 10_000 },
+      { month: "2026-10-01", inMinor: 900_000, outMinor: 48_000 },
+      { month: "2026-11-01", inMinor: 0, outMinor: 0 },
+    ],
+  );
 });
