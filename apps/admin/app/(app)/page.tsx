@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { CalendarSkeleton, CalendarTile } from "@/components/hud/calendar";
 import { Clock } from "@/components/hud/clock";
 import { FxSkeleton, FxTile } from "@/components/hud/fx";
+import { HealthSkeleton, HealthTile } from "@/components/hud/health";
 import { LinearSkeleton, LinearTile } from "@/components/hud/linear";
 import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
@@ -48,7 +49,7 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
       />
       {/* The clock and weather only run in the browser, so they sit in the
           static shell; the calendar, rates and Linear are data and stream in
-          their own boundaries.
+          their own boundaries, health included.
           data-wide: the dashboard fills the screen (the `dashboard` variant
           in globals.css); it must stay a direct child of <main>. */}
       <div
@@ -65,6 +66,9 @@ export default function DashboardPage({ searchParams }: PageProps<"/">) {
         </Suspense>
         <Suspense fallback={<LinearSkeleton />}>
           <LinearTile />
+        </Suspense>
+        <Suspense fallback={<HealthSkeleton />}>
+          <HealthTile />
         </Suspense>
       </div>
       <Suspense

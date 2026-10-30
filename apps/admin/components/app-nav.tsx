@@ -4,6 +4,7 @@ import {
   ChartGantt,
   ChevronRight,
   FileText,
+  HeartPulse,
   Landmark,
   LayoutDashboard,
   type LucideIcon,
@@ -40,6 +41,10 @@ const groups: { label: string; items: NavItem[] }[] = [
       { href: "/expenses", label: "Expenses", icon: Wallet },
       { href: "/income", label: "Income", icon: Landmark },
     ],
+  },
+  {
+    label: "Life",
+    items: [{ href: "/health", label: "Health", icon: HeartPulse }],
   },
   {
     label: "Work",

@@ -9,6 +9,8 @@ import { addDays } from "@/lib/documents";
 /** The plan. Weights in kg; the start weight is the trend on `start`. */
 export const PLAN = {
   start: "2026-11-02",
+  /** Roughly where it starts, for the copy; the chart uses the real trend. */
+  fromKg: 88,
   goalKg: 85,
   kgPerWeek: 0.5,
   /** Daily targets, ticked rather than scored. */
@@ -135,7 +137,7 @@ export function weeklyChange(points: TrendPoint[]): number | null {
 
 /** The plan's target on a date: a straight line from the start weight down to the goal. */
 export function planTarget(startKg: number, date: string): number {
-  const weeks = daysBetween(PLAN.start, date) / 7;
+  const weeks = Math.max(0, daysBetween(PLAN.start, date)) / 7;
   return Math.max(PLAN.goalKg, startKg - weeks * PLAN.kgPerWeek);
 }
 
@@ -165,4 +167,106 @@ export function daysBetween(from: string, to: string): number {
   return Math.round(
     (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 864e5,
   );
+}
+
+/* ---------- The page's numbers ---------- */
+
+export type HealthRow = {
+  date: string;
+  weightGrams: number | null;
+  steps: number | null;
+  sleepMinutes: number | null;
+  restingHr: number | null;
+  proteinMeals: number | null;
+  kitchenClosed: boolean | null;
+  workedOut: boolean | null;
+};
+
+/** Monday to Sunday of the week `date` is in. */
+export function weekOf(date: string): string[] {
+  const weekday = (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const monday = addDays(date, -weekday);
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
+
+/** An empty day: nothing measured, nothing ticked. */
+export const emptyDay = (date: string): HealthRow => ({
+  date,
+  weightGrams: null,
+  steps: null,
+  sleepMinutes: null,
+  restingHr: null,
+  proteinMeals: null,
+  kitchenClosed: null,
+  workedOut: null,
+});
+
+/**
+ * The weight the plan line starts from: the trend on the plan's first day;
+ * the first weigh-in, if that came later; or, before the plan starts, the
+ * trend today. `points` has one per day, so the first case is a lookup.
+ */
+export function planStartKg(points: TrendPoint[]): number | null {
+  const first = points[0];
+  const latest = points.at(-1);
+  if (!first || !latest) return null;
+  if (latest.date < PLAN.start) return latest.trend;
+  if (first.date > PLAN.start) return first.trend;
+  return points.find((p) => p.date === PLAN.start)?.trend ?? null;
+}
+
+/** Everything /health and the dashboard tile show, from all stored days. */
+export function summarise(rows: HealthRow[], today: string) {
+  const byDate = new Map(rows.map((row) => [row.date, row]));
+  const day = (date: string) => byDate.get(date) ?? emptyDay(date);
+  const points = weightTrend(
+    rows
+      .filter((row) => row.weightGrams !== null && row.date <= today)
+      .map((row) => ({ date: row.date, kg: kg(row.weightGrams) as number })),
+    today,
+  );
+  const latest = points.at(-1) ?? null;
+  const startKg = planStartKg(points);
+  const weekly = weeklyChange(points);
+  const week = weekOf(today).map(day);
+  return {
+    today: day(today),
+    points,
+    trendKg: latest?.trend ?? null,
+    scaleKg: kg(day(today).weightGrams),
+    weeklyKg: weekly,
+    startKg,
+    targetKg: startKg === null ? null : planTarget(startKg, today),
+    planGoal: startKg === null ? null : planGoalDate(startKg),
+    projectedGoal:
+      latest === null ? null : projectedGoalDate(today, latest.trend, weekly),
+    week,
+    workoutsThisWeek: week.filter((d) => d.workedOut).length,
+    recent: Array.from({ length: 14 }, (_, i) => day(addDays(today, -i))),
+    /** Anything from the Shortcut yet (it sends steps, sleep or heart rate). */
+    connected: rows.some(
+      (row) =>
+        row.steps !== null ||
+        row.sleepMinutes !== null ||
+        row.restingHr !== null,
+    ),
+  };
+}
+
+export type HealthSummary = ReturnType<typeof summarise>;
+
+export const kg = (grams: number | null) =>
+  grams === null ? null : grams / 1000;
+
+/** `87.64` → `87.6 kg`; a change gets its sign: `−0.4 kg`. */
+export function formatKg(value: number, { signed = false } = {}) {
+  const text = Math.abs(value).toFixed(1);
+  const sign = signed && text !== "0.0" ? (value < 0 ? "−" : "+") : "";
+  return `${value < 0 && !signed ? "-" : sign}${text} kg`;
+}
+
+/** Ticks and weigh-ins can be filled in for today and the six days before. */
+export function editableDay(date: string, today: string): boolean {
+  const days = daysBetween(date, today);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && days >= 0 && days < 7;
 }
