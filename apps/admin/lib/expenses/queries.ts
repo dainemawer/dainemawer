@@ -18,6 +18,7 @@ import { addDays } from "@/lib/documents";
 import { aiConfigured } from "@/lib/expenses/ai";
 import { getBalance, investecConfigured } from "@/lib/expenses/investec";
 import {
+  detectSubscriptions,
   fetchIncluded,
   HISTORY_DAYS,
   includedAccountIds,
@@ -236,6 +237,20 @@ export async function getReviewQueue() {
     // Older than Investec returns, or on an account you've since excluded.
     missing: wanted.size - transactions.length,
   };
+}
+
+/** Subscriptions found in Investec's history, live; see lib/expenses/subscriptions. */
+export async function getSubscriptions() {
+  await requireSession();
+  await connection();
+  const today = await getToday();
+  const from = addDays(today, -HISTORY_DAYS);
+  const { subscriptions } = await detectSubscriptions(
+    await fetchIncluded(from, today),
+    from,
+    today,
+  );
+  return { today, from, subscriptions };
 }
 
 /** Current balance across the included accounts, live. */

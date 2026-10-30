@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AuditAction } from "@/lib/audit-actions";
 import type { DocumentKind, StoredStatus } from "@/lib/documents";
+import type { SubscriptionStatus } from "@/lib/expenses/subscriptions";
 import type { CategoryKind, LabelSource } from "@/lib/expenses/transactions";
 import type { IncomeType } from "@/lib/income";
 import type { Currency } from "@/lib/money";
@@ -429,6 +430,21 @@ export const expenseRules = pgTable("expense_rules", {
     .notNull()
     .references(() => expenseCategories.id, { onDelete: "cascade" }),
   deductible: boolean().notNull().default(false),
+  ...timestamps,
+});
+
+/**
+ * What you've said about a detected subscription, and what Telegram was
+ * last told. Subscriptions themselves are found afresh from Investec's
+ * history (lib/expenses/subscriptions.ts); only this is stored.
+ */
+export const expenseSubscriptions = pgTable("expense_subscriptions", {
+  /** The subscription's key: its merchant (plus amount when one has two). */
+  key: text().primaryKey(),
+  status: text().$type<SubscriptionStatus>().notNull().default("tracking"),
+  notifiedMinor: money(),
+  cancelledOn: date({ mode: "string" }),
+  alertedChargeOn: date({ mode: "string" }),
   ...timestamps,
 });
 

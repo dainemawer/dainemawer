@@ -71,6 +71,13 @@
       "when": 1793350734838,
       "tag": "0009_customer_income_type",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793351798076,
+      "tag": "0010_expense_subscriptions",
+      "breakpoints": true
     }
   ]
 }

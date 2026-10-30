@@ -8,14 +8,19 @@ import {
   expenseMonthly,
   expenseNotes,
   expenseRules,
+  expenseSubscriptions,
 } from "@/db/schema";
-import { addDays, todayISO } from "@/lib/documents";
+import { addDays, formatDate, todayISO } from "@/lib/documents";
 import {
   classifyMerchants,
   type Merchant,
   REVIEW_THRESHOLD,
 } from "@/lib/expenses/ai";
 import { getAllTransactions, listAccounts } from "@/lib/expenses/investec";
+import {
+  findSubscriptions,
+  subscriptionAlerts,
+} from "@/lib/expenses/subscriptions";
 import {
   categoryTrends,
   matchRule,
@@ -256,7 +261,104 @@ export async function backfill(today = todayISO()) {
   const transactions = await fetchIncluded(from, today);
   const labelled = await labelTransactions(transactions);
   await recomputeMonths(monthsBetween(from, today), today, transactions);
-  return labelled;
+  return { labelled, transactions, from };
+}
+
+/**
+ * Monthly charges in the history window, each with its category and what
+ * you've said about it. Transfers and income are left out: a monthly move
+ * to savings isn't a subscription.
+ */
+export async function detectSubscriptions(
+  transactions: Transaction[],
+  from: string,
+  today: string,
+) {
+  const debits = transactions.filter((tx) => tx.type === "DEBIT");
+  const [labels, categories, states] = await Promise.all([
+    debits.length
+      ? db
+          .select({
+            id: expenseLabels.transactionId,
+            categoryId: expenseLabels.categoryId,
+          })
+          .from(expenseLabels)
+          .where(
+            inArray(
+              expenseLabels.transactionId,
+              debits.map((tx) => tx.id),
+            ),
+          )
+      : [],
+    db.select().from(expenseCategories),
+    db.select().from(expenseSubscriptions),
+  ]);
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
+  const categoryOf = new Map(
+    labels.map((l) => [l.id, categoryById.get(l.categoryId)]),
+  );
+  const spending = debits.filter((tx) => {
+    const kind = categoryOf.get(tx.id)?.kind;
+    return kind !== "transfer" && kind !== "income";
+  });
+  const stateByKey = new Map(states.map((s) => [s.key, s]));
+  const subscriptions = findSubscriptions(spending, { from, today }).map(
+    (subscription) => ({
+      ...subscription,
+      category: categoryOf.get(subscription.lastTransactionId)?.name ?? null,
+      state: stateByKey.get(subscription.key) ?? null,
+    }),
+  );
+  return { subscriptions, states };
+}
+
+/** New subscriptions, price rises and charges after cancelling, to Telegram. */
+async function checkSubscriptions(
+  transactions: Transaction[],
+  from: string,
+  today: string,
+  notify: boolean,
+) {
+  const { subscriptions, states } = await detectSubscriptions(
+    transactions,
+    from,
+    today,
+  );
+  const { alerts, upserts } = subscriptionAlerts(subscriptions, states);
+  for (const state of upserts) {
+    await db
+      .insert(expenseSubscriptions)
+      .values(state)
+      .onConflictDoUpdate({
+        target: expenseSubscriptions.key,
+        set: {
+          notifiedMinor: state.notifiedMinor,
+          alertedChargeOn: state.alertedChargeOn,
+        },
+      });
+  }
+  if (!notify || !alerts.length) return alerts.length;
+  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
+  const money = (minor: number) => formatMoney(minor, "ZAR");
+  await sendTelegram(
+    {
+      title: "Subscriptions",
+      lines: alerts.map((alert) => {
+        const { merchant, amountMinor, lastDate } = alert.subscription;
+        if (alert.kind === "new") {
+          return `New: ${merchant}, ${money(amountMinor)} a month`;
+        }
+        if (alert.kind === "price") {
+          return `Price up: ${merchant}, ${money(alert.fromMinor)} → ${money(amountMinor)} a month`;
+        }
+        return `Charged after you cancelled: ${merchant}, ${money(amountMinor)} on ${formatDate(lastDate)}`;
+      }),
+      url: `${base}/expenses/subscriptions`,
+    },
+    // A charge after cancelling is worth a buzz; the rest can wait.
+    { quiet: !alerts.some((alert) => alert.kind === "after-cancel") },
+  );
+  return alerts.length;
 }
 
 /**
@@ -280,10 +382,22 @@ export async function runRecon({
     return { skipped: "Expenses aren't set up yet.", labelled: 0, review: 0 };
 
   await syncAccounts();
-  const labelled = await backfill(today);
+  const { labelled, transactions, from } = await backfill(today);
   const review = labelled.filter((l) => l.needsReview).length;
   if (notify && labelled.length) await sendSummary(labelled, today);
-  return { skipped: null, labelled: labelled.length, review };
+  // Never fails the sync: the labels and totals are already saved.
+  let alerted = 0;
+  try {
+    alerted = await checkSubscriptions(transactions, from, today, notify);
+  } catch (error) {
+    console.error("[expenses] subscription check failed", error);
+  }
+  return {
+    skipped: null,
+    labelled: labelled.length,
+    review,
+    subscriptionAlerts: alerted,
+  };
 }
 
 async function sendSummary(labelled: Labelled[], today: string) {
