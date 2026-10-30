@@ -43,6 +43,13 @@
       "when": 1793255623101,
       "tag": "0005_assistant_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793348594297,
+      "tag": "0006_health_days",
+      "breakpoints": true
     }
   ]
 }
