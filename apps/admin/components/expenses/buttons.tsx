@@ -11,8 +11,10 @@ import {
   refreshAccounts,
   saveNote,
   setAccountIncluded,
+  setSubscriptionStatus,
   syncNow,
 } from "@/lib/actions/expenses";
+import type { SubscriptionStatus } from "@/lib/expenses/subscriptions";
 
 type Result = { error?: string };
 
@@ -115,6 +117,44 @@ export function RefreshAccountsButton() {
       onClick={() => run(refreshAccounts)}
     >
       {pending ? "Checking Investec…" : "Refresh accounts"}
+    </Button>
+  );
+}
+
+const STATUS_TOAST: Record<SubscriptionStatus, string> = {
+  tracking: "Tracking it again.",
+  ignored: "Hidden: it won't count as a subscription.",
+  cancelled: "Marked cancelled. A later charge gets flagged.",
+};
+
+/** Not a subscription, cancelled, or (to undo either) track again. */
+export function SubscriptionButton({
+  subscriptionKey,
+  merchant,
+  status,
+  children,
+}: {
+  subscriptionKey: string;
+  /** For screen readers: which row's button this is. */
+  merchant: string;
+  status: SubscriptionStatus;
+  children: string;
+}) {
+  const [pending, run] = useAction();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label={`${children}: ${merchant}`}
+      disabled={pending}
+      onClick={() =>
+        run(
+          () => setSubscriptionStatus(subscriptionKey, status),
+          () => STATUS_TOAST[status],
+        )
+      }
+    >
+      {children}
     </Button>
   );
 }

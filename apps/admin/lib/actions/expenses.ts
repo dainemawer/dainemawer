@@ -12,6 +12,7 @@ import {
   expenseLabels,
   expenseNotes,
   expenseRules,
+  expenseSubscriptions,
 } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { TAG } from "@/lib/cache-tags";
@@ -28,6 +29,7 @@ import {
   runRecon,
   syncAccounts,
 } from "@/lib/expenses/recon";
+import type { SubscriptionStatus } from "@/lib/expenses/subscriptions";
 import {
   CATEGORY_KINDS,
   matchRule,
@@ -323,6 +325,34 @@ export async function saveNote(body: string): Promise<ActionResult> {
 export async function deleteNote(id: string): Promise<ActionResult> {
   await requireSession();
   await db.delete(expenseNotes).where(eq(expenseNotes.id, id));
+  updateTag(TAG.expenses);
+  return {};
+}
+
+/**
+ * What you say about a detected subscription: "ignored" (not one), or
+ * "cancelled" (any later charge is flagged), or "tracking" to undo either.
+ */
+export async function setSubscriptionStatus(
+  key: string,
+  status: SubscriptionStatus,
+): Promise<ActionResult> {
+  await requireSession();
+  const parsed = z
+    .object({
+      key: z.string().trim().min(1).max(200),
+      status: z.enum(["tracking", "ignored", "cancelled"]),
+    })
+    .safeParse({ key, status });
+  if (!parsed.success) return { error: "That isn't a valid change." };
+  const cancelledOn = status === "cancelled" ? todayISO() : null;
+  await db
+    .insert(expenseSubscriptions)
+    .values({ key: parsed.data.key, status, cancelledOn })
+    .onConflictDoUpdate({
+      target: expenseSubscriptions.key,
+      set: { status, cancelledOn, alertedChargeOn: null },
+    });
   updateTag(TAG.expenses);
   return {};
 }
