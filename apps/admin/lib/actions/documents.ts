@@ -19,6 +19,7 @@ import {
 import { errorMessage, UserError } from "@/lib/errors";
 import { CURRENCIES } from "@/lib/money";
 import { allocateNumber } from "@/lib/numbering";
+import { settle } from "@/lib/payments";
 import { getDocument, getSettings } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
 import {
@@ -125,6 +126,16 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
             `A ${existing.status} ${existing.kind} can't be edited.`,
           );
         }
+        if (existing.paidMinor > 0 && doc.currency !== existing.currency) {
+          throw new UserError(
+            "It has payments in its currency, so the currency can't change.",
+          );
+        }
+        if (totals.totalMinor < existing.paidMinor) {
+          throw new UserError(
+            "The total can't go below what's already been paid.",
+          );
+        }
         await tx
           .update(documents)
           .set({
@@ -139,6 +150,8 @@ export async function saveDocument(input: DocumentInput): Promise<FormState> {
           })
           .where(eq(documents.id, doc.id));
         await tx.delete(lineItems).where(eq(lineItems.documentId, doc.id));
+        // A new total can settle (or reopen) a part-paid invoice.
+        if (existing.paidMinor > 0) await settle(tx, doc.id);
         documentId = doc.id;
       } else {
         const number = await allocateNumber(tx, doc.kind, doc.issueDate);
@@ -176,7 +189,7 @@ type ActionResult = { error?: string };
  * Sets a status by hand (the detail page's Change status menu and its
  * Mark accepted shortcut). Each status keeps only its own timestamp, so
  * moving back clears the later ones; sentAt stays unless it goes back to
- * draft. Paid goes through markPaid, which records the date.
+ * draft. Paid comes from payments (lib/actions/payments.ts), never from here.
  */
 export async function setStatus(
   id: string,
@@ -189,7 +202,17 @@ export async function setStatus(
     return { error: `A ${doc.status} ${doc.kind} can't be marked ${target}.` };
   }
   if (target === "paid") {
-    return { error: "Use Mark paid, so the payment date is recorded." };
+    return { error: "Use Record payment, so the date and amount are kept." };
+  }
+  // Status follows the payments: take them off first (the invoice page
+  // lists them), so nothing paid is silently forgotten.
+  if (doc.paidMinor > 0) {
+    return {
+      error:
+        target === "void"
+          ? "It has payments recorded. Remove them before voiding it."
+          : "It has payments recorded. Remove them to change its status.",
+    };
   }
   const now = new Date();
   const cleared = {
@@ -222,33 +245,6 @@ export async function setStatus(
   }
   revalidateDocuments();
   return {};
-}
-
-const paymentSchema = z.object({
-  paidAt: isoDate,
-  paymentRef: optionalText,
-});
-
-export async function markPaid(
-  id: string,
-  _prev: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  await requireSession();
-  const parsedPayment = paymentSchema.safeParse(Object.fromEntries(formData));
-  if (!parsedPayment.success) {
-    return { fieldErrors: fieldErrorsFrom(parsedPayment.error.issues) };
-  }
-  const [doc] = await db.select().from(documents).where(eq(documents.id, id));
-  if (!doc || !allowedActions(doc.kind, doc.status).markPaid) {
-    return { error: "Only an unpaid invoice can be marked paid." };
-  }
-  await db
-    .update(documents)
-    .set({ status: "paid", ...parsedPayment.data })
-    .where(eq(documents.id, id));
-  revalidateDocuments();
-  return { ok: true };
 }
 
 export async function deleteDocument(id: string): Promise<ActionResult> {

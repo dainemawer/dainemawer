@@ -52,12 +52,17 @@ export function rateOn(
   return best ? { rate: rates[best][currency] as number, date: best } : null;
 }
 
+/** One payment against an invoice (part or all of it). */
 export type Payment = {
   id: string;
+  documentId: string;
   number: string;
   company: string;
   currency: Currency;
+  /** This payment's amount, in the invoice's currency. */
   totalMinor: number;
+  /** Less than the invoice's total: one of several payments. */
+  partial: boolean;
   paidAt: string;
 };
 

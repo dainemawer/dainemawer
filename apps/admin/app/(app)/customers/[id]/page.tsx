@@ -87,19 +87,24 @@ async function Customer({
   const docs = await listCustomerDocuments(id);
   const invoices = docs.filter((d) => d.document.kind === "invoice");
   const quotes = docs.filter((d) => d.document.kind === "quote");
-  const sum = (rows: typeof docs) =>
+  const sum = (
+    rows: typeof docs,
+    amount: (d: (typeof docs)[number]["document"]) => number,
+  ) =>
     rows.reduce<AmountsByCurrency>(
-      (total, r) =>
-        addAmount(total, r.document.currency, r.document.totalMinor),
+      (total, r) => addAmount(total, r.document.currency, amount(r.document)),
       {},
     );
-  const billed = sum(
-    invoices.filter(
-      (d) => d.document.status === "sent" || d.document.status === "paid",
-    ),
+  const live = invoices.filter(
+    (d) => d.document.status === "sent" || d.document.status === "paid",
   );
-  const outstanding = sum(invoices.filter((d) => d.document.status === "sent"));
-  const paid = sum(invoices.filter((d) => d.document.status === "paid"));
+  const billed = sum(live, (d) => d.totalMinor);
+  // Part payments count as paid, and come off what's outstanding.
+  const outstanding = sum(
+    invoices.filter((d) => d.document.status === "sent"),
+    (d) => d.totalMinor - d.paidMinor,
+  );
+  const paid = sum(live, (d) => d.paidMinor);
 
   return (
     <>

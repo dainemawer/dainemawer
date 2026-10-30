@@ -68,6 +68,15 @@ export function DocumentTable({ rows }: { rows: DocumentTableRow[] }) {
             </TableCell>
             <TableCell className="text-right tabular-nums">
               {formatMoney(document.totalMinor, document.currency)}
+              {document.paidMinor > 0 && status !== "paid" ? (
+                <span className="block text-xs text-muted-foreground">
+                  {formatMoney(
+                    document.totalMinor - document.paidMinor,
+                    document.currency,
+                  )}{" "}
+                  due
+                </span>
+              ) : null}
             </TableCell>
           </TableRow>
         ))}

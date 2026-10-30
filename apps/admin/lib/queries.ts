@@ -6,6 +6,7 @@ import {
   customers,
   documents,
   lineItems,
+  payments,
   recurringInvoices,
   recurringLines,
   sends,
@@ -184,7 +185,7 @@ async function cachedDocument(id: string) {
     .innerJoin(customers, eq(customers.id, documents.customerId))
     .where(eq(documents.id, id));
   if (!row) return null;
-  const [lines, sendLog] = await Promise.all([
+  const [lines, sendLog, paymentLog] = await Promise.all([
     db
       .select()
       .from(lineItems)
@@ -195,8 +196,13 @@ async function cachedDocument(id: string) {
       .from(sends)
       .where(eq(sends.documentId, id))
       .orderBy(desc(sends.sentAt)),
+    db
+      .select()
+      .from(payments)
+      .where(eq(payments.documentId, id))
+      .orderBy(asc(payments.paidAt), asc(payments.createdAt)),
   ]);
-  return { ...row, lines, sends: sendLog };
+  return { ...row, lines, sends: sendLog, payments: paymentLog };
 }
 
 export type FullDocument = NonNullable<Awaited<ReturnType<typeof getDocument>>>;

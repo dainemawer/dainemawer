@@ -33,7 +33,7 @@ export default function IncomePage({ searchParams }: PageProps<"/income">) {
     <>
       <PageHeader
         title="Income"
-        description="Paid invoices in rand. Foreign currency is valued at the European Central Bank's reference rate on the day it was paid, before any conversion. Tax years run March to February."
+        description="Payments received on invoices, in rand. Foreign currency is valued at the European Central Bank's reference rate on the day it was paid, before any conversion. Tax years run March to February."
       />
       <Suspense
         fallback={
@@ -53,7 +53,7 @@ function IncomeSkeleton() {
     <>
       <dl className="mb-10 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
         <Stat label="Income in rand" value={<Bone w="12ch" />} />
-        <Stat label="Paid invoices" value={<Bone w="3ch" />} />
+        <Stat label="Payments" value={<Bone w="3ch" />} />
       </dl>
       <Table>
         <TableHeader>
@@ -142,7 +142,7 @@ function Year({
       <dl className="mb-10 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
         <Stat label="Income in rand" value={rand(total)} />
         <Stat
-          label="Paid invoices"
+          label="Payments"
           value={String(lines.length)}
           note={lines.length ? formatAmounts(original, "USD") : undefined}
         />
@@ -174,7 +174,7 @@ function Year({
                     </TableCell>
                     <TableCell>
                       <Link
-                        href={`/invoices/${line.id}`}
+                        href={`/invoices/${line.documentId}`}
                         className="font-medium underline-offset-4 hover:underline"
                       >
                         {line.number}
@@ -182,6 +182,7 @@ function Year({
                       <span className="text-muted-foreground">
                         {" "}
                         · {line.company}
+                        {line.partial ? " · part payment" : ""}
                       </span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
@@ -230,12 +231,12 @@ function Year({
       )}
 
       <p className="mt-10 max-w-2xl text-xs text-muted-foreground">
-        The rate is the ECB's rand rate for the day the invoice was marked paid,
+        The rate is the ECB's rand rate for the day each payment was received,
         or (marked *) the last working day before it, for weekends and holidays.
-        Mark invoices paid on the day the money arrived (in Wise, for dollars),
-        so the rate matches. What you get later when converting, and Wise's
-        fees, aren't part of this figure. Confirm the method with your
-        accountant before filing.
+        Record payments with the day the money arrived (in Wise, for dollars),
+        so the rate matches. A part payment counts in the month it arrived. What
+        you get later when converting, and Wise's fees, aren't part of this
+        figure. Confirm the method with your accountant before filing.
       </p>
     </>
   );
