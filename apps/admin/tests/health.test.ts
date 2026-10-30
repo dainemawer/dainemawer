@@ -1,14 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  emptyDay,
+  formatKg,
   healthPayloadSchema,
   PLAN,
   parseNumber,
   planGoalDate,
+  planStartKg,
   planTarget,
   projectedGoalDate,
+  summarise,
   toReadings,
   weeklyChange,
+  weekOf,
   weightTrend,
 } from "../lib/health.ts";
 
@@ -85,6 +90,7 @@ test("weeklyChange compares the trend with a week ago", () => {
 
 test("the plan line runs from the start weight to the goal", () => {
   assert.equal(planTarget(88, PLAN.start), 88);
+  assert.equal(planTarget(88, "2026-10-30"), 88);
   assert.equal(planTarget(88, "2026-11-09"), 87.5);
   assert.equal(planTarget(88, "2027-06-01"), PLAN.goalKg);
   // 3 kg at 0.5 kg a week: six weeks.
@@ -97,4 +103,54 @@ test("projectedGoalDate follows the current pace", () => {
   assert.equal(projectedGoalDate("2026-11-20", 87, null), null);
   assert.equal(projectedGoalDate("2026-11-20", 84.9, null), "2026-11-20");
   assert.equal(projectedGoalDate("2026-11-20", 87, -0.01), null);
+});
+
+test("planStartKg starts from the trend on the plan's first day", () => {
+  const before = weightTrend([{ date: "2026-10-30", kg: 88 }], "2026-10-31");
+  assert.equal(planStartKg(before), 88);
+  const spanning = weightTrend(
+    [
+      { date: "2026-10-31", kg: 88 },
+      { date: "2026-11-02", kg: 87 },
+    ],
+    "2026-11-05",
+  );
+  assert.ok(Math.abs((planStartKg(spanning) ?? 0) - 87.9) < 1e-9);
+  const later = weightTrend([{ date: "2026-11-04", kg: 87.5 }], "2026-11-06");
+  assert.equal(planStartKg(later), 87.5);
+  assert.equal(planStartKg([]), null);
+});
+
+test("summarise fills the week and the last fortnight", () => {
+  const summary = summarise(
+    [
+      {
+        ...emptyDay("2026-11-03"),
+        weightGrams: 88000,
+        steps: 9000,
+        workedOut: true,
+      },
+      { ...emptyDay("2026-11-05"), weightGrams: 87600, workedOut: true },
+    ],
+    "2026-11-05",
+  );
+  assert.deepEqual(
+    summary.week.map((d) => d.date),
+    weekOf("2026-11-05"),
+  );
+  assert.equal(summary.week[0].date, "2026-11-02");
+  assert.equal(summary.workoutsThisWeek, 2);
+  assert.equal(summary.recent.length, 14);
+  assert.equal(summary.recent[0].date, "2026-11-05");
+  assert.equal(summary.scaleKg, 87.6);
+  assert.equal(summary.startKg, 88);
+  assert.equal(summary.connected, true);
+  assert.equal(summarise([], "2026-11-05").trendKg, null);
+});
+
+test("formatKg", () => {
+  assert.equal(formatKg(87.64), "87.6 kg");
+  assert.equal(formatKg(-0.42, { signed: true }), "−0.4 kg");
+  assert.equal(formatKg(0.3, { signed: true }), "+0.3 kg");
+  assert.equal(formatKg(-0.01, { signed: true }), "0.0 kg");
 });
