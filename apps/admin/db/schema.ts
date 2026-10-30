@@ -451,6 +451,30 @@ export const assistantMessages = pgTable(
   (t) => [index("assistant_messages_at_idx").on(t.at)],
 );
 
+/* ---------- Health ---------- */
+
+/**
+ * One row per day (Cape Town). Readings come from the Apple Health
+ * Shortcut (/api/webhooks/health), which may send a day more than once:
+ * each send overwrites only the readings it carries. Ticks are yours.
+ */
+export const healthDays = pgTable("health_days", {
+  date: date({ mode: "string" }).primaryKey(),
+  /** The morning weigh-in, in grams. */
+  weightGrams: integer(),
+  steps: integer(),
+  /** Last night's sleep. */
+  sleepMinutes: integer(),
+  restingHr: integer(),
+  /** Meals with a palm of protein (0–3). */
+  proteinMeals: integer(),
+  /** Nothing eaten after the kitchen closed. */
+  kitchenClosed: boolean(),
+  /** HIIT, bodyweight or a run; ten minutes counts. */
+  workedOut: boolean(),
+  ...timestamps,
+});
+
 export type Customer = typeof customers.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
@@ -461,3 +485,4 @@ export type RecurringLine = typeof recurringLines.$inferSelect;
 export type ExpenseCategory = typeof expenseCategories.$inferSelect;
 export type ExpenseLabel = typeof expenseLabels.$inferSelect;
 export type ExpenseRule = typeof expenseRules.$inferSelect;
+export type HealthDay = typeof healthDays.$inferSelect;
