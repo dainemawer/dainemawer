@@ -24,6 +24,7 @@ export function GanttChart({
   today: string;
 }) {
   const first = projects.reduce(
+    // biome-ignore lint/complexity/useMathMinMax: ISO date strings, not numbers
     (min, p) => (p.startDate < min ? p.startDate : min),
     today,
   );

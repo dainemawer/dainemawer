@@ -130,6 +130,7 @@ body {
   color: var(--color-surface);
 }
 
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced motion has to beat every component's own animation */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -151,3 +152,4 @@ body {
     animation-delay: 0s !important;
   }
 }
+/* biome-ignore-end lint/complexity/noImportantStyles: see above */

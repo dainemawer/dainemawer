@@ -75,7 +75,6 @@ export function PillBone({
 export function Loading({ children }: { children: React.ReactNode }) {
   return (
     // Not <output>: it only takes phrasing content, and skeletons are blocks.
-    // biome-ignore lint/a11y/useSemanticElements: see above
     <div role="status">
       <span className="sr-only">Loading…</span>
       <div aria-hidden="true">{children}</div>

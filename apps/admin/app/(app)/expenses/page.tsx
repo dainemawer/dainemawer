@@ -164,6 +164,7 @@ async function Overview() {
   // From the first month with data (at most 12 back): no run of empty bars
   // before the history starts.
   const firstMonth = totals.reduce(
+    // biome-ignore lint/complexity/useMathMinMax: ISO date strings, not numbers
     (min, t) => (t.month < min ? t.month : min),
     month,
   );
