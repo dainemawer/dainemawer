@@ -14,9 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { addDays, formatDate } from "@/lib/documents";
+import { addDays, formatDate, TIME_ZONE } from "@/lib/documents";
 import { editableDay, formatKg, type HealthRow, kg, PLAN } from "@/lib/health";
-import { getHealth } from "@/lib/health-data";
+import { getCravingsThisWeek, getHealth } from "@/lib/health-data";
+import { cravingWindow } from "@/lib/health-messages";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Health" };
@@ -68,9 +69,10 @@ function HealthSkeleton() {
 async function Health({
   searchParams,
 }: Pick<PageProps<"/health">, "searchParams">) {
-  const [{ day: requested }, health] = await Promise.all([
+  const [{ day: requested }, health, cravings] = await Promise.all([
     searchParams,
     getHealth(),
+    getCravingsThisWeek(),
   ]);
   const today = health.today.date;
   const selected =
@@ -221,6 +223,13 @@ async function Health({
         <WeekGrid week={health.week} today={today} />
       </section>
 
+      <section aria-labelledby="cravings" className="mt-12">
+        <h2 id="cravings" className="mb-1 text-lg font-bold">
+          Cravings this week
+        </h2>
+        <Cravings cravings={cravings} />
+      </section>
+
       <section aria-labelledby="recent" className="mt-12">
         <h2 id="recent" className="mb-4 text-lg font-bold">
           Last two weeks
@@ -269,6 +278,53 @@ async function Health({
     </>
   );
 }
+
+/** Logged through the bot; here to show the pattern, not to judge. */
+function Cravings({
+  cravings,
+}: {
+  cravings: { at: Date; level: number | null; note: string | null }[];
+}) {
+  if (!cravings.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        None logged. When one hits, send the bot “craving” (or “craving 4
+        work”): it walks you through ten minutes, and the pattern shows up here.
+      </p>
+    );
+  }
+  const window = cravingWindow(cravings);
+  return (
+    <>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {cravings.length} logged
+        {window
+          ? `, most between ${window}. Plan something for that slot.`
+          : "."}
+      </p>
+      <ul className="divide-y border-y text-sm">
+        {cravings.map((c) => (
+          <li key={c.at.toISOString()} className="flex gap-4 py-2">
+            <span className="w-28 shrink-0 text-muted-foreground tabular-nums">
+              {cravingTime.format(c.at)}
+            </span>
+            <span className="w-10 shrink-0 tabular-nums">
+              {c.level ? `${c.level}/5` : "—"}
+            </span>
+            <span className="min-w-0 truncate">{c.note ?? ""}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+const cravingTime = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: TIME_ZONE,
+});
 
 const HABITS: {
   label: string;

@@ -6,6 +6,8 @@ import {
   rememberAnswer,
   rememberQuestion,
 } from "@/lib/assistant";
+import { logHealthMessage } from "@/lib/health-log";
+import { HEALTH_HELP, parseHealthMessage } from "@/lib/health-messages";
 import { replyTelegram, typingTelegram } from "@/lib/telegram";
 import { incomingQuestion } from "@/lib/telegram-format";
 
@@ -18,8 +20,7 @@ import { incomingQuestion } from "@/lib/telegram-format";
 
 export const maxDuration = 120;
 
-const HELP =
-  "Ask me about invoices, quotes, customers, recurring invoices, your calendar for today and tomorrow, spending or your balance. /new starts a fresh conversation.";
+const HELP = `Ask me about invoices, quotes, customers, recurring invoices, your calendar for today and tomorrow, spending, your balance or your health. /new starts a fresh conversation.\n\n${HEALTH_HELP}`;
 
 export async function POST(request: Request) {
   if (!validSecret(request.headers.get("x-telegram-bot-api-secret-token"))) {
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
       return;
     }
     if (!(await rememberQuestion(question.updateId, question.text))) return;
+    // A health log ("88.2", "craving", "moved") is saved, not asked about.
+    const health = parseHealthMessage(question.text);
+    if (health) {
+      const reply = await logHealthMessage(health);
+      await rememberAnswer(reply);
+      await replyTelegram(reply);
+      return;
+    }
     // "typing…" lasts about five seconds; keep it up while Claude works.
     await typingTelegram();
     const typing = setInterval(() => void typingTelegram(), 4500);

@@ -10,6 +10,10 @@ import {
   listMonthTransactions,
 } from "@/lib/expenses/queries";
 import { netFor } from "@/lib/expenses/transactions";
+import { formatKg, kg, PLAN } from "@/lib/health";
+import { getHealth } from "@/lib/health-data";
+import { cravingsThisWeek } from "@/lib/health-log";
+import { cravingHour } from "@/lib/health-messages";
 import {
   type AmountsByCurrency,
   type Currency,
@@ -358,6 +362,55 @@ export const tools = {
             category: c?.name ?? "unlabelled",
             deductible: label?.deductible ?? false,
           })),
+      };
+    }),
+  }),
+
+  health: tool({
+    description:
+      "The weight-loss plan (88 to 85 kg at 0.5 kg a week, no calorie counting) and how it's going: the smoothed weight trend, its change over the last week, the plan's and the current pace's goal dates, this week's habits (steps, protein meals, kitchen closed at night, workouts), the last two weeks' readings from Apple Health, and this week's logged cravings. Encourage; never shame.",
+    inputSchema: z.object({}),
+    execute: safely(async () => {
+      const health = await getHealth();
+      const cravings = await cravingsThisWeek();
+      return {
+        plan: {
+          goal: `${PLAN.goalKg} kg`,
+          pace: `${PLAN.kgPerWeek} kg a week`,
+          dailySteps: PLAN.steps,
+          proteinMeals: PLAN.proteinMeals,
+          kitchenCloses: PLAN.kitchenCloses,
+          workoutsPerWeek: PLAN.workoutsPerWeek,
+          goalDate: health.planGoal,
+        },
+        trend: health.trendKg === null ? null : formatKg(health.trendKg),
+        lastWeek:
+          health.weeklyKg === null
+            ? null
+            : formatKg(health.weeklyKg, { signed: true }),
+        goalDateAtCurrentPace: health.projectedGoal,
+        workoutsThisWeek: health.workoutsThisWeek,
+        week: health.week.map((d) => ({
+          date: d.date,
+          steps: d.steps,
+          proteinMeals: d.proteinMeals,
+          kitchenClosed: d.kitchenClosed,
+          workedOut: d.workedOut,
+        })),
+        recent: health.recent.map((d) => ({
+          date: d.date,
+          weighIn:
+            d.weightGrams === null ? null : formatKg(kg(d.weightGrams) ?? 0),
+          steps: d.steps,
+          sleepHours:
+            d.sleepMinutes === null ? null : +(d.sleepMinutes / 60).toFixed(1),
+          restingHeartRate: d.restingHr,
+        })),
+        cravingsThisWeek: cravings.map((c) => ({
+          hour: cravingHour(c.at),
+          level: c.level,
+          note: c.note,
+        })),
       };
     }),
   }),
