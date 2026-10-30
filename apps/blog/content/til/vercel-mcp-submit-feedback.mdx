@@ -1,0 +1,41 @@
+---
+title: Your agent can send feedback to Vercel
+date: '2026-10-30'
+tags:
+  - ai
+  - vercel
+  - mcp
+---
+
+Vercel's MCP server now has a `submit_feedback` tool. Describe a bug or a feature request in plain language and your agent files it with Vercel, with structured context attached, without you leaving the session.
+
+That matters because of when feedback usually dies. You hit friction in the middle of a task, the agent works around it, and by the time you'd write it up you've forgotten the details. Now the agent that just hit the problem can report it while the details are still in its context.
+
+The tool takes two inputs:
+
+- `message` is the feedback itself: what happened and what would have helped.
+- `context` is optional and free-form. The tool description suggests the task, the expected behavior, the actual result and the impact.
+
+Each submission also carries the MCP server version, the OAuth client ID, and your user, team and project IDs when they're available. That's the part a screenshot and a vague description never give a maintainer.
+
+In practice you say something like "the deploy logs tool returned nothing for a build that clearly failed, send that to Vercel", and the agent fills in the rest:
+
+```json
+{
+  "message": "get_deployment_build_logs returned an empty list for a failed build.",
+  "context": {
+    "task": "Diagnose a failed production deploy",
+    "expected": "Build log lines",
+    "actual": "Empty result, no error",
+    "impact": "Had to fall back to the dashboard"
+  }
+}
+```
+
+A few cautions from the tool's own description:
+
+- **Don't include secrets or personal data.** The agent writes `context` from the session, so read what it's about to send.
+- **Don't retry blindly.** Retrying after an unclear outcome can create a duplicate.
+- **There's a CLI fallback.** If the MCP call fails, `vercel feedback {message}` does the same job.
+
+The pattern is bigger than Vercel. A tool that lets an agent report problems with the tool itself closes a loop that used to depend on a person remembering to write the issue.
