@@ -236,3 +236,99 @@ export async function mergePostPr(number: number, sha: string) {
   }
   return pull;
 }
+
+const TIL_DIR = "apps/blog/content/til";
+
+/** The newest TIL files on main (by their `date`), as examples of the voice. */
+export async function recentTils(count = 3): Promise<string[]> {
+  const listing = await githubJson<{ name: string; path: string }[]>(
+    `/repos/${repo()}/contents/${TIL_DIR}?ref=main`,
+  );
+  const files = await Promise.all(
+    listing
+      .filter((f) => f.name.endsWith(".mdx"))
+      .map((f) => fileAt(f.path, "main").catch(() => null)),
+  );
+  const dated = files
+    .filter((text): text is string => text !== null)
+    .map((text) => ({
+      text,
+      date: /^date:\s*'?(\d{4}-\d{2}-\d{2})/m.exec(text)?.[1] ?? "",
+    }));
+  return dated
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, count)
+    .map((d) => d.text);
+}
+
+async function exists(path: string) {
+  const response = await github(path, { method: "HEAD" });
+  return response.ok;
+}
+
+async function githubWrite<T>(path: string, method: string, body: unknown) {
+  const response = await github(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const { message } = (await response.json().catch(() => ({}))) as {
+      message?: string;
+    };
+    throw new Error(`GitHub ${method} ${path}: ${response.status} ${message}`);
+  }
+  return (await response.json()) as T;
+}
+
+/**
+ * Opens a pull request that adds one TIL: a new `til/<slug>` branch from
+ * main, the file, and the PR. Only ever adds a file under content/til, and
+ * never merges: approving it is /reviews' job. A slug already used on main
+ * or by a branch gets -2, -3…
+ */
+export async function openTilPr({
+  slug,
+  file,
+  title,
+  body,
+}: {
+  slug: string;
+  /** Builds the file for the slug finally used. */
+  file: (slug: string) => string;
+  title: string;
+  body: string;
+}): Promise<{ number: number; url: string; slug: string }> {
+  const { object: main } = await githubJson<{ object: { sha: string } }>(
+    `/repos/${repo()}/git/ref/heads/main`,
+  );
+  let final = slug;
+  for (let n = 2; n < 50; n++) {
+    const taken = await Promise.all([
+      exists(`/repos/${repo()}/contents/${TIL_DIR}/${final}.mdx?ref=main`),
+      exists(`/repos/${repo()}/git/ref/heads/til/${final}`),
+    ]);
+    if (!taken.some(Boolean)) break;
+    final = `${slug}-${n}`;
+  }
+  const branch = `til/${final}`;
+  await githubWrite(`/repos/${repo()}/git/refs`, "POST", {
+    ref: `refs/heads/${branch}`,
+    sha: main.sha,
+  });
+  await githubWrite(
+    `/repos/${repo()}/contents/${TIL_DIR}/${final}.mdx`,
+    "PUT",
+    {
+      message: `docs: add til ${final}`,
+      content: Buffer.from(file(final)).toString("base64"),
+      branch,
+    },
+  );
+  const pull = await githubWrite<{ number: number; html_url: string }>(
+    `/repos/${repo()}/pulls`,
+    "POST",
+    { title, head: branch, base: "main", body },
+  );
+  return { number: pull.number, url: pull.html_url, slug: final };
+}

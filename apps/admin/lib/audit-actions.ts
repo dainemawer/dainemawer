@@ -15,6 +15,7 @@ export const AUDIT_LABEL = {
   "expense-account-changed": "Expense account changed",
   "cron-failed": "Scheduled job failed",
   "post-merged": "Blog post approved and merged",
+  "til-drafted": "TIL drafted from Telegram",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_LABEL;
@@ -37,6 +38,8 @@ export const AUDIT_TELEGRAM: Record<AuditAction, "alert" | "quiet" | null> = {
   "payment-recorded": "quiet",
   "payment-removed": "quiet",
   "post-merged": "quiet",
+  // The bot's own reply says so already.
+  "til-drafted": null,
   "expense-rule-saved": null,
   "expense-rule-deleted": null,
   "expense-account-changed": null,

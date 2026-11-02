@@ -10,6 +10,8 @@ import { logHealthMessage } from "@/lib/health-log";
 import { HEALTH_HELP, parseHealthMessage } from "@/lib/health-messages";
 import { replyTelegram, typingTelegram } from "@/lib/telegram";
 import { incomingQuestion } from "@/lib/telegram-format";
+import { parseTilCommand } from "@/lib/til";
+import { draftTilFromTelegram } from "@/lib/til-draft";
 
 // Telegram delivers what you send the bot here (registered with
 // `pnpm --filter admin telegram:webhook`). Each delivery carries
@@ -20,7 +22,7 @@ import { incomingQuestion } from "@/lib/telegram-format";
 
 export const maxDuration = 120;
 
-const HELP = `Ask me about invoices, quotes, customers, recurring invoices, your calendar for today and tomorrow, spending, your balance or your health. /new starts a fresh conversation.\n\n${HEALTH_HELP}`;
+const HELP = `Ask me about invoices, quotes, customers, recurring invoices, your calendar for today and tomorrow, spending, your balance or your health. /new starts a fresh conversation.\n\nTo draft a TIL for the blog, start with til: and say what you learned. It opens a pull request for you to review.\n\n${HEALTH_HELP}`;
 
 export async function POST(request: Request) {
   if (!validSecret(request.headers.get("x-telegram-bot-api-secret-token"))) {
@@ -55,7 +57,13 @@ export async function POST(request: Request) {
     await typingTelegram();
     const typing = setInterval(() => void typingTelegram(), 4500);
     try {
-      const reply = await answer(question.text);
+      // "til: …" drafts a TIL into a pull request; it never goes through
+      // the assistant, whose tools can't write (lib/til.ts).
+      const til = parseTilCommand(question.text);
+      const reply =
+        til === null
+          ? await answer(question.text)
+          : await draftTilFromTelegram(til);
       await rememberAnswer(reply);
       await replyTelegram(reply);
     } finally {
