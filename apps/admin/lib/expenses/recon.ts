@@ -16,6 +16,13 @@ import {
   type Merchant,
   REVIEW_THRESHOLD,
 } from "@/lib/expenses/ai";
+import {
+  chargeFlags,
+  type DigestRow,
+  flagsMessage,
+  isDigestDay,
+  weeklyMessage,
+} from "@/lib/expenses/digest";
 import { getAllTransactions, listAccounts } from "@/lib/expenses/investec";
 import {
   findSubscriptions,
@@ -363,7 +370,7 @@ async function checkSubscriptions(
 
 /**
  * The daily run (app/api/cron/expenses): label what's new and send a
- * summary to Telegram. It reads the whole history window (one request per
+ * digest to Telegram (sendDigest). It reads the whole history window (one request per
  * account), so a missed run, a late-posting card or an earlier failed AI
  * call is caught up, and every month's totals are recomputed from scratch.
  */
@@ -384,7 +391,7 @@ export async function runRecon({
   await syncAccounts();
   const { labelled, transactions, from } = await backfill(today);
   const review = labelled.filter((l) => l.needsReview).length;
-  if (notify && labelled.length) await sendSummary(labelled, today);
+  if (notify) await sendDigest(labelled, transactions, today);
   // Never fails the sync: the labels and totals are already saved.
   let alerted = 0;
   try {
@@ -400,20 +407,38 @@ export async function runRecon({
   };
 }
 
-async function sendSummary(labelled: Labelled[], today: string) {
-  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
-  const money = (minor: number) => formatMoney(minor, "ZAR");
-  const ids = labelled.map((l) => l.transaction.id);
-  const [labels, categories, pending, monthly] = await Promise.all([
-    db
-      .select()
-      .from(expenseLabels)
-      .where(inArray(expenseLabels.transactionId, ids)),
+/**
+ * Telegram after a sync (lib/expenses/digest.ts decides what's said):
+ * Mondays, the last seven days; other days, only charges worth a look among
+ * what this run labelled.
+ */
+async function sendDigest(
+  labelled: Labelled[],
+  transactions: Transaction[],
+  today: string,
+) {
+  const weekly = isDigestDay(today);
+  const week = weekly
+    ? transactions.filter(
+        (tx) => tx.postingDate > addDays(today, -7) && tx.postingDate <= today,
+      )
+    : [];
+  const subjects = weekly ? week : labelled.map((l) => l.transaction);
+  if (!subjects.length && !weekly) return;
+
+  const [labels, categories, monthly, pending] = await Promise.all([
+    subjects.length
+      ? db
+          .select()
+          .from(expenseLabels)
+          .where(
+            inArray(
+              expenseLabels.transactionId,
+              subjects.map((tx) => tx.id),
+            ),
+          )
+      : [],
     db.select().from(expenseCategories),
-    db
-      .select({ id: expenseLabels.transactionId })
-      .from(expenseLabels)
-      .where(eq(expenseLabels.needsReview, true)),
     db
       .select()
       .from(expenseMonthly)
@@ -423,93 +448,59 @@ async function sendSummary(labelled: Labelled[], today: string) {
           monthsBetween(addDays(today, -125), today),
         ),
       ),
+    db
+      .select({ id: expenseLabels.transactionId })
+      .from(expenseLabels)
+      .where(eq(expenseLabels.needsReview, true)),
   ]);
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const labelById = new Map(labels.map((l) => [l.transactionId, l]));
-
-  let out = 0;
-  let incoming = 0;
-  const perCategory = new Map<string, number>();
-  for (const { transaction } of labelled) {
-    const label = labelById.get(transaction.id);
-    const category = label && categoryById.get(label.categoryId);
-    if (!category || category.kind === "transfer") continue;
-    const signed =
-      transaction.type === "DEBIT"
-        ? transaction.amountMinor
-        : -transaction.amountMinor;
-    if (transaction.type === "DEBIT") out += transaction.amountMinor;
-    else incoming += transaction.amountMinor;
-    if (category.kind === "spending") {
-      perCategory.set(
-        category.name,
-        (perCategory.get(category.name) ?? 0) + signed,
-      );
-    }
-  }
-
-  const largest = labelled
-    .map((l) => l.transaction)
-    .filter((tx) => {
-      const label = labelById.get(tx.id);
-      return (
-        tx.type === "DEBIT" &&
-        categoryById.get(label?.categoryId ?? "")?.kind === "spending"
-      );
-    })
-    .sort((a, b) => b.amountMinor - a.amountMinor)
-    .slice(0, 5);
-
-  // Same merchant, amount and day: worth a second look.
-  const seen = new Map<string, Transaction[]>();
-  for (const { transaction: tx } of labelled) {
-    if (tx.type !== "DEBIT") continue;
-    const key = `${merchantKey(tx.description)}|${tx.amountMinor}|${tx.date}`;
-    seen.set(key, [...(seen.get(key) ?? []), tx]);
-  }
-  const duplicates = [...seen.values()].filter((group) => group.length > 1);
+  const rows: DigestRow[] = subjects.map((transaction) => {
+    const category = categoryById.get(
+      labelById.get(transaction.id)?.categoryId ?? "",
+    );
+    return {
+      transaction,
+      category: category
+        ? { id: category.id, name: category.name, kind: category.kind }
+        : null,
+    };
+  });
 
   const month = monthOf(today);
   const kinds = new Map(categories.map((c) => [c.id, c.kind]));
-  const trends = categoryTrends(monthly, kinds, month);
-  const spentThisMonth = monthly
-    .filter((t) => t.month === month && kinds.get(t.categoryId) === "spending")
-    .reduce((sum, t) => sum + netFor("spending", t), 0);
-  const average = trends
-    .filter((t) => kinds.get(t.categoryId) === "spending")
-    .reduce((sum, t) => sum + t.average, 0);
-  const monthName = new Intl.DateTimeFormat("en-GB", {
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(`${month}T00:00:00Z`));
+  const trends = categoryTrends(monthly, kinds, month).filter(
+    (t) => kinds.get(t.categoryId) === "spending",
+  );
+  const averages = new Map(
+    trends.filter((t) => t.months > 0).map((t) => [t.categoryId, t.average]),
+  );
+  const flags = chargeFlags(rows, averages);
+  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
 
-  const lines = [
-    `${monthName} so far: ${money(spentThisMonth)} spent${average ? `, you average ${money(average)} a month` : ""}`,
-    perCategory.size
-      ? `By category: ${[...perCategory.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .map(([name, minor]) => `${name} ${money(minor)}`)
-          .join(" · ")}`
-      : null,
-    ...largest.map(
-      (tx) =>
-        `Largest: ${money(tx.amountMinor)} · ${tx.description} (${tx.date})`,
-    ),
-    ...duplicates.map(
-      (group) =>
-        `Possible duplicate: ${group.length} × ${money(group[0].amountMinor)} · ${group[0].description} (${group[0].date})`,
-    ),
-    pending.length
-      ? `${pending.length} transaction${pending.length === 1 ? "" : "s"} to review`
-      : null,
-  ];
-
+  if (!weekly) {
+    const message = flagsMessage(flags, `${base}/expenses`);
+    if (message) await sendTelegram(message, { quiet: true });
+    return;
+  }
   await sendTelegram(
-    {
-      title: `Expenses: ${labelled.length} new · ${money(out)} out, ${money(incoming)} in`,
-      lines,
+    weeklyMessage({
+      rows,
+      flags,
+      today,
+      monthName: new Intl.DateTimeFormat("en-GB", {
+        month: "long",
+        timeZone: "UTC",
+      }).format(new Date(`${month}T00:00:00Z`)),
+      spentThisMonth: monthly
+        .filter(
+          (t) => t.month === month && kinds.get(t.categoryId) === "spending",
+        )
+        .reduce((sum, t) => sum + netFor("spending", t), 0),
+      averageMonth: trends.reduce((sum, t) => sum + t.average, 0),
+      toLabel: pending.length,
       url: pending.length ? `${base}/expenses/review` : `${base}/expenses`,
-    },
+    }),
     { quiet: true },
   );
 }

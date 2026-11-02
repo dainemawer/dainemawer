@@ -24,12 +24,14 @@ export type AuditAction = keyof typeof AUDIT_LABEL;
  * your phone, "quiet" arrives silently, null stays in the log only.
  */
 export const AUDIT_TELEGRAM: Record<AuditAction, "alert" | "quiet" | null> = {
+  // Passkey sign-ins from a familiar device and city arrive quietly
+  // instead: lib/sign-in-alert.ts.
   "sign-in": "alert",
   "sign-in-blocked": "alert",
   "sessions-revoked": "alert",
   "passkey-added": "alert",
   "passkey-removed": "alert",
-  "settings-saved": "alert",
+  "settings-saved": "quiet",
   "cron-failed": "alert",
   "document-sent": "quiet",
   "payment-recorded": "quiet",
