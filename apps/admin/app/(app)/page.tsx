@@ -8,6 +8,7 @@ import { HealthSkeleton, HealthTile } from "@/components/hud/health";
 import { LinearSkeleton, LinearTile } from "@/components/hud/linear";
 import { WeatherTile } from "@/components/hud/weather";
 import { MonthlyChart } from "@/components/monthly-chart";
+import { NeedsYou, NeedsYouSkeleton } from "@/components/needs-you";
 import { PageHeader } from "@/components/page-header";
 import { BarChartSkeleton, Bone, Loading } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,10 @@ export default function DashboardPage() {
           </>
         }
       />
+      {/* What's waiting on you comes first: the reason to open the admin. */}
+      <Suspense fallback={<NeedsYouSkeleton />}>
+        <NeedsYou />
+      </Suspense>
       {/* The clock and weather only run in the browser, so they sit in the
           static shell; the calendar, rates and Linear are data and stream in
           their own boundaries, health included.
