@@ -4,7 +4,7 @@ import { isCronRequest, reportCronFailure } from "@/lib/cron-auth";
 import { runRecon } from "@/lib/expenses/recon";
 
 // The daily expenses recon (vercel.json): labels new Investec transactions,
-// refreshes the monthly totals and sends a summary to Telegram. See lib/expenses.
+// refreshes the monthly totals and tells Telegram (Mondays a weekly summary, other days only charges worth a look). See lib/expenses.
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
