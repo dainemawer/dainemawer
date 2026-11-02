@@ -496,6 +496,24 @@ export const assistantMessages = pgTable(
   (t) => [index("assistant_messages_at_idx").on(t.at)],
 );
 
+/**
+ * Lines waiting for the next morning briefing (lib/briefing.ts): what the
+ * night's jobs found, such as a new subscription or a charge worth a look.
+ * Sent once at 07:00, then stamped `sentAt`; the briefing prunes old ones.
+ */
+export const briefingNotes = pgTable(
+  "briefing_notes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    text: text().notNull(),
+    sentAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    index("briefing_notes_unsent_idx").on(t.at).where(sql`${t.sentAt} is null`),
+  ],
+);
+
 /* ---------- Health ---------- */
 
 /**

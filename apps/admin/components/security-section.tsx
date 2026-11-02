@@ -99,7 +99,7 @@ export async function SecuritySection() {
         title="Telegram"
         description={
           telegram
-            ? "Sign-ins, passkey and settings changes, and failed jobs buzz your phone. Expenses summaries, recurring drafts and sent documents arrive silently."
+            ? "New devices or cities signing in, email sign-in links, passkey changes and failed jobs buzz your phone. Your usual passkey sign-ins, settings changes, the Monday expenses summary and sent documents arrive silently. Everything else that can wait comes in one 07:00 briefing."
             : "Not connected. Create a bot with @BotFather, send it a message, then run pnpm --filter admin telegram:chat-id. Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to Vercel and redeploy."
         }
       >

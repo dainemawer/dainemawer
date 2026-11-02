@@ -239,6 +239,22 @@ export async function getReviewQueue() {
   };
 }
 
+/** How many transactions wait in the review queue. Database only, no Investec call. */
+export async function countReviewQueue() {
+  await requireSession();
+  return cachedReviewCount();
+}
+
+async function cachedReviewCount() {
+  "use cache: remote";
+  cached();
+  const [row] = await db
+    .select({ n: count() })
+    .from(expenseLabels)
+    .where(eq(expenseLabels.needsReview, true));
+  return row?.n ?? 0;
+}
+
 /** Subscriptions found in Investec's history, live; see lib/expenses/subscriptions. */
 export async function getSubscriptions() {
   await requireSession();
