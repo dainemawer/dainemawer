@@ -10,6 +10,7 @@ import {
   expenseRules,
   expenseSubscriptions,
 } from "@/db/schema";
+import { queueBriefingNote } from "@/lib/briefing-notes";
 import { addDays, formatDate, todayISO } from "@/lib/documents";
 import {
   classifyMerchants,
@@ -347,24 +348,31 @@ async function checkSubscriptions(
   if (!notify || !alerts.length) return alerts.length;
   const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
   const money = (minor: number) => formatMoney(minor, "ZAR");
-  await sendTelegram(
-    {
-      title: "Subscriptions",
-      lines: alerts.map((alert) => {
-        const { merchant, amountMinor, lastDate } = alert.subscription;
-        if (alert.kind === "new") {
-          return `New: ${merchant}, ${money(amountMinor)} a month`;
-        }
-        if (alert.kind === "price") {
-          return `Price up: ${merchant}, ${money(alert.fromMinor)} → ${money(amountMinor)} a month`;
-        }
-        return `Charged after you cancelled: ${merchant}, ${money(amountMinor)} on ${formatDate(lastDate)}`;
-      }),
+  // New subscriptions and price rises wait for the 07:00 briefing; a
+  // charge after you cancelled is worth a buzz now.
+  for (const alert of alerts) {
+    const { merchant, amountMinor } = alert.subscription;
+    if (alert.kind === "new") {
+      await queueBriefingNote(
+        `New subscription: ${merchant}, ${money(amountMinor)} a month`,
+      );
+    } else if (alert.kind === "price") {
+      await queueBriefingNote(
+        `Price up: ${merchant}, ${money(alert.fromMinor)} → ${money(amountMinor)} a month`,
+      );
+    }
+  }
+  const afterCancel = alerts.filter((alert) => alert.kind === "after-cancel");
+  if (afterCancel.length) {
+    await sendTelegram({
+      title: "Charged after you cancelled",
+      lines: afterCancel.map(
+        ({ subscription: { merchant, amountMinor, lastDate } }) =>
+          `${merchant}, ${money(amountMinor)} on ${formatDate(lastDate)}`,
+      ),
       url: `${base}/expenses/subscriptions`,
-    },
-    // A charge after cancelling is worth a buzz; the rest can wait.
-    { quiet: !alerts.some((alert) => alert.kind === "after-cancel") },
-  );
+    });
+  }
   return alerts.length;
 }
 
@@ -479,8 +487,10 @@ async function sendDigest(
   const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
 
   if (!weekly) {
-    const message = flagsMessage(flags, `${base}/expenses`);
-    if (message) await sendTelegram(message, { quiet: true });
+    // Weekdays: anything worth a look waits for the 07:00 briefing.
+    for (const line of flagsMessage(flags, "")?.lines ?? []) {
+      if (line) await queueBriefingNote(line);
+    }
     return;
   }
   await sendTelegram(

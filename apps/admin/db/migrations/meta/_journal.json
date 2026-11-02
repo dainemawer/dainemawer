@@ -78,6 +78,13 @@
       "when": 1793351798076,
       "tag": "0010_expense_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793624841920,
+      "tag": "0011_briefing_notes",
+      "breakpoints": true
     }
   ]
 }

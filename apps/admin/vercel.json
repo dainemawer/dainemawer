@@ -12,7 +12,7 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/health?slot=morning",
+      "path": "/api/cron/briefing",
       "schedule": "0 5 * * *"
     },
     {
