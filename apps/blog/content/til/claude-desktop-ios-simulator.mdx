@@ -1,0 +1,34 @@
+---
+title: Claude Desktop has a terminal, a file editor and an iOS Simulator built in
+date: '2026-11-02'
+tags:
+  - ai
+  - claude-code
+  - react-native
+---
+
+I'd been running Claude Code in one window, Expo in a terminal in another, the iOS Simulator in a third and my editor in a fourth. Then I found out that the Code tab in Claude Desktop puts all of that in panes next to the conversation.
+
+- **Terminal.** Click **Terminal** in the session's title bar or press `` Ctrl+` ``. It opens in the session's working directory with the same environment Claude uses, so `npx expo start` or a test run sees the same files Claude is changing. The **+** in the pane header opens a second tab.
+- **Files.** Click any file path Claude mentions and it opens in a file pane. In a local session you can edit it there too, apart from a few config files like `.mcp.json` that are view-only.
+- **iOS Simulator.** Ask Claude to build and run the app, and the simulator pane opens by itself and streams the device next to the chat. You can use it too: click to tap, drag to swipe, and use the Simulator app's shortcuts (`Cmd+Shift+H` for Home, `Cmd+S` for a screenshot).
+
+The simulator is what makes it so good for React Native. Claude builds the app, taps through the flow it just changed and reads the screen to check its own work, while I watch in the same window. When something looks off, I tap through to that screen myself and ask about it. Claude sees the same device, so there's no describing where I am or attaching a screenshot.
+
+Prompts that worked well for me:
+
+```text
+Build the app and run it in the simulator, then check the onboarding flow.
+Run it on the iPhone SE simulator. Does the new header fit?
+```
+
+Naming a device gets you that device. Each session gets its own simulators, so parallel sessions don't fight over one, and Claude shuts down the ones it booted when you archive the session.
+
+A few limits:
+
+- It needs a Mac with Xcode and its iOS simulators installed, and Claude Desktop v1.24012.0 or later. The simulator pane is in public beta.
+- It works in local sessions only. Cloud and SSH sessions can't reach the simulators on your Mac.
+- It can't drive a physical iPhone. For that you're back to Xcode and screenshots.
+- Claude's screenshots of the device are sent to Anthropic like the rest of the conversation, so don't sign in to real accounts on a simulator Claude uses.
+
+Anthropic's docs cover the [simulator pane](https://code.claude.com/docs/en/desktop-ios-simulator) and the [terminal and file panes](https://code.claude.com/docs/en/desktop) in more detail.
