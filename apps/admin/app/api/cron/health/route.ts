@@ -5,11 +5,11 @@ import { HEALTH_HELP, weeklyReview } from "@/lib/health-messages";
 import { appUrl, sendTelegram } from "@/lib/telegram";
 
 // The health plan's scheduled messages (vercel.json, times in UTC):
-// ?slot=morning at 07:00 Cape Town asks for a weigh-in, unless there is
-// one; ?slot=evening at 19:45 says the kitchen closes soon; ?slot=weekly on
-// Sunday at 18:00 sends the week's review.
+// ?slot=evening at 19:45 says the kitchen closes soon; ?slot=weekly on
+// Sunday at 18:00 sends the week's review. The morning weigh-in prompt is
+// part of the briefing (app/api/cron/briefing).
 
-const SLOTS = ["morning", "evening", "weekly"] as const;
+const SLOTS = ["evening", "weekly"] as const;
 
 export async function GET(request: Request) {
   if (!isCronRequest(request)) {
@@ -21,17 +21,7 @@ export async function GET(request: Request) {
   }
   try {
     const health = await currentHealth();
-    if (slot === "morning") {
-      if (health.today.weightGrams !== null) {
-        return Response.json({ sent: false });
-      }
-      await sendTelegram({
-        title: "Morning. Weigh in?",
-        lines: [
-          "After the bathroom, before breakfast. Send me the number, like 87.4.",
-        ],
-      });
-    } else if (slot === "evening") {
+    if (slot === "evening") {
       await sendTelegram(
         {
           title: `Kitchen closes at ${PLAN.kitchenCloses}`,

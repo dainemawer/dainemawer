@@ -8,11 +8,10 @@ import {
   recurringInvoices,
   recurringLines,
 } from "@/db/schema";
-import { addDays, formatDate, todayISO } from "@/lib/documents";
+import { addDays, todayISO } from "@/lib/documents";
 import { formatMoney } from "@/lib/money";
 import { allocateNumber } from "@/lib/numbering";
 import { dueIssueDates, nextIssueDate } from "@/lib/recurring-dates";
-import { sendTelegram } from "@/lib/telegram";
 import { computeTotals } from "@/lib/totals";
 
 // Turns due schedules into draft invoices. Run daily by the cron route
@@ -49,7 +48,6 @@ export async function issueDueInvoices(today = todayISO()) {
       failed.push(id);
     }
   }
-  if (issued.length) await notify(issued, today);
   return { issued, failed };
 }
 
@@ -146,27 +144,4 @@ async function issueSchedule(id: string, today: string): Promise<Issued[]> {
       .where(eq(recurringInvoices.id, id));
     return issued;
   });
-}
-
-/** One Telegram message listing the new drafts; nothing goes to clients. */
-async function notify(issued: Issued[], today: string) {
-  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
-  const count = issued.length;
-  await sendTelegram(
-    {
-      title: `${count} recurring invoice${count === 1 ? "" : "s"} ready to review`,
-      lines: issued.map(
-        (invoice) =>
-          `${invoice.number} · ${invoice.company} · ${invoice.total}` +
-          (invoice.issueDate === today
-            ? ""
-            : ` (for ${formatDate(invoice.issueDate)})`),
-      ),
-      url:
-        count === 1
-          ? `${base}/invoices/${issued[0].id}`
-          : `${base}/invoices?status=draft`,
-    },
-    { quiet: true },
-  );
 }
