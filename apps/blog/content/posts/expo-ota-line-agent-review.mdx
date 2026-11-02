@@ -1,0 +1,92 @@
+---
+title: The Riskiest Line an Agent Writes in Your Expo App Is in app.json
+dek: In a React Native app, risk depends on which side of the native line a change lands, not on how big the diff is. When agents write the diff, that line has to be checked by a machine before a reviewer ever opens the PR.
+date: '2026-11-02'
+topics:
+  - react-native
+  - ai
+  - staff-engineering
+shortAnswer: In an Expo app, a change that alters the runtime fingerprint can't ship over the air and can't be rolled back in minutes, while a JavaScript change can. Agent-written PRs mix the two freely. Compare the fingerprint in CI, label anything that moves it as a store release, and set review depth by that label instead of diff size.
+takeaways:
+  - "An Expo app has two layers. The JavaScript layer ships over the air with percentage rollouts and a one-command rollback. The native layer ships through app review, a phased release you can only pause, and old binaries that stay on devices for as long as people skip updates."
+  - "Diff size says nothing about which layer a change touches. In this run a one-line iOS permission string and a swapped icon PNG both changed the runtime fingerprint, while a JavaScript edit, a new pure-JS dependency, a Babel config and an app version bump did not."
+  - "Agents reach for native modules because that's the idiomatic answer to requests like 'add haptic feedback'. The diff reads like a JavaScript change with one extra line in package.json, which is exactly where a reviewer skims."
+  - "A 19-line CI script built on @expo/fingerprint compared head against base in under two seconds and named the sources that moved. Use it to label PRs, split native changes out, and keep agents from auto-merging them."
+  - "The fingerprint answers 'can this ship over the air?', not 'is this safe?'. JavaScript-only changes still break apps, and the fingerprint only hashes dependency versions, so in-place edits to node_modules don't register."
+faq:
+  - question: What can you ship with an Expo OTA update and what needs an App Store release?
+    answer: EAS Update can replace JavaScript, styles and bundled assets as long as the update matches the build's runtime version. Anything that changes the native layer needs a new build and a store release. That includes new native modules, native dependency upgrades, and app config the native project is generated from, such as permission strings and icons.
+  - question: What is the Expo fingerprint runtime version policy?
+    answer: It's a runtimeVersion policy that derives the runtime version from a hash of everything that can affect the native app. That covers autolinked native packages and their versions, the generated app config, referenced assets like icons, and patch files. If the hash changes, existing builds won't accept the update, so incompatible updates become very unlikely, at the cost of more frequent builds.
+  - question: How do I detect native changes in a React Native pull request?
+    answer: Generate a fingerprint for the base branch with @expo/fingerprint, generate one for the PR head, and compare the hashes in CI. If they differ, diffFingerprints lists which sources changed, such as autolinking config, expoConfig, or a specific asset. Label the PR as needing a store release and route it to a human reviewer.
+  - question: How long does Apple App Store review take for a bug fix?
+    answer: Apple says it reviews at least 50% of submissions in under 24 hours and 90% in under 48 hours, and you can request an expedited review for a critical bug fix. After approval, a phased release reaches automatic-update users over seven days, and users who never update keep the old binary.
+needsRewrite: false
+---
+
+Ask an agent to add a camera permission prompt to an Expo app and you get a one-line change to `app.json`. Ask it to refactor a screen and you might get several hundred lines of TypeScript. Most teams review the second one harder, and that's backwards: if the refactor is wrong you can roll it back for everyone in minutes, and if the permission string is wrong you're waiting on Apple.
+
+That asymmetry has always been true of React Native. What changed is who writes the diff. When agents produce a growing share of the code, nobody on the team chose which side of the native line each change lands on, and the diff doesn't say. So I think the fingerprint, not the line count, should decide how much review a React Native PR gets, and a machine should compute it before a person opens the PR.
+
+## Two layers, two very different undo buttons
+
+JavaScript, styles and bundled assets can ship over the air with EAS Update. Anything that changes the native layer needs a new build and a store release. Expo's own docs describe a build as "two layers: a native layer that's built into the app's binary, and an update layer, that is swappable with other compatible updates." The runtime version is the contract between them. An update only runs on builds with a matching runtime version.
+
+On the update side, the safety tooling is good. `eas update --rollout-percentage=10` ships to a tenth of users. `eas update:revert-update-rollout` restores the previous update, and `eas update:roll-back-to-embedded` sends everyone back to the JavaScript that shipped inside their binary. A bad JavaScript change is a bad afternoon.
+
+The native side is slower at every step. Apple says App Review handles [at least 50% of submissions in under 24 hours and 90% in under 48](https://developer.apple.com/distribute/app-review/). Once approved, a [phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases) moves automatic-update users through fixed steps: 1%, 2%, 5%, 10%, 20%, 50%, then 100% on day seven. You can pause it for up to 30 days. You can't roll it back, and anyone can download the new version manually at any time. Users who never update keep whatever binary they have, so a native mistake doesn't end when you fix it. It ends when the last affected install goes away.
+
+There's also a trap in the middle. Expo's docs spell out what happens when an update needs native code the build doesn't have but the runtime version wasn't bumped: the build "would think the incoming update with the same runtime version was compatible and it would attempt to load the update," calling code that doesn't exist. `expo-updates` may catch the error and roll back. "May" is doing a lot of work in that sentence.
+
+## What actually moves the line
+
+The `fingerprint` runtime policy removes the guesswork by hashing everything that can affect the native app. Expo's docs pitch it as the policy for when you "want to make incompatible updates extremely unlikely, at the cost of making it necessary to create builds more often." I wanted to know which everyday changes it actually counts as native, so I scaffolded a blank Expo SDK 58 app in `/tmp`, set `runtimeVersion` to `{ "policy": "fingerprint" }`, and applied one change at a time from a clean checkout using `@expo/fingerprint` 0.21.8.
+
+| Change (one per run, from a clean base) | Fingerprint |
+| --- | --- |
+| Edit copy in `App.tsx` | Same |
+| Add a pure-JS dependency (`zod`) | Same |
+| Add `babel.config.js` | Same |
+| Bump `version` in `app.json` from 1.0.0 to 1.0.1 | Same |
+| Add an iOS `NSCameraUsageDescription` string | **Changed** (`expoConfig`) |
+| Replace `assets/icon.png` | **Changed** (`assets/icon.png`) |
+| Add a native module (`expo-haptics`) | **Changed** (autolinking config, new package) |
+| Add a file under `patches/` | **Changed** |
+| Edit a `.swift` file inside `node_modules/expo-updates` in place | Same |
+
+Three of those surprised me. The version bump didn't move the fingerprint, which is the opposite of the `appVersion` policy, where the version is the runtime version. The icon swap did, because icons are baked into the native project, so a design tweak needs a store release. And editing native source inside `node_modules` didn't register at all. The fingerprint lists each autolinked package by its `package.json`, not by its contents. That's mostly fine, because a fresh install in your build pipeline would throw the edit away, but it means the fingerprint can't vouch for anything that bypasses the lockfile.
+
+## Why agents make this worse
+
+Agents work from intent. "Add haptic feedback when the user saves" has an idiomatic answer, and the idiomatic answer is a native module. The resulting diff is an import, a function call and one line in `package.json`. It reads like a JavaScript change, and a reviewer skimming twenty agent PRs a day will treat it as one.
+
+Agents also mix layers within a single PR without noticing. A screen refactor that "also fixes the camera permission copy" bundles a change you could hotfix with one you can't. If the refactor turns out wrong, you can't revert it over the air without also deciding what to do about the binary change underneath it. The cleanup instinct I wrote about in [OpenAI's migration incident](/agents-delete-safeguards-in-migrations) shows up here too: nothing in the code tells the agent a line is expensive to undo.
+
+So the check has to be done by a machine. I wrapped `createFingerprintAsync` and `diffFingerprints` from `@expo/fingerprint` in a 19-line Node script that loads the base branch's fingerprint, computes the head's, and exits non-zero with the changed sources listed. On the simulated haptics PR it printed `STORE RELEASE: runtime ba5da9d231 -> e27786daf7` followed by the Android and iOS autolinking config and `node_modules/expo-haptics/package.json`, in 1.9 seconds. On the version bump it printed `OTA-safe` and exited zero. That's cheap enough to run on every PR.
+
+## Set review depth by layer, not by size
+
+The label is only useful if it changes what happens next. Here's the policy I'd write:
+
+- Label, don't block. A fingerprint change isn't a failure, it's a routing decision, so CI adds a `store-release` label and a comment listing the changed sources.
+- Keep one layer per PR. If a PR changes the fingerprint and also touches JavaScript beyond what the native change needs, ask for a split. The JavaScript half should stay revertible on its own.
+- Don't auto-merge across the line. If agents merge low-risk PRs by themselves, a fingerprint change takes them off that path, whatever the size.
+- Put native changes on a release train. Batch them into a scheduled store release with a named human owner, instead of letting them trickle into whichever build goes out next.
+- Roll out OTA changes gradually anyway. Start every update at a low `--rollout-percentage` and only widen it once the error rate on the EAS dashboard looks normal. "Can be rolled back" only helps if you're watching.
+
+## The strongest objection
+
+The best counterargument is that the fingerprint policy already solves this. Under `fingerprint`, an update that needs new native code gets a new runtime version that no installed binary has, so the crash scenario from the docs can't happen. Why add a CI check on top?
+
+Because the policy prevents the crash by sending the update nowhere. The fix you thought you shipped reaches nobody, and you find out from the next bug report. The policy makes native changes safe. It doesn't make them visible. The CI check's job is to move that knowledge from release day, when someone runs `eas update` and wonders why adoption is zero, back to review time, when someone can still decide whether the native change was worth a store release at all.
+
+## Where this stops working
+
+The fingerprint answers one question: can this ship over the air? It doesn't tell you a change is safe. A JavaScript-only update can still call a native API with arguments that one binary version handles and an older one doesn't, or depend on a backend contract that old installs never learned. Those are OTA-safe by the hash and broken in production.
+
+It also over-triggers. Icon and splash tweaks will label PRs as store releases, which is correct but noisy, and a team that sees the label constantly will stop reading it. Projects that commit their `ios/` and `android/` directories hash much more of the tree, so expect more noise there.
+
+And it says nothing about policy. Apple's rules on downloaded code are about not changing what the app is for, and no hash checks that. A large feature shipped over the air passes the check as cleanly as a typo fix.
+
+Even with those limits, this is a cheap rule for a React Native team taking agent PRs: compute the fingerprint, label the ones that move, and spend reviewer attention on the side of the line where mistakes are slow to fix.
