@@ -14,6 +14,7 @@ export const AUDIT_LABEL = {
   "expense-rule-deleted": "Expense rule deleted",
   "expense-account-changed": "Expense account changed",
   "cron-failed": "Scheduled job failed",
+  "post-merged": "Blog post approved and merged",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_LABEL;
@@ -33,6 +34,7 @@ export const AUDIT_TELEGRAM: Record<AuditAction, "alert" | "quiet" | null> = {
   "document-sent": "quiet",
   "payment-recorded": "quiet",
   "payment-removed": "quiet",
+  "post-merged": "quiet",
   "expense-rule-saved": null,
   "expense-rule-deleted": null,
   "expense-account-changed": null,

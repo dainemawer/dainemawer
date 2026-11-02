@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookOpenCheck,
   ChartGantt,
   ChevronRight,
   FileText,
@@ -35,6 +36,10 @@ const dashboard: NavItem = {
 // Groups and the pages in them are alphabetical. Dashboard stays first and
 // Settings last, the way most apps anchor them.
 const groups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Blog",
+    items: [{ href: "/reviews", label: "Post reviews", icon: BookOpenCheck }],
+  },
   {
     label: "Finance",
     items: [
