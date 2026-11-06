@@ -1,0 +1,139 @@
+---
+title: The Claude Code Backdoor Didn't Need the Agent. It Needed Auto-Update.
+dek: Last week's trojanized Claude Code extension never touched a prompt, a permission or Anthropic's build. It came through a mirror marketplace on auto-update. The agent's install channel is now the softest part of your AI tooling, and nobody on most teams owns it.
+date: '2026-11-06'
+topics:
+  - ai
+  - security
+  - staff-engineering
+  - engineering-management
+shortAnswer: On October 29, 2026, tampered builds of Anthropic's Claude Code extension sat in Cursor's marketplace for about 11 hours and planted an SSH backdoor on up to 5,000 machines. The agent itself was never involved. Teams should govern agent tooling like production dependencies, with one install channel per agent, no blind auto-update, and machine-run checks.
+takeaways:
+  - "The malicious Claude Code builds came through Cursor's mirror marketplace, not Anthropic's channels and not Open VSX. Anthropic says it didn't build or publish them, and Cursor says they were live for about 11 hours."
+  - "The payload was 66 lines of JavaScript in the extension bundle. No prompt injection, no model behaviour, no permission prompt. Agent sandboxes and allowlists don't cover the editor process that hosts the agent."
+  - "Claude Code shipped 24 npm releases in the 30 days to November 6 and 81 in 90 days. At that cadence nobody reviews updates, so auto-update is the real policy, and an 11-hour window is enough."
+  - "Version 2.1.313 was never published to Anthropic's npm registry. A 45-line script that checks installed agent extensions against the vendor's own release feed flagged it in this run. It did not flag the tampered 2.1.312, which reused a real version number."
+  - "Pick one install channel per agent, turn off silent auto-update for agent extensions, and give the agent toolchain a named owner the way CI runners have one."
+faq:
+  - question: Was the Claude Code VS Code extension hacked?
+    answer: Not in Anthropic's own channels. On October 29, 2026, tampered versions 2.1.312 and 2.1.313 appeared in Cursor's extension marketplace for about 11 hours. Anthropic says it didn't build or publish them, and the official VS Code Marketplace and Open VSX copies weren't affected. Anthropic shipped a clean 2.1.314.
+  - question: How do I check if I installed the malicious Claude Code extension in Cursor?
+    answer: Look for anthropic.claude-code versions 2.1.312 or 2.1.313 in ~/.cursor/extensions, and search ~/.ssh/authorized_keys for a key with the comment svc-telemetry. Cursor warns that uninstalling the extension may not remove persistence, so rotate credentials and consider rebuilding the machine if you find either.
+  - question: Should I turn off auto-update for VS Code or Cursor extensions?
+    answer: For agent extensions, yes, or at least delay it. Set extensions.autoUpdate to false, check that your editor fork honours it, and update on a schedule after a release has been public for a day or two. The Cursor compromise lasted about 11 hours, so a 24 to 48 hour delay would have skipped it.
+  - question: Are AI coding agent extensions a supply chain risk?
+    answer: Yes, and a large one. An agent extension runs inside the editor with your user's privileges, usually has shell access, and updates several times a week. The same agent is now distributed through VS Code, Open VSX, Cursor's mirror and IDE agent registries like Android Studio's, each with different custodians.
+needsRewrite: false
+---
+
+The most serious attack on a coding agent this year didn't involve the agent. There was no prompt injection and no model going off-script. On October 29, someone published two tampered builds of Anthropic's Claude Code extension to Cursor's marketplace, and for about 11 hours anyone with auto-update on received an SSH backdoor.
+
+Teams have spent 2026 hardening what the agent is allowed to do: permission modes, sandboxes, command allowlists, hooks. All of that is still worth doing. This attack went around all of it, through the channel that installs the agent, and on most teams nobody owns that channel.
+
+## What happened to the Claude Code extension on Cursor
+
+[Cursor's security notice](https://cursor.com/blog/claude-code-extension-security-notice) says modified versions 2.1.312 and 2.1.313 of `anthropic.claude-code` were available in its marketplace from about 2:27am to 1:35pm Pacific on October 29. Cursor took the marketplace down, audited access, rotated keys and rebuilt it, and estimates up to 5,000 users were exposed. Anthropic said a malicious actor used access to Cursor's marketplace to publish the tampered copy, that it didn't build or publish it, and shipped a clean 2.1.314.
+
+The payload was small. [Help Net Security](https://www.helpnetsecurity.com/2026/10/30/claude-code-extension-ssh-backdoor/) and other write-ups describe about 66 lines added to the top of the extension's JavaScript, with the bundled binary unchanged. It appended an attacker's key with the comment `svc-telemetry` to `~/.ssh/authorized_keys`, tried to open a reverse SSH tunnel, and dropped persistence scripts that survive uninstalling the extension. How the attacker got publishing access to Cursor's marketplace still hasn't been explained.
+
+## What the coverage got wrong
+
+Early reports pointed at Open VSX, the open registry that VS Code forks use. Corrections followed: the bad builds came from Cursor's own mirror, and Anthropic says the official VS Code Marketplace and Open VSX copies were clean. That correction deserves more attention than the original headline got. The extension ID `anthropic.claude-code` resolves to different artifacts with different custodians depending on which editor you open. A publisher name in a marketplace tells you who wrote the original. It doesn't tell you who handled the copy you installed.
+
+Headlines about "the official Claude Code extension" being backdoored read as if Anthropic's pipeline had been popped. Nothing published says it was. If your takeaway was "Anthropic had a bad week," you learned the wrong thing, because the same thing can happen to any agent you install through a mirror.
+
+Most of the advice treated the IOC check as the fix. Grepping `authorized_keys` for `svc-telemetry` is incident response for this attack. The next one will use a different comment, a different persistence trick, and a different extension. The question to ask isn't "were we hit?" but "why could an 11-hour window reach our machines at all?"
+
+## Why agents make this worse than ordinary extension risk
+
+Malicious VS Code extensions aren't new. Agent extensions raise the stakes because of what they can do, how often they change and how many places they come from.
+
+An agent extension is expected to run shell commands, read every file in the repo and talk to the network. Nobody looks twice when it spawns processes. The [2025 Stack Overflow Developer Survey](https://survey.stackoverflow.co/2025/ai) found that 51% of professional developers use AI tools daily. The extension that hosts the agent runs with your user's privileges in the editor's extension host. The agent's sandbox and permission rules govern what the model asks to do. They don't govern what the extension's own code does when it loads. Everything you configured for the agent sits inside a process the attacker already controls.
+
+They also update constantly. I pulled Claude Code's release history from the npm registry for this post. It shipped 24 releases in the 30 days to November 6 and 81 in the last 90 days, roughly one per working day. No engineer reviews an update stream like that, so auto-update ends up being the real trust policy. It trusts whoever controls the marketplace you happen to use.
+
+And the number of channels keeps growing. The same week as the Cursor incident, Google [made third-party agents stable in Android Studio](https://developer.android.com/blog/posts/build-your-way-use-any-ai-agent-of-your-choice-in-android-studio), with an in-IDE marketplace listing more than 40 agents connected over the Agent Client Protocol. That's good for choice. It's also one more place where the same agent name points at a build someone else is distributing. A team running Claude Code today might have it arriving through npm, the native installer, the VS Code Marketplace, Open VSX, Cursor's mirror and an IDE agent registry, with no one aware of all six.
+
+## A check a machine can run
+
+The cheapest useful control I found: ask the vendor's own release feed whether the version on disk exists. Claude Code's extension version numbers track the CLI's on npm (2.1.312 and the clean 2.1.314 exist in both), and the npm registry records when each version was published. When I checked, `2.1.313` isn't there. The registry goes from 2.1.312 on October 27 to 2.1.314 on October 30, and the attacker's version number was never a real release.
+
+Here's the script I wrote for this post. It scans the extension folders of VS Code and its common forks, checks each known agent extension against the vendor's feed, flags anything unpublished or inside a soak window, and checks `authorized_keys` for the known IOC.
+
+```js
+#!/usr/bin/env node
+// Flag agent extensions whose installed version the vendor never published,
+// or published too recently to have soaked. Node 18+, no dependencies.
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const SOAK_HOURS = Number(process.env.SOAK_HOURS ?? 48);
+// extension id -> the vendor's own release feed (npm package with the same version line)
+const UPSTREAM = { "anthropic.claude-code": "@anthropic-ai/claude-code" };
+const HOME = process.env.CHECK_HOME ?? homedir();
+const EDITORS = [".vscode", ".vscode-insiders", ".cursor", ".windsurf"];
+
+const feeds = {};
+async function publishedAt(pkg, version) {
+  feeds[pkg] ??= await fetch(`https://registry.npmjs.org/${pkg}`).then((r) => r.json());
+  return feeds[pkg].time?.[version];
+}
+
+let problems = 0;
+for (const editor of EDITORS) {
+  const dir = join(HOME, editor, "extensions");
+  if (!existsSync(dir)) continue;
+  for (const entry of readdirSync(dir)) {
+    const m = entry.match(/^(.+?\..+?)-(\d+\.\d+\.\d+)(?:-[a-z0-9-]+)?$/i);
+    if (!m || !UPSTREAM[m[1].toLowerCase()]) continue;
+    const [, id, version] = m;
+    const when = await publishedAt(UPSTREAM[id.toLowerCase()], version);
+    const ageH = when ? (Date.now() - Date.parse(when)) / 36e5 : null;
+    let verdict = "ok";
+    if (!when) verdict = "NOT PUBLISHED UPSTREAM";
+    else if (ageH < SOAK_HOURS) verdict = `published ${ageH.toFixed(1)}h ago, inside ${SOAK_HOURS}h soak`;
+    if (verdict !== "ok") problems++;
+    console.log(`${editor.padEnd(17)} ${id}@${version.padEnd(9)} ${verdict}`);
+  }
+}
+
+const keys = join(HOME, ".ssh", "authorized_keys");
+if (existsSync(keys)) {
+  const lines = readFileSync(keys, "utf8").split("\n").filter((l) => l.trim() && !l.startsWith("#"));
+  const bad = lines.filter((l) => l.includes("svc-telemetry"));
+  console.log(`authorized_keys: ${lines.length} key(s), ${bad.length} matching known IOC`);
+  problems += bad.length;
+}
+process.exit(problems ? 1 : 0);
+```
+
+I ran it against a test home directory with the two compromised version folders under `.cursor`, two clean ones under `.vscode` and a planted `svc-telemetry` key. This is the real output, run at 05:04 UTC on November 6:
+
+```text
+.vscode           anthropic.claude-code@2.1.318   ok
+.vscode           anthropic.claude-code@2.1.319   published 4.1h ago, inside 48h soak
+.cursor           anthropic.claude-code@2.1.312   ok
+.cursor           anthropic.claude-code@2.1.313   NOT PUBLISHED UPSTREAM
+authorized_keys: 2 key(s), 1 matching known IOC
+```
+
+It took 0.26 seconds and one registry request. Look at the third line, though. The tampered 2.1.312 passed, because the attacker reused a version number Anthropic had really published two days earlier. A version check catches invented releases and nothing else. Catching a tampered copy of a real release needs a hash from the vendor's own channel to compare against, so ask your agent vendors whether they publish one.
+
+## What to change this quarter
+
+1. Pick one install channel per agent and write it down. For Claude Code that might be the CLI from the vendor's installer, with the extension only from the official VS Code Marketplace. If people use Cursor, decide explicitly whether Cursor's mirror is an approved source. The point is that someone made the call.
+2. Turn off silent auto-update for agent extensions. In VS Code that's `"extensions.autoUpdate": false`. Check that your fork honours it rather than assuming. Update on a schedule once a release has been public for a day or two. An 11-hour compromise doesn't survive a 48-hour delay.
+3. Run the check where you already run checks. Wire something like the script above into your device management or a login hook, and add mappings for every agent your team uses. It's cheap enough to run daily.
+4. Give the agent toolchain an owner. CI runners have an owner because they hold credentials and run code nobody reviews line by line. An engineer's agent setup now does both. If you're an EM, treat this as a staffing decision. Leaving it to the security team as a side project is how it stays unowned.
+5. Plan the bad day now. Cursor's guidance was that uninstalling might not be enough. Know in advance how you'd find affected machines, which credentials live on a developer laptop, and who rotates them.
+
+## Where this argument stops
+
+A soak window delays security fixes too. Anthropic's clean 2.1.314 was itself an urgent update, and a blanket 48-hour delay would have held it back. You need a way to fast-track a named release, which means a human in the loop, which means the owner from step four.
+
+The version check is narrow. It works for Claude Code because the extension and CLI share a version line on npm. Other vendors number differently, and the check says nothing about a tampered copy of a real version, as the 2.1.312 line shows. Treat it as a tripwire. It doesn't prove where a build came from.
+
+None of this helps if the vendor's own channel is the one compromised. Pinning to "the official source" moves trust; it doesn't remove it. And plenty of engineers will install agents however they like on machines you don't manage. Without device management, a policy like this is advice.
+
+I still think the trade is worth making. The agent is the most capable software on an engineer's machine, it updates most working days, and it reaches that machine through more channels than anyone on the team could list from memory. Last week's attacker never had to trick the model. Getting a build into one marketplace for eleven hours was enough.
