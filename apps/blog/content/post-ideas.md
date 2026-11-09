@@ -20,7 +20,6 @@ Everything else in the queue stays for next time.
 
 <!-- - Example: CSS anchor positioning now that Safari shipped it — compare against the old popover + JS approach. -->
 
-- Core Web Vitals instincts applied to a mobile app: which web metrics have a native equivalent (startup time, interaction latency, dropped frames) and how to measure each one. [topics: react-native, performance]
 - Design tokens shared across web and native: one source of truth feeding Tailwind and NativeWind or StyleSheet, and the places the abstraction breaks. [topics: react-native, css]
 - Testing a React Native app when your habits come from Next.js: what Jest, React Native Testing Library and Maestro each catch, and what to stop testing. [topics: react-native]
 - Ten browser assumptions that break in a web developer's first month with React Native: no cascade, layout differences, lists, navigation state, and platform-specific behavior. [topics: react-native]
