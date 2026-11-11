@@ -1,0 +1,143 @@
+---
+title: Story Points Measure the Part Agents Made Cheap
+dek: Coding agents raised code output by about 30% without moving finished work, because review absorbed the gain. Sprint planning still prices the writing. Price the review instead.
+date: '2026-11-11'
+topics:
+  - engineering-management
+  - staff-engineering
+  - ai
+shortAnswer: Teams using coding agents should plan sprints around review capacity, not implementation effort. A Harvard working paper on Jellyfish data from 718 firms found agents raised code per worker about 30% while finished work stayed flat and pull requests took 49% longer to merge. Estimate each ticket's review cost, name the reviewer, and commit only what can be reviewed.
+takeaways:
+  - "A Harvard working paper using Jellyfish data from 718 firms found that coding agents raised lines of code per worker by about 30%, with no statistically significant rise in finished work. Time from pull request to merge rose 49%."
+  - "Story points estimate implementation effort. Review used to scale with implementation, so it hid inside the estimate. Agents broke that ratio, and the hidden cost is now the whole constraint."
+  - "Plan each sprint against reviewer hours. Give every ticket a review tier and a named reviewer at planning time, and stop committing work once a reviewer's budget is spent."
+  - "The strongest objection is that planning around review entrenches the bottleneck. The answer is a lane for changes that skip human review, earned with tests and evals, not assumed."
+  - "Run it for two sprints and compare estimated review hours with time to first review, time to merge and change-request rate. If the numbers don't move, the tiers are wrong."
+faq:
+  - question: Do AI coding agents actually increase team output?
+    answer: They increase code output, but not necessarily finished work. A 2026 Harvard working paper using Jellyfish data from 718 firms found lines of code per worker rose about 30% after agent adoption, while resolved work showed no statistically significant increase. Pull requests took 49% longer to go from open to merged.
+  - question: How should sprint planning change when AI writes most of the code?
+    answer: Plan against review capacity instead of implementation effort. Count the hours each reviewer actually has for review in the sprint, estimate a review cost for every ticket, assign the reviewer during planning, and stop committing work when a reviewer's hours run out, even if agents could write more.
+  - question: Are story points still useful with AI coding agents?
+    answer: Less than before. Story points mostly price how hard something is to build, and agents have made building cheaper and less predictable to estimate. They still help as a rough size signal, but they no longer tell you whether a team can finish what it commits to, because review is now the slower step.
+  - question: How do you estimate code review effort for a ticket?
+    answer: Rate it by risk rather than size. Consider how much of the system a mistake would affect, whether the change touches money, auth, data or migrations, how novel the design is, and how much the tests can be trusted. Map those to a small set of tiers with starting hour values, then recalibrate after each sprint.
+needsRewrite: false
+---
+
+Coding agents made your engineers write about 30% more code, and your team probably isn't finishing any more work than it did before. That's the headline of a [Harvard working paper by Fiona Chen and James Stratton](https://fion.ac/jellyfish.pdf), and the reason it gives should change how you run sprint planning: the gain went straight into the review queue, and most planning processes don't measure the review queue at all.
+
+Story points price how hard a ticket is to build. Agents took over most of the building. So the number your team argues about every two weeks now estimates the cheap part of the work and ignores the part that sets your throughput.
+
+## What the Harvard and GitHub data shows
+
+The paper uses engineering-analytics data from [Jellyfish](https://jellyfish.co): GitHub, Jira and calendar records from 718 firms between January 2021 and March 2026. After firms adopted coding agents:
+
+- Lines of code per worker rose by about 30%.
+- Resolved work showed no statistically significant increase.
+- Time from pull request opened to merged rose by 3.45 days on a 7.03-day baseline, a 49% increase.
+- The share of pull requests that got a formal change request nearly doubled, from a baseline of about 13%.
+- AI review tools didn't close the gap. By March 2026 around 80% of the firms had used one, but AI wrote only about 23% of review comments.
+
+The authors' conclusion is that getting value from agents takes investment in downstream review capacity, not more code. It's a working paper, not peer-reviewed, and [InfoQ's coverage](https://www.infoq.com/news/2026/10/jellyfish-ai-productivity/) is a fair summary of how it's being read.
+
+The volume is still climbing. GitHub's [Octoverse 2026 report](https://github.blog/news-insights/octoverse/octoverse-commits-pushes-reach-new-highs-in-2026-as-developers-build-with-agents/) says more than 40% of pull requests in September started as an agent's first draft, up from 17% in March. GitHub counts only the agent use it can detect, so the true share is higher. And GitHub measured merges, not correctness.
+
+Put those together and writing got cheap and keeps getting cheaper, while reviewing didn't.
+
+## Why story points stopped working
+
+Story points were never meant to measure review, and for a long time they didn't need to. Review time scaled roughly with implementation time. A ticket that took three days to build took an hour or two to review, and that hour hid inside the estimate as slack nobody wrote down.
+
+Agents broke the ratio. A ticket that used to take three days now takes an afternoon of directing an agent, but the diff is just as big, often bigger, and the reviewer has less context because nobody sat with the code while it was written. Review takes as long as it did before, or longer. The doubling in change requests suggests longer.
+
+So a team that plans in points will keep committing to more tickets, because the points say each ticket is smaller now. The work then piles up in open pull requests waiting on the same four people. Sprint after sprint, the board shows plenty of work in progress and not much done, and the retro blames focus or scope creep when the problem is that the plan measured the wrong thing.
+
+Review also doesn't spread evenly. It goes to whoever owns the code, knows the domain, or holds approval rights on the risky paths. On most teams that's the senior and staff engineers, and those are the same people expected to set direction, write the [standing instructions agents run on](/agent-instruction-files-are-code) and unblock everyone else. When every engineer can produce a staff engineer's week of diffs in a day, those few reviewers' hours are your team's capacity.
+
+## Plan the sprint against reviewer hours
+
+The fix is to make review a first-class planning input. In practice:
+
+**Count review capacity before you count tickets.** For each person who reviews, write down how many hours they have for review this sprint, after meetings, on-call and their own work. This number is usually smaller than anyone expects, and seeing it is half the value.
+
+**Give every ticket a review tier, not just a size.** Review cost tracks risk and novelty more than lines of code. A large mechanical rename is cheap to review. A twenty-line change to how refunds are calculated is not.
+
+**Name the reviewer at planning time.** If nobody with the right context has hours left, the ticket doesn't go into the sprint, however quickly an agent could write it. This is the step teams resist, because it means saying no to work that would be "easy."
+
+**Commit what can be reviewed, not what can be written.** Stop committing work when the named reviewers' budgets are spent. Leave headroom, because review demand arrives in bursts and change requests mean a second pass.
+
+A review budget is a different control from limiting how many [agents one engineer runs at once](/wip-limits-for-ai-agents). A WIP limit controls the flow out of one person's sessions. A review budget controls what the whole team commits to, and it makes the cost visible to whoever is negotiating scope with product.
+
+## The strongest case against this
+
+The best objection: planning around review entrenches the bottleneck instead of removing it. If review is the constraint, the answer is to need less of it. Ship smaller changes, invest in tests and evals the agent has to pass, use AI review for the first pass, and save humans for the changes that need judgment. Budgeting human review hours treats a temporary limit as permanent and gives teams a reason to keep reviewing things a machine could check.
+
+That's right about the destination. The worksheet below has a lane for changes that skip human review entirely, and growing that lane should be a stated goal. But the paper's data says most teams aren't there yet. Change requests nearly doubled, which suggests reviewers are catching problems in agent output rather than rubber-stamping it. AI review is widely adopted and still writes a minority of comments. You get to skip human review by proving a class of change is safe without it, with tests and a track record. You don't get to skip it by deciding review is the slow part.
+
+A second objection is that points already include review. In theory, yes. In practice teams estimate by recalling how hard something was to build, and nobody recalls review.
+
+## Where this breaks down
+
+**Small teams where everyone reviews everyone.** With three engineers and no ownership boundaries, review capacity is roughly team capacity, and the worksheet is overhead.
+
+**Review hours can become surveillance.** If people start logging review time to the minute so managers can audit it, you've built a timesheet. Keep the estimates coarse and use them for planning, never for performance.
+
+**Budgets invite rubber-stamping.** A reviewer near their limit has an incentive to approve faster. Watch the change-request rate and post-merge reverts. If change requests drop while volume climbs, the budget is being met by reviewing less carefully.
+
+**Review estimates are as unreliable as story points.** They are. The difference is that they estimate the step that limits throughput. A rough estimate of the right thing beats a precise estimate of the wrong one, as long as you recalibrate.
+
+**It does nothing for review quality.** This sizes the queue. It doesn't make anyone better at [reviewing agent-written code](/reviewing-ai-generated-code), and it won't help if the reviewers are the problem.
+
+## A review budget worksheet for sprint planning
+
+Copy this into your planning doc. The tier hours are starting values to calibrate against your own data after the first sprint, not measured benchmarks.
+
+```markdown
+# Review budget: <team>, sprint <n>
+
+## Reviewer capacity
+| Reviewer | Owns / approves         | Review hours this sprint |
+| -------- | ----------------------- | ------------------------ |
+| <name>   | payments, auth          | 8                        |
+| <name>   | mobile app, release     | 10                       |
+| <name>   | web, design system      | 12                       |
+Commit up to 70% of each reviewer's hours. The rest absorbs second
+passes after change requests and anything urgent.
+
+## Review tiers (starting values, recalibrate every sprint)
+- R0, automated lane (0h): passes required tests and evals, touches
+  no owned risk paths, change class is on the approved list. A human
+  merges but does not review line by line.
+- R1, routine (0.5h): small, familiar pattern, strong tests, low
+  blast radius.
+- R2, substantive (2h): new behaviour, several files or modules,
+  tests need reading as carefully as the code.
+- R3, high risk (4h+, two reviewers): money, auth, personal data,
+  migrations, deletes, config that ships to production without a
+  build (OTA updates, feature flags, infra).
+
+## Tickets
+| Ticket | Tier | Est. review h | Reviewer | Notes                 |
+| ------ | ---- | ------------- | -------- | --------------------- |
+| ABC-1  | R2   | 2             | <name>   | new caching layer     |
+| ABC-2  | R0   | 0             | n/a      | dependency bump       |
+| ABC-3  | R3   | 4 + 4         | <name>×2 | refund calculation    |
+
+## Commitment rule
+A ticket enters the sprint only if its named reviewer has budget left.
+If they don't, it waits, gets re-tiered with better tests, or moves to
+a reviewer with context. Agent speed is not a reason to add it.
+
+## End-of-sprint check
+- Estimated vs. actual: time to first review, time to merge
+- Change-request rate by tier
+- Reverts or incidents from R0 and R1 changes
+- One change class to promote to R0 next sprint, with the evidence
+```
+
+The last line is what keeps the worksheet from entrenching the bottleneck. Every sprint, try to move one kind of change into the automated lane, and back it up with the tests and the clean record that justify it. Over a few quarters the human review budget should cover a smaller share of the work while the overall throughput goes up.
+
+## How to start
+
+Run the worksheet alongside your normal planning for two sprints without changing what you commit to. Track time to first review, time to merge and change-request rate, which your Git host already records. If the sprints where the review budget was overspent are the ones that missed, you have your answer, and the evidence to stop arguing about points.
