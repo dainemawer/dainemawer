@@ -1,0 +1,125 @@
+---
+title: The Pager, Not the Reviewer, Decides Who Owns Agent-Written Code
+dek: An approved pull request proves someone read the diff. It doesn't prove anyone can debug it when it breaks in production. For code on a paged path, that second test should decide whether it merges.
+date: '2026-11-04'
+topics:
+  - engineering-management
+  - staff-engineering
+  - ai
+shortAnswer: Agent-written code belongs to whoever can debug it during an incident without asking the agent, not to whoever approved the pull request. Anthropic's 2026 trial found developers using AI scored 50% on a comprehension quiz against 67% for hand coders, with the widest gap on debugging. On paged code paths, make that the merge test.
+takeaways:
+  - "Review and ownership used to be the same test, because the person who wrote the code understood it. With agents writing the code, an approval proves someone read the diff, not that anyone can debug it."
+  - "In Anthropic's randomized trial, developers who used AI to learn a new library scored 50% on a follow-up quiz, against 67% for those who coded by hand. Debugging questions showed the largest gap."
+  - "Agent-written code isn't obviously worse. Anthropic found no difference in how often it was later reverted. The risk is that the team's understanding of what it runs gets thinner every month."
+  - "For changes on a paged path, require a named owner who can explain in writing how the change fails, what the first signal of failure is, and how to roll it back without an agent."
+  - "Run a short cold-debug drill each quarter. If nobody on the rotation can explain a paged service without an agent, that service has no owner, whatever the CODEOWNERS file says."
+faq:
+  - question: Who owns code written by an AI coding agent?
+    answer: The engineer who merged it is accountable, but ownership only means something if that person, or whoever is on call, can debug the code under pressure without the agent. For code that can page someone, assign a named owner who has written down how the change fails and how to roll it back, and treat that as part of the merge.
+  - question: Does using AI coding assistants make engineers worse at debugging?
+    answer: There is early evidence it can. In a January 2026 randomized trial by Anthropic, 52 developers learning a new Python library with AI help scored 50% on a comprehension quiz against 67% for those who coded by hand, and debugging questions showed the biggest gap. The study was small and mostly junior, so treat it as a warning rather than a verdict.
+  - question: How should on-call change when AI agents write most of the code?
+    answer: Make merges on paged code paths depend on whether the on-call engineer can explain the change's failure modes, not just on review approval. Keep rollback steps that work without an agent, run periodic drills where someone debugs a service cold, and let AI SRE tools speed up diagnosis without making them the only thing that understands the system.
+  - question: Can AI SRE agents replace human on-call engineers?
+    answer: Not yet for accountability. AI SRE tools can triage alerts, correlate signals and suggest root causes, and many teams will find them faster than a human for common failures. Someone still has to judge whether the agent's diagnosis is right, and that judgment depends on understanding the system the agent is describing.
+needsRewrite: false
+---
+
+Code review used to double as an ownership check. The person who wrote the change understood it, a second person read it, and between them two people could debug it at 3am. Agents broke that link. An approved pull request now proves that someone read a diff. It proves nothing about whether anyone on the rotation can explain how that code fails.
+
+My position: for any code path that can page a human, the merge test should be "the person who'd get paged can explain how this breaks without asking the agent." Not "a reviewer approved it." Whoever can pass that test owns the code. If nobody can, nobody owns it, whatever CODEOWNERS says.
+
+## Why this is coming up now
+
+On October 29, The Pragmatic Engineer published a long look at [AI SRE tools](https://newsletter.pragmaticengineer.com/p/ai-sre), the category of agents that triage pages, correlate signals and propose root causes before a human is woken up. The pitch is easy to like. Agents are shipping more code, there are more alerts, so put agents on the alerts too.
+
+That pitch skips a question. When the AI SRE agent says "the root cause is the retry change merged on Tuesday," someone has to decide whether to believe it. That person needs to understand the retry change. If an agent wrote it, a different engineer approved it in four minutes, and the on-call engineer has never opened the file, then the system has two agents and zero people who understand the code.
+
+## The evidence that understanding is the thing slipping
+
+Three findings from this year point the same way.
+
+**The code isn't getting worse.** Anthropic's [October 2026 workforce report](https://www.anthropic.com/research/employment-at-anthropic) found commits per engineer at roughly 5x their level six months earlier, and "no difference in rates of lines of code subsequently removed or reverted" between agent-written and human-written code. If you're arguing that agent code is sloppy, the data isn't on your side.
+
+**Understanding of the code is getting thinner.** In Anthropic's [randomized trial on AI assistance and coding skills](https://www.anthropic.com/research/AI-assistance-coding-skills), published in January, 52 developers learned a new Python library. Those with an AI assistant averaged 50% on a follow-up quiz, against 67% for those who coded by hand, and finished only about two minutes faster. The authors noted that "the largest gap in scores between the two groups was on debugging questions." Debugging is the one skill on-call depends on.
+
+**Stability is where AI adoption still hurts.** Google's [2025 DORA report](https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report) found AI adoption now goes with higher throughput, but still has a negative relationship with software delivery stability.
+
+Put those together and you get a specific risk. The code is fine on average, there's much more of it, and the people responsible for it understand less of it each month. That doesn't show up in review metrics or revert rates. It shows up in how long the first bad incident takes to resolve.
+
+## The incident that wasn't about bad code
+
+Amazon's March retail outages are a useful example because of what didn't happen. After the Financial Times tied the outages to AI, Amazon said that "none of the incidents involved AI-written code," and that the one AI-related incident came from "an engineer following inaccurate advice that an agent inferred from an outdated internal wiki," [as Fortune reported](https://fortune.com/2026/03/12/amazon-retail-site-outages-ai-agent-inaccurate-advice).
+
+Take Amazon's account at face value. The failure was a person acting on an agent's confident explanation of a system without being able to tell it was wrong. That's exactly the failure an AI SRE agent can produce on your rotation, and the defense is the same: a human who understands the system well enough to notice when an explanation doesn't fit.
+
+## Owning code means you can debug it
+
+Most teams define ownership by assignment. A team is listed in CODEOWNERS, a service has an owning team in the catalog, an engineer approved the PR. Those records answer "who do we page?" They don't answer "can the person we page fix it?"
+
+When humans wrote the code, the gap between those questions was small. Writing code is a slow, forced read of it. Agents removed the forced read, so the gap is now as wide as your team lets it get.
+
+So treat ownership as something an engineer demonstrates, not something they're assigned. For a change on a paged path, the owner is the person who can answer three questions without the agent open:
+
+1. How does this change fail, and what does that look like from the outside?
+2. What's the first signal, which metric, log line or alert, that it's failing?
+3. How do you roll it back, and does the rollback work if the agent tooling is unavailable?
+
+Those three answers take five minutes to write when you understand the change. When you don't, they take much longer, and that's the point. The friction lands at merge time, when it's cheap, instead of at 3am.
+
+## The strongest case against this
+
+The best objection: this is nostalgia with a checklist. The agent that wrote the code can explain it better than any human, and AI SRE tools will diagnose most failures faster than a sleepy engineer. Forcing humans to understand every paged change throttles the throughput gain that justified the agents. Before agents, plenty of teams paged people about code written by engineers who'd left years ago, and nobody demanded a comprehension test then.
+
+Most of that is right. Agents will be faster at diagnosing common failures, and inherited code nobody understands is an old problem.
+
+But there are two differences. The first is speed: a departed engineer's code went stale over years, while agent-written code can arrive already unfamiliar to everyone at a rate of dozens of changes a week. The second is who checks the diagnosis. An AI SRE agent explaining agent-written code to an engineer who understands neither is the Amazon pattern with more steps. The human in that loop needs enough understanding to say "that doesn't fit what I know about this service," or they aren't really in the loop.
+
+## Where this stops working
+
+**Most code doesn't need this test.** Internal tools, prototypes and anything that can't page a person don't need it. If you apply the test to every change, it turns into a checkbox people tick without reading, and you're back to approvals that prove nothing. Scope it to paged paths.
+
+**Volume beats it eventually.** If one service takes forty agent-written changes a week, nobody will hold all forty in their head. At that point the answer is better observability and smaller blast radius, not more reading. The test still helps by making the author write down the failure signal, even when no one remembers the details a month later.
+
+**Understanding decays.** Someone who could explain a change in March may not be able to in September. That's why the drill below matters more than the merge checklist.
+
+**Small teams can't spread it.** If two people are on call for everything, demanding deep understanding of all of it is unrealistic. Shrink the paged surface before you add process.
+
+## A pager-readiness policy you can adopt
+
+This is one section to add to a PR template, plus one standing rule. Both are deliberately short, because a long checklist gets ticked without being read.
+
+```markdown
+## Pager readiness (required if this change touches a paged path)
+
+Owner on the rotation: @handle
+(Must be someone who will be on call for this service this quarter.)
+
+How this fails:
+<!-- One or two sentences. What breaks, and what users or callers see. -->
+
+First signal:
+<!-- The alert, dashboard panel, metric or log line that shows it failing. -->
+<!-- If no existing signal would catch it, add one in this PR. -->
+
+Rollback without an agent:
+<!-- Exact steps or command. Must work if agent tooling is down. -->
+
+- [ ] The owner wrote the three answers above themselves,
+      without pasting them from the agent's summary.
+
+---
+
+Standing rule: cold-debug drill, once per quarter per paged service
+
+- Pick a recent agent-written change on the service at random.
+- The next person up on the rotation gets 30 minutes, with no coding
+  agent, to explain how it fails and walk through its rollback.
+- Pass: they do it. Fail: the service has no real owner. Schedule a
+  walkthrough or shrink what the service pages for, before the next drill.
+- Track the pass rate per service. That number is your ownership metric.
+```
+
+The last checkbox does the most work. An agent will happily write a failure-mode summary, and it'll often be correct. On its own, that paragraph is worth very little. What the checkbox buys you is a human who understood the change well enough to write it. In the Anthropic trial, the developers who kept their understanding were the ones who asked the AI conceptual questions and resolved their own errors. They didn't just accept the output. Making the owner write the answers is the same move at team scale.
+
+If you only do one thing this quarter, run the drill on your most-paged service and write down the result. A failed drill tells you more about who owns your code than CODEOWNERS does.
