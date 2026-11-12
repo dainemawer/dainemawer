@@ -1,0 +1,106 @@
+---
+title: Core Web Vitals Worked Because of the Thresholds. Your Mobile App Doesn't Have Any
+dek: Web developers moving to React Native tend to port the metrics and leave the useful part behind. What made Core Web Vitals work was a contract of field data, a fixed percentile and a pass mark set outside the diff. Agents writing your app's code make that contract more important.
+date: '2026-11-09'
+topics:
+  - react-native
+  - performance
+  - ai
+shortAnswer: "Web metrics map onto native ones: LCP becomes startup time, INP becomes interaction latency and hangs, and CLS mostly becomes dropped frames. The metrics aren't the hard part. Copy the contract instead: measure in the field, judge at the 75th percentile, and write the thresholds down before an agent's diff arrives, because agents optimize what they can measure."
+takeaways:
+  - "LCP maps to startup time (time to initial display and time to full display), INP maps to interaction latency and hangs, and CLS has no good native equivalent. Dropped and frozen frames are the closer native concern."
+  - "Android and iOS already referee half the contract. Google Play reduces visibility above a 1.09% user-perceived crash rate or a 0.47% ANR rate, flags cold starts of 5 seconds or more, and Xcode Organizer reports hang rate from shipping devices."
+  - "The missing piece was interaction latency in JavaScript. React Native 0.83 shipped the Event Timing and Long Tasks APIs as stable, and PerformanceObserver works in production builds, so you can now collect an INP-shaped number from real devices."
+  - "Agents need a number to aim at. In the SWE-Perf benchmark the best agent setup gained 2.26% against an expert's 10.85%, and that was with performance tests supplied. Without a defined metric and threshold, a 'make it faster' prompt has nothing to check against."
+  - "Split the work: lab checks are the agent's loop, field percentiles are the team's contract. Don't accept a performance claim from one emulator run."
+faq:
+  - question: What is the mobile app equivalent of Core Web Vitals?
+    answer: There's no single standard, but the closest mapping is startup time for LCP (time to initial display and time to full display), interaction latency and hang rate for INP, and slow or frozen frames in place of CLS. Android vitals and Xcode Organizer report several of these from real devices.
+  - question: How do I measure app startup time in React Native?
+    answer: In the lab, run `adb shell am start -S -W` on Android and read TotalTime, or use the App Launch template in Xcode Instruments. In the field, Android vitals reports time to initial display and Xcode Organizer reports launch time. For time to full display, mark the moment your first real screen has its data and report it yourself.
+  - question: Can you measure INP in a React Native app?
+    answer: Not as Chrome defines it, but React Native 0.83 made the Event Timing and Long Tasks APIs stable, and PerformanceObserver works in production builds. You can observe event entries, keep the slowest per session, and report a 75th percentile. The target property isn't supported yet, so attributing a slow interaction to a component takes extra work.
+  - question: What are the Android vitals bad behavior thresholds?
+    answer: Google Play's overall bad behavior thresholds are a 1.09% user-perceived crash rate and a 0.47% user-perceived ANR rate, with an 8% per-phone-model threshold for both. Apps above them may get reduced store visibility and a warning on their listing. Android vitals also flags cold starts of 5 seconds or more as excessive.
+  - question: What counts as a hang on iOS?
+    answer: Apple's tools count a hang when the main thread is busy for at least 250 milliseconds. Xcode Organizer reports hang rate as seconds of unresponsiveness per hour of use, at the median and the 90th percentile, using data from devices of users who share analytics.
+needsRewrite: false
+---
+
+Web developers who move to React Native usually bring the wrong half of Core Web Vitals with them. They bring the metric names, go looking for a Lighthouse for phones, and run it on an emulator. The metrics were never the clever part. The clever part was the contract: three user-facing numbers, measured on real devices, judged at the 75th percentile, against thresholds that nobody on your team got to pick.
+
+Most mobile teams have no such contract for performance. That was a tolerable gap when engineers who'd profiled the app wrote most of its code. It's a worse one when an agent writes a growing share of the diff, because an agent can't feel jank. It can only read a number, and if nobody has decided which number and what counts as passing, "make the feed faster" has nothing to be checked against.
+
+## What made Core Web Vitals work
+
+Take the thresholds away and LCP, INP and CLS are just three more metrics in a long list the web already had. What changed behavior was the packaging. Google set fixed pass marks (LCP at 2.5 seconds, INP at 200 milliseconds, CLS at 0.1), assessed them at the 75th percentile of real page loads, scored mobile and desktop separately, and tied the result to search. Lab tools like Lighthouse became the debugging aid, not the verdict.
+
+That's why teams argued about the definition of a layout shift instead of about whether performance mattered. The threshold settled the second argument in advance.
+
+Native already has the same arrangement for one category, which is why stability is the thing mobile teams tend to have under control. Google Play reduces an app's visibility if its [user-perceived crash rate goes above 1.09% or its ANR rate above 0.47%](https://developer.android.com/topic/performance/vitals), measured over 28 days on real devices. Teams that would never agree on a performance budget will rearrange a sprint to get under those lines, for the same reason web teams chased a green INP.
+
+## What each Core Web Vital maps to in a mobile app
+
+**LCP becomes startup time.** Android splits it into time to initial display (TTID), the first frame, and time to full display (TTFD), the point where the app is usable. The system reports TTID on its own. TTFD only exists if the app says when it's done, through `reportFullyDrawn` on Android or your own mark. That's LCP's problem in a different shape: the first paint is easy to measure and rarely the one users care about. Android vitals treats a [cold start of 5 seconds or more as excessive](https://developer.android.com/google/play/vitals/launch-time), which is a floor, not a goal. Apple's own [WWDC 2019 launch session](https://developer.apple.com/videos/play/wwdc2019/423/) set a target of a first frame in 400 milliseconds. A React Native app pays for its JavaScript bundle and runtime start on top of that, so treat the two numbers as a range of ambition rather than a pass mark you'll hit by default.
+
+**INP becomes interaction latency.** This was the hole. Hangs and ANRs only catch the catastrophic end: Apple's tools count a [hang once the main thread is blocked for 250 milliseconds](https://developer.apple.com/videos/play/wwdc2022/10082/), and an Android ANR takes seconds. A tap that takes 180 milliseconds in JavaScript before anything moves is neither, and it still feels broken. React Native 0.83 closed most of that gap. Its release made a subset of the [Web Performance APIs stable](https://reactnative.dev/blog/2025/12/10/react-native-0.83), including Event Timing and Long Tasks, and the post notes that `PerformanceObserver` "also works in production builds."
+
+**CLS mostly doesn't port.** Native layouts shift less, because there's no late-loading web font or ad slot pushing content down, and when they do shift there's no standard metric for it. The closer native concern is smoothness. Android vitals counts [slow frames over 16 milliseconds and frozen frames over 700](https://developer.android.com/google/play/vitals/render). If you're porting your instincts, swap "did the page jump?" for "did the list stutter?".
+
+A web developer's habits don't include frame budgets, and a list that renders fine on a recent iPhone can drop frames on a mid-range Android phone. Depending on your market, a lot of your users are on the slower one.
+
+## A performance contract for a React Native app
+
+The table below is a performance contract you can paste into a doc, argue about once, and then point every PR and every agent at. The field sources and fixed thresholds come from the platforms. The "starting threshold" column for anything the platforms don't set is my suggestion for a first version, not an industry standard. Pick yours, write it down, and revisit it quarterly.
+
+| Web instinct | Native metric | Field source | Lab check an agent can run | Starting threshold |
+| --- | --- | --- | --- | --- |
+| LCP | Cold start, TTID | Android vitals, Xcode Organizer launch time | `adb shell am start -S -W`, 10 runs, release build, median of TotalTime | Well under the 5 s "excessive" line at p75. Aim toward Apple's 400 ms first frame |
+| LCP | Cold start, TTFD | Your own mark when the first real screen has data | Same launch loop, read your mark from logs | Set it per app, at p75, and treat moving the mark as a contract change |
+| INP | Interaction latency | `PerformanceObserver` event entries (RN 0.83+), reported per session | Scripted taps on the three busiest screens with Maestro, read entries in DevTools | 200 ms at p75, borrowed from the web |
+| INP (tail) | Hangs and ANRs | Xcode Organizer hang rate, Android vitals ANR rate | Long Tasks entries over 50 ms during the same scripted flows | Below 0.47% ANR overall. Hang rate trending down, not up |
+| CLS (replaced) | Slow and frozen frames | Android vitals rendering, your crash or APM tool | `adb shell dumpsys gfxinfo <package>` after scrolling the longest list | Zero frozen frames in the scripted flows |
+| None on web | Crash rate | Android vitals, Xcode Organizer | Not a lab metric | Below 1.09% user-perceived overall |
+
+Collecting the interaction number in production is a few lines once you're on 0.83 or later:
+
+```ts
+let worst = 0;
+
+const observer = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    // duration is the entry's total time, as in the web Event Timing spec
+    if (entry.duration > worst) worst = entry.duration;
+  }
+});
+observer.observe({ type: "event", buffered: true });
+
+// On background or session end, send `worst` to your analytics
+// and compute the 75th percentile across sessions server-side.
+```
+
+Keep the worst interaction per session and take the 75th percentile across sessions. That's close to what INP does on the web, which reports roughly the worst interaction on a page. The React Native implementation doesn't support the `target` property yet, so you'll need your own labels if you want to know which component was slow.
+
+## Why agents make the contract non-optional
+
+Agents are worse at performance work than at most coding tasks, and the evidence says so even when they're given a target. The [SWE-Perf benchmark](https://arxiv.org/abs/2507.12415) took 140 real performance-improving pull requests and gave models the code plus the performance tests. Human experts' patches gained 10.85%. The best agent setup gained 2.26%, and the authors found the agents tended to make local, low-level edits where experts changed the design. Those were 2025 models and the gap has likely narrowed, but the setup is the point. They had a test to aim at and still fell short. Give an agent no test and it has nothing to aim at at all.
+
+Without one, "the feed feels slow" tends to turn into a diff that wraps components in memoization, adds a virtualization prop, and claims an improvement nobody measured. It might be right. Nobody can tell, because there's no number from before. The [React Compiler post](/react-compiler-rerenders-data-layer) on this site covers the version of this where the slow part isn't in component code at all.
+
+So split the job the way the web did.
+
+- Lab checks are the agent's loop. Put the launch loop, the scripted taps and the frame dump in a script the agent can run before and after its change, on a release build, with repeats. Ask for the median and the spread in the PR description, not a single run.
+- Field percentiles are the team's contract. They're what you hold the release to, and they're what an engineer or EM looks at weekly. An agent doesn't get to declare a performance win. The p75 a week after release decides it.
+- Thresholds get set outside the diff. The person writing the change, human or agent, doesn't get to redefine passing in the same PR. That includes moving the TTFD mark earlier, which is the cheapest way to "fix" startup and an easy edit for an agent to make in good faith.
+
+## Where this stops working
+
+Field data needs volume. Android vitals only shows data once enough opted-in users produce it, and Xcode Organizer only counts users who share analytics. A new app or an internal tool may never get a stable p75, and then the lab loop is all you have. Be honest that it's a proxy.
+
+The 75th percentile also hides the users React Native struggles with most. If a big share of your audience is on low-end Android, p75 across all devices can look healthy while those users have a bad time. Segment by device class, the same way the web scores mobile and desktop separately.
+
+Self-reported metrics can be gamed. TTFD and the interaction number come from your own code, so they measure what you decided to measure. Review changes to the instrumentation as carefully as changes to the thresholds.
+
+And CLS really doesn't have a counterpart. If your app renders server-driven layouts or remote content into lists, you can get real layout jumps that no platform metric will catch. That's a case for a screenshot test, not a vital.
+
+I'd still write the contract, and I'd write it before the next agent-written PR shows up claiming the app got faster, so there's something to check that claim against.
