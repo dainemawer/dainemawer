@@ -1,0 +1,97 @@
+---
+title: Max Effort Cost 10x More on a Well-Specified Task and Bought One Judgment Call
+dek: Claude Fable 5.2's launch was read as a new model at a lower price. Its own charts show something more useful. On my test, Opus 5.5 at max effort scored no better than at medium and cost about 10 times as much. Your team needs an effort policy before it needs a model upgrade.
+date: '2026-11-13'
+topics:
+  - ai
+  - engineering-management
+  - staff-engineering
+shortAnswer: On well-specified coding tasks, raising an agent's effort level costs far more than it returns. In a 25-test trial, Claude Opus 5.5 at medium effort passed everything for about $0.34 a run. At max effort it cost about $3.49, took 15 to 19 minutes and scored no better. Set effort per task type and escalate to max.
+takeaways:
+  - "Anthropic's own Fable 5.2 charts are effort curves. At High effort Fable 5.2 matched Opus 5.5's best FrontierCode score for about half the cost per task, which suggests the top of the effort range is poor value for most work."
+  - "In this run, all five model and effort combinations passed the hidden tests on a well-specified task. Opus 5.5 at max effort cost about 10x as much as at medium effort, took about 15x as long and wrote about 15x the output tokens."
+  - "The one hidden test max effort failed was a real RFC ambiguity it had found and flagged. That's the kind of value max buys: judgment on edge cases, not a better pass rate."
+  - "On short tasks, per-token price and the fixed cost of loading the agent's context dominate the bill. Opus 5.5 at medium was cheaper than Fable 5.2 at low because Fable's tokens cost twice as much."
+  - "Effort is a spending decision currently made by whoever is typing. Give it a default per task class and an escalation rule, the same way you'd handle instance sizes."
+faq:
+  - question: Does a higher effort level make Claude Code write better code?
+    answer: On hard, open-ended tasks it can. On well-specified tasks it mostly makes the run slower and more expensive. In a 10-run test on a 25-test HTTP negotiation task, every effort level from low to max passed, and max effort cost about 10 times as much as medium for the same score.
+  - question: Should my team switch from Claude Opus 5.5 to Claude Fable 5.2?
+    answer: Not as a default. Anthropic itself recommends starting with Opus 5.5 and moving up to Fable for the most ambitious, open-ended work. Fable 5.2 costs $8 and $40 per million input and output tokens, twice Opus 5.5's $4 and $20, so it only pays off when the extra capability changes the result.
+  - question: What effort level should I use for AI coding agents?
+    answer: Start at medium, which is Claude Code's default, for anything with a clear spec and tests. Use high when the task is ambiguous or crosses several systems. Reserve xhigh and max for escalation after a lower setting has failed, or for long unattended work where a wrong answer costs more than the tokens.
+  - question: How much does Claude Fable 5.2 cost compared with Opus 5.5?
+    answer: Anthropic lists Fable 5.2 at $8 per million input tokens and $40 per million output tokens, with a fast mode at $16 and $80. Claude Opus 5.5 is $4 and $20. Anthropic's FrontierCode chart shows Fable 5.2 at High effort scoring about level with Opus 5.5 at Max for roughly half the cost per task.
+needsRewrite: false
+---
+
+The most expensive setting in your coding agent is probably not the model. It's the effort level, and on most of the work your team hands an agent, turning it up buys you nothing you can measure.
+
+That's the useful reading of this week's [Claude Fable 5.2 launch](https://www.anthropic.com/claude-fable-and-mythos-5-2), and most of the coverage skipped it. The headlines were a 20% price cut, faster output and a leaderboard win. Look at the launch post's charts, though, and nearly every one plots score against cost per task across effort levels. The model comparison is almost secondary.
+
+## What Claude Fable 5.2 actually changed
+
+The facts first, from Anthropic's post. Fable 5.2 and Mythos 5.2 are the same underlying model, with Fable carrying the cyber and biology safeguards. Fable 5.2 costs $8 per million input tokens and $40 per million output tokens, down from $10 and $50. An optional fast mode runs up to 2.5 times faster at $16 and $80. Output is up to 30% faster than 5.1.
+
+Two lines matter more than the price. The first is about effort: on FrontierCode 2.0, which scores whether a model's change would be merged by open-source maintainers, Fable 5.2 at High effort scored 45.3% against Opus 5.5's best of 45.5% at Max, "for roughly half the cost per task." At Xhigh, Fable reached 49.1%.
+
+The second is Anthropic's own advice: for most coding and knowledge work, start with Claude Opus 5.5 and move up to Fable, or down to Sonnet or Haiku, as the task requires. It also pitches Fable as an advisor that smaller models consult, or an orchestrator that hands simpler work to them.
+
+Put those together and the vendor is telling you two things: its flagship model is a tool for escalation, and the effort dial moves cost per task as much as switching models does. Anthropic also says over 90% of the changes merged into its core codebase are now written by Claude, so it has every reason to have worked out where that spend pays off.
+
+## Does higher effort produce better code? I measured it
+
+Charts from a launch post are the vendor's numbers, so I ran my own. I gave Claude Code a small, well-specified job in a scratch directory: implement `negotiate(acceptHeader, available)`, an HTTP `Accept` header negotiator following RFC 9110 section 12.5.1, with q-values, wildcard specificity and malformed input. The agent saw a one-paragraph spec and two visible tests. I graded every result against 25 hidden tests it never saw.
+
+Each configuration ran twice in headless mode (`claude -p --model <id> --effort <level>`), with edits and test commands allowed and nothing else. Costs are what Claude Code reported per run, at list price.
+
+| Model and effort | Hidden tests passed | Wall time | Cost per run | Output tokens | Tests it wrote |
+| --- | --- | --- | --- | --- | --- |
+| Fable 5.2, low | 25, 25 | 46s, 52s | $0.94, $0.47 | 5.0k, 5.5k | 14, 15 |
+| Fable 5.2, medium | 25, 25 | 67s, 59s | $0.58, $1.02 | 7.3k, 6.4k | 18, 17 |
+| Fable 5.2, high | 25, 25 | 135s, 175s | $0.98, $1.16 | 14.0k, 17.9k | 37, 48 |
+| Opus 5.5, medium | 25, 25 | 59s, 69s | $0.32, $0.36 | 6.7k, 7.6k | 19, 17 |
+| Opus 5.5, max | 25, 24 | 899s, 1153s | $3.05, $3.92 | 101k, 128k | 43, 49 |
+
+Ten runs cost $12.81 in total, and $6.98 of that was the two max-effort runs.
+
+Every configuration solved the task. Opus 5.5 at max effort averaged $3.49 a run against $0.34 at medium, about 10 times the cost, and took about 15 times as long. It wrote around 15 times the output tokens and a longer implementation (249 and 275 lines against 147 and 179).
+
+The cheapest perfect score was the default model at the default effort. Fable 5.2 at low effort still cost more than Opus 5.5 at medium, for two reasons in the usage data. Fable's tokens cost twice as much. And on a task this small, much of each bill is the fixed cost of loading the agent's own context: a bare "reply with OK" on Fable 5.2 cost $0.17 before any work happened. Cache writes also differed between identical runs, which is why the two Fable low runs differ by 2x. Don't compare configurations on one run each.
+
+## What max effort actually bought
+
+The one failure is the most interesting result. The second max-effort run returned `null` for an empty `Accept` header, where my hidden test expected the first available type. That was a deliberate call. The agent documented it in the code and listed it first under "choices the RFC doesn't settle, which hidden tests could disagree with" in its final message, noting that Express treats an empty header like a missing one and that switching is a one-line change.
+
+That's a defensible reading of the spec, and arguably a better one than my test's. It's also exactly what you'd hope a senior engineer would do. So max effort did buy something: it noticed an ambiguity and told me, instead of guessing silently. What it didn't buy was a higher score, and it took 19 minutes to get there.
+
+I also ran each implementation against the other nine runs' self-written tests. Failure rates ranged from 11% to 18%, mostly on judgment calls like empty headers and invalid q-values. Fable at high did slightly better than Fable at low (13 to 14% against about 16%), but the two Opus runs at the same setting were further apart than that. More effort didn't produce reliably sturdier code here.
+
+## What engineering teams should change this quarter
+
+### Effort is a spending decision nobody owns
+
+Model choice usually gets a decision: someone picks the default, procurement signs off. Effort gets set per session by whoever is typing, and the engineer who learned that max "feels smarter" will leave it there. In this run that's a 10x multiplier with no visible return. Treat it like instance sizes: a default per workload and a reason to go bigger.
+
+### Wall time changes how people work
+
+A one-minute run keeps an engineer in the loop. A 15 to 19 minute run sends them off to another task, and that context switch costs more than the tokens. It also changes what lands in review: the max runs produced longer code and more than twice the tests. If review is already your constraint, as [the Jellyfish data suggests it is](/plan-sprints-in-review-hours), defaulting to max puts more lines in front of the same reviewers.
+
+### Escalate when a run gives you a reason
+
+Anthropic's advisor and orchestrator framing works as an operating rule: run the default, and move up in effort or model when a run fails, stalls, or touches something where a confident wrong answer is expensive. The second max run shows what you're paying for when you escalate: better judgment on the edges, not a better pass rate.
+
+### A starting effort policy
+
+- Well-specified, test-covered changes (most tickets): Opus 5.5 at medium. Escalate to high after one failed run.
+- Ambiguous or cross-system work, such as migrations, unclear requirements or several services: high, with Fable 5.2 as an advisor or planner when the design is the hard part.
+- Long unattended work like audits and large refactors: xhigh or Fable, with a budget cap per run (`--max-budget-usd` in headless mode).
+- Max: by escalation only, logged with a reason.
+
+Then check it monthly against what your own runs report. If max rarely changes an outcome on your workload, the policy is right.
+
+## Where this stops holding
+
+This was one small task, in one language, with two runs per configuration. It was well specified on purpose, and every configuration hit the ceiling, so the test couldn't show quality gains from effort even where they exist. Anthropic's FrontierCode numbers are the counterweight: on harder, messier tasks, Fable at Xhigh beat everything else, and the Uber and Datadog quotes in the launch post describe long, ambiguous jobs where depth paid for itself.
+
+So the argument isn't "never use max." Most tickets look more like my test than like an eight-day operating system build, and the dial should reflect that. If your team's work really is mostly open-ended, your numbers will look different, and you should go measure them. Running this cost less than $13, which is less than one engineer's afternoon spent arguing about which model to standardize on.
