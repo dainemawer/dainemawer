@@ -3,6 +3,13 @@ export const site = {
   logo: "D-M",
   role: "Staff Engineer, Web Applications",
   company: { name: "Fueled", url: "https://www.fueled.com" },
+  // Daine's own consultancy. Its @id matches the Organization node on
+  // plaincraft.co.za, so both sites describe the same entity.
+  venture: {
+    name: "Plaincraft",
+    url: "https://plaincraft.co.za",
+    id: "https://plaincraft.co.za/#org",
+  },
   location: "Cape Town, South Africa",
   // The structured form of `location`, for schema.org PostalAddress.
   // City-level and deliberately so: this site is published by an individual

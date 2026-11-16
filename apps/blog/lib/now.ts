@@ -1,6 +1,10 @@
 export const now = {
-  updated: { day: "06", month: "09", year: "2026" },
+  updated: { day: "16", month: "11", year: "2026" },
   entries: [
+    {
+      label: "Founding",
+      body: "[Plaincraft](https://plaincraft.co.za), a small AI consultancy for South African businesses with 10 to 250 staff. Fixed-fee audits, automation builds and training: finding where AI saves time and money, then building it properly. It runs alongside my day job at Fueled.",
+    },
     {
       label: "Building",
       body: "Rebuilding this site with self-hosted fonts and no client-side framework on article pages. The brief I gave myself: every page under 50KB of JavaScript, and a real answer for how AI crawlers read it.",
@@ -19,8 +23,8 @@ export const now = {
     },
     {
       label: "Not doing",
-      body: "Consulting work, new side projects, and anything that requires a fourth Slack workspace.",
+      body: "New side projects beyond Plaincraft, and anything that requires a fourth Slack workspace.",
     },
   ],
-  archive: ["Sep 2026", "Feb 2026", "Nov 2025", "Jul 2025"],
+  archive: ["Nov 2026", "Sep 2026", "Feb 2026", "Nov 2025", "Jul 2025"],
 } as const;

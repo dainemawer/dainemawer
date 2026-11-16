@@ -3,6 +3,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { MetaRow } from "@/components/meta-row";
 import { PageShell } from "@/components/page-shell";
 import { PostListItem } from "@/components/post-list-item";
+import { renderInlineText } from "@/lib/inline-markdown";
 import { now } from "@/lib/now";
 import { getAllPosts } from "@/lib/posts";
 
@@ -57,7 +58,7 @@ export default function NowPage() {
           {now.entries.map((entry) => (
             <MetaRow key={entry.label} label={entry.label}>
               <p className="text-md text-ink leading-relaxed text-pretty">
-                {entry.body}
+                {renderInlineText(entry.body)}
               </p>
             </MetaRow>
           ))}
