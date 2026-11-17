@@ -48,11 +48,19 @@ export function personSchema() {
     url: site.url,
     jobTitle: site.role,
     description: about.summary,
-    worksFor: {
-      "@type": "Organization",
-      name: site.company.name,
-      url: site.company.url,
-    },
+    worksFor: [
+      {
+        "@type": "Organization",
+        name: site.company.name,
+        url: site.company.url,
+      },
+      {
+        "@type": "ProfessionalService",
+        "@id": site.venture.id,
+        name: site.venture.name,
+        url: site.venture.url,
+      },
+    ],
     address: postalAddress(),
     email: site.email,
     sameAs: Object.values(site.social),
