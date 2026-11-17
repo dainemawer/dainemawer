@@ -1,0 +1,146 @@
+---
+title: Design Tokens Only Constrain Agents When the Compiler Can Say No
+dek: Sharing one token source between Next.js and Expo is easy. Making it the only path an agent can take on both platforms is the part that matters, and the web side still has a hole.
+date: '2026-11-16'
+topics:
+  - ai
+  - react-native
+  - css
+shortAnswer: To share design tokens between a Next.js app and an Expo app, keep one token file in the W3C Design Tokens format and generate a Tailwind v4 @theme block for the web and a typed constant for native. Then close the escape hatches, because coding agents use whatever raw values the toolchain still accepts.
+takeaways:
+  - "A shared token file only constrains agent-written UI if off-token values fail to build. Documentation, a theme object and an AGENTS.md rule are all things an agent can route around."
+  - "Keep one source in the W3C Design Tokens Community Group format, which reached its first stable version, 2025.10, in October 2025. Generate a Tailwind v4 @theme block for the web and an as-const TypeScript object for native."
+  - "On native, a typed style helper makes raw hex values and invented token names compile errors. In a test run, tsc rejected all three off-token values in a sample component."
+  - "On the web, resetting Tailwind's defaults with --color-*: initial and --spacing: initial removed the default palette and the spacing multiplier, but an arbitrary value like bg-[#4f46e5] still compiled. That needs a lint rule."
+  - "Share values, not the abstraction. Units, font scaling, shadows, fonts and dark mode behave differently on each platform, and a universal styling layer hides those differences instead of handling them."
+faq:
+  - question: 'How do I share design tokens between Next.js and React Native?'
+    answer: 'Keep one token file in a workspace package, ideally in the W3C Design Tokens format, and run a small build script that outputs two files. For Next.js with Tailwind v4, output an @theme block of CSS variables. For React Native, output a TypeScript object marked as const, so token names become literal types you can check at compile time.'
+  - question: 'Why do AI coding agents hardcode colors instead of using design tokens?'
+    answer: 'Because nothing stops them. An agent copying a design or a nearby file will write a hex value or a framework default whenever the toolchain accepts it. Instructions help, but the reliable fix is making off-token values fail to compile or lint, so the agent gets an error it has to fix before the change is done.'
+  - question: 'Can Tailwind v4 restrict classes to my design tokens only?'
+    answer: 'Mostly. Setting --color-*: initial inside @theme removes the default color palette, and --spacing: initial removes the numeric spacing multiplier, so classes like bg-indigo-600 and p-3 stop generating. Arbitrary values such as bg-[#4f46e5] still compile, so you need a lint rule to ban them.'
+  - question: 'Should I use NativeWind or StyleSheet for design tokens in Expo?'
+    answer: 'Either can consume the same token source. NativeWind v5 builds on Tailwind v4''s @theme, so one CSS file can feed both apps, but class names are strings the type checker can''t see. A typed StyleSheet helper catches invalid tokens at compile time. Pick the one whose escape hatch you can actually lint.'
+needsRewrite: false
+---
+
+A design token file that an agent can ignore isn't a design system. It's documentation. Most teams sharing tokens between a Next.js app and an Expo app put their effort into the wrong half of the problem: they work hard on getting one source of truth into both platforms, then leave every raw value still legal in both.
+
+That used to be fine, because the people writing UI had seen the token docs, got reviewed by people who cared, and mostly drifted slowly. An agent drifts fast. It reads the nearest file, the Figma frame or its own training data, and if `#4f46e5` or `bg-indigo-600` compiles, that's what you get. When agents write a growing share of your UI on two platforms at once, the token pipeline has a different job: making the wrong value fail to build, on both platforms.
+
+## How to share tokens between Next.js and Expo
+
+Keep one token file and generate a platform-native output for each app. The format question is now settled enough to stop debating. The W3C Design Tokens Community Group [published the first stable version of its specification, 2025.10, in October 2025](https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/). It's a JSON format with `$type` and `$value` keys that design tools and token libraries can read and write. Using it means a Figma export, Style Dictionary or a 40-line script of your own can all consume the same file.
+
+From that file you generate two things:
+
+- For the web, a Tailwind v4 `@theme` block. Tailwind v4 moved theme configuration into CSS variables, so the generated file is just CSS.
+- For native, a TypeScript object marked `as const`, with unitless numbers instead of `rem`. The `as const` matters most, because it turns every token name into a literal type.
+
+Don't generate a shared `Button` that runs on both platforms. Generate values, for reasons covered further down.
+
+## What the compiler rejects on each platform
+
+I built this in a scratch directory to check the code compiles and to see what each platform actually rejects. Here's the generator, trimmed to the parts that matter:
+
+```ts
+// build.ts: tokens.json (DTCG format) -> theme.css + tokens.gen.ts
+for (const [group, entries] of Object.entries(tokens)) {
+  ts.push(`  ${group}: {`);
+  for (const [name, leaf] of Object.entries(entries)) {
+    if (name.startsWith("$") || typeof leaf === "string") continue;
+    const v = leaf.$value;
+    // Web: Tailwind v4 reads tokens from CSS variables in @theme.
+    const webValue = typeof v === "string" ? v : `${v.value / 16}rem`;
+    css.push(`  --${cssPrefix[group]}-${name}: ${webValue};`);
+    // Native: unitless density-independent numbers, no rem.
+    const nativeValue = typeof v === "string" ? JSON.stringify(v) : String(v.value);
+    ts.push(`    ${JSON.stringify(name)}: ${nativeValue},`);
+  }
+  ts.push("  },");
+}
+
+writeFileSync(
+  "theme.css",
+  `@theme {\n  --color-*: initial;\n  --spacing: initial;\n${css.join("\n")}\n}\n`,
+);
+writeFileSync("tokens.gen.ts", `export const tokens = {\n${ts.join("\n")}\n} as const;\n`);
+```
+
+The two `initial` lines are the important ones for the web side. `--color-*: initial` removes Tailwind's default palette, so `bg-indigo-600` stops existing. `--spacing: initial` removes the multiplier that makes `p-3`, `p-7` and `p-13` all valid, leaving only the spacing steps you defined. Without them, your tokens are additions to a much larger vocabulary that an agent already knows by heart.
+
+On native, the generated object is wrapped in the only style helper the app is allowed to use:
+
+```ts
+// style.ts
+import { tokens } from "./tokens.gen";
+
+type Color = keyof typeof tokens.color;
+type Space = keyof typeof tokens.space;
+type Radius = keyof typeof tokens.radius;
+
+export function sx(s: { bg?: Color; fg?: Color; p?: Space; gap?: Space; rounded?: Radius }) {
+  return {
+    backgroundColor: s.bg && tokens.color[s.bg],
+    color: s.fg && tokens.color[s.fg],
+    padding: s.p && tokens.space[s.p],
+    gap: s.gap && tokens.space[s.gap],
+    borderRadius: s.rounded && tokens.radius[s.rounded],
+  };
+}
+```
+
+Then I wrote the three mistakes an agent is most likely to make: a correct call, a raw hex value, and a plausible token name that doesn't exist (`primary` instead of `brand`, and a spacing step of `3` that isn't in the scale). Here's the actual `tsc --strict` output:
+
+```text
+card.ts(4,25): error TS2322: Type '"#4f46e5"' is not assignable to type '"text" | "brand" | "surface" | "muted" | "danger" | undefined'.
+card.ts(5,30): error TS2322: Type '"primary"' is not assignable to type '"text" | "brand" | "surface" | "muted" | "danger" | undefined'.
+card.ts(5,45): error TS2322: Type '"3"' is not assignable to type '"1" | "2" | "4" | "6" | undefined'.
+```
+
+Three for three. The invented name is the one I care about most. A team that tells an agent "use our tokens" without enforcing it tends to get names that sound right. A union type turns that into an error message listing the valid options, which is exactly the feedback an agent can act on without a human in the loop.
+
+Then the web side, compiled with Tailwind 4.3.5 against a test file containing `bg-brand bg-indigo-600 bg-[#4f46e5] p-4 p-3 rounded-lg text-muted`:
+
+| Class | Expected | Generated? |
+| --- | --- | --- |
+| `bg-brand`, `p-4`, `rounded-lg`, `text-muted` | Token | Yes |
+| `bg-indigo-600` | Framework default | No |
+| `p-3` | Off-scale spacing | No (yes before `--spacing: initial`) |
+| `bg-[#4f46e5]` | Arbitrary value | **Yes** |
+
+The reset closes most of the gap. The arbitrary-value syntax is still a hole, and it's exactly the syntax an agent reaches for when it's matching a design pixel for pixel. Tailwind won't close it for you. You need a lint rule that bans arbitrary values in `className`, with an allowlist for the few you really need.
+
+## Share values, not the styling abstraction
+
+Once one token file feeds Tailwind and StyleSheet, the tempting next step is a universal component layer on top, so an agent writes one `Card` and it runs everywhere. I think that's the wrong place to spend the effort, and agents make it worse, not better.
+
+The values travel well. The behavior attached to them doesn't:
+
+- Units and font scaling. A web `rem` follows the browser's root font size. A React Native number is a density-independent pixel, and `Text` scales with the operating system's font-size setting by default. The same `16` produces different layouts under accessibility settings, and you need to test that on each platform separately.
+- Shadows. React Native 0.76 added a `boxShadow` style prop, but [only on the New Architecture](https://reactnative.dev/blog/2024/10/23/release-0.76-new-architecture), and outset shadows need Android 9 or later. A shadow token that's one CSS string on the web might need a fallback on native.
+- Fonts. A font family on the web is a stack with fallbacks. On native, a family name points at a font file you loaded, and weights often map to separate files. The token can share a name, not the mechanics.
+- Dark mode. The web reacts to `prefers-color-scheme` in CSS. Native reads the color scheme in JavaScript and re-renders. A semantic `surface` token works on both, but the switch happens in different places.
+
+A universal abstraction smooths over these differences, and smoothing is the problem. An agent writing to the abstraction can't see that the shadow it asked for won't render on an older Android device. A human might have known. The agent will produce code that type-checks and looks right in the one simulator it ran. Sharing raw values and keeping two thin, platform-native style layers leaves those differences visible in the code, where review and tests can catch them.
+
+NativeWind sits in the middle. Its v5 line builds on Tailwind v4's `@theme`, so one generated CSS file could feed both apps. That's a real simplification. The cost is that class names are strings, and the type checker can't see inside strings. If you go that way, the lint rule that bans arbitrary values on the web needs to run on the native app too.
+
+## Where this stops working
+
+Enforcement only helps if the token set is complete. If designers ship a screen that needs a color that isn't in the file, a closed system forces the agent into one of two bad choices: pick the nearest token without saying so, or fail the build. The first is silent design drift. The second makes the token file a bottleneck, owned by whoever can approve changes to it. Before you lock it down, budget for the token file to change weekly for a while, and make adding a token a normal, small pull request.
+
+It also doesn't cover layout. Tokens constrain colors, spacing, radii and type, the values a design system is made of. They say nothing about whether an agent built the right hierarchy, used a list where it should have, or respected safe areas on a notched phone. Those still need a person, or at least a screenshot diff.
+
+And it's more machinery than a small team with one app needs. If you only ship to the web, Tailwind's reset plus one lint rule is the whole thing. The two-output pipeline earns its keep once two platforms are drifting apart and agents are writing on both.
+
+## The rollout order
+
+1. Move your tokens into one DTCG-format file in a shared workspace package, next to the [shared domain layer](/shared-typescript-nextjs-expo-monorepo) if you have one.
+2. Generate the `@theme` block and the `as const` object from it. Commit the generator, not hand-edited outputs.
+3. Add the `initial` resets on the web and the typed helper on native. Expect a wave of errors from existing code, and treat each one as a missing token or a real bug.
+4. Add the lint rule for arbitrary values on both sides.
+5. Only then write the agent instructions. "Use `sx()` and token classes; if a value is missing, add a token" is a short rule when the compiler already backs it up, and a long, ignored one when it doesn't. The same goes for the [instruction files your agents read](/agent-instruction-files-are-code): they work best as an explanation of rules the build already enforces.
+
+A design system used to be a promise between designers and engineers, kept by people who'd read the docs. An agent may skim the docs, but it reads every compiler error, so put the promise there.
