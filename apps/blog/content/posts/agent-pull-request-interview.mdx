@@ -1,0 +1,109 @@
+---
+title: The Best Engineering Interview Now Is an Agent's Pull Request With Three Bugs in It
+dek: Google, Meta and Canva now let candidates code with an AI assistant in the interview. That fixes the cheating problem and keeps the wrong signal. Stop grading what a candidate can get an agent to build and start grading what they refuse to merge.
+date: '2026-11-18'
+topics:
+  - engineering-management
+  - staff-engineering
+  - ai
+shortAnswer: Letting candidates use AI in a coding interview tests whether they can get an agent to produce working code, and agents made that cheap. The stronger round hands the candidate an agent-written pull request with planted defects and scores what they catch, what they ask about, and what they refuse to merge.
+takeaways:
+  - "Karat's survey of 400 engineering leaders found 71% say AI is making technical skills harder to assess. Allowing AI in the coding round solves the cheating problem without solving the assessment problem."
+  - "In an AI-allowed build round, the agent produces most of the visible output, so the scorecard ends up grading the agent's work plus a thin layer of the candidate's prompting."
+  - "On the job, the scarce skill is rejection: spotting the wrong assumption, the missing test, the deleted safeguard. Anthropic's skill-formation trial found the biggest gap between AI-assisted and unassisted learners was on debugging questions."
+  - "Replace one coding round with a review round: a realistic agent-written PR with three planted defects of different kinds, scored on catches, questions and the merge decision."
+  - "The format breaks down for junior hiring, for greenfield prototyping roles, and if you reuse the same planted defects until they leak."
+faq:
+  - question: Should candidates be allowed to use AI in coding interviews?
+    answer: Yes, because banning it tests a way of working nobody uses anymore. But allowing it doesn't fix the signal on its own. In a build-with-AI round the agent produces most of the output, so make the AI-allowed round a review of an agent's pull request and score what the candidate catches and rejects.
+  - question: How do you interview software engineers when AI writes the code?
+    answer: Test the work that's still scarce. Give the candidate a realistic pull request written by a coding agent, with a few planted defects such as a wrong assumption, a missing test and a removed safeguard. Let them use any tools, then score what they find, what they ask, and whether they'd merge it.
+  - question: What is a code review interview round?
+    answer: A round where the candidate reviews an existing change instead of writing new code. For agent-era hiring it works best with a pull request a coding agent wrote, seeded with defects of different kinds, and a rubric that scores catches, the quality of questions asked, and the final merge decision.
+  - question: How do Google and Meta run AI-assisted coding interviews?
+    answer: Reported formats replace one traditional coding round with a roughly 60-minute session in which candidates use an approved AI assistant, Gemini at Google and a choice of models at Meta, on a multi-file problem. Interviewers score problem solving, code understanding, verification and communication alongside AI use.
+needsRewrite: false
+---
+
+The big companies have conceded that the no-AI coding interview is dead, and they're replacing it with a round that grades the part of the job agents made cheap. Watching a candidate prompt an agent into a working solution for an hour tells you mostly how good the agent is.
+
+The round worth running gives the candidate a pull request an agent already wrote, with three bugs planted in it, and scores what they refuse to merge.
+
+## How Google, Meta and Canva changed the coding interview
+
+Three things happened in roughly a year. [Canva told candidates](https://www.canva.dev/blog/engineering/yes-you-can-use-ai-in-our-interviews/) for backend, frontend and machine learning roles to use Copilot, Cursor or Claude in technical interviews, because AI assistants could trivially solve its old questions. Meta replaced one of its two onsite coding rounds with an "AI-enabled coding" round, reportedly a 60-minute multi-file project with an AI chat panel. Google has been [piloting an AI-assisted round](https://www.entrepreneur.com/business-news/google-is-testing-a-new-rule-transform-job-interviews) for some junior and mid-level roles in which candidates use Gemini.
+
+The pressure behind it shows up in Karat's [AI workforce report](https://connect.karat.com/hubfs/2025-2026-AI-Workforce-Transformation-Report.pdf), a survey of 400 engineering leaders across the US, India and China: 71% said AI is making technical skills harder to assess. The same report found 62% still don't let candidates use AI in interviews at all.
+
+So the industry is split between rounds that pretend agents don't exist and rounds that let the agent sit the exam with the candidate. The debate hasn't settled either. Writing in [The Korea Times](https://www.koreatimes.co.kr/opinion/20261117/how-ai-should-change-job-interviews) yesterday, Gleb Tsipursky argued the test should reward a candidate who challenges the tool rather than one who simply agrees with it. That's the right instinct. Most AI-allowed formats don't build the interview around it.
+
+## A build round mostly grades the agent
+
+Picture the typical AI-allowed round. The candidate gets a problem, an editor and a chat panel. A strong candidate decomposes the task, writes a decent prompt, runs the tests, fixes a regression and explains their reasoning. A weaker one does roughly the same thing, a bit slower, and the agent covers the gaps.
+
+The output is a working solution in both cases. The rubric says it scores problem solving, code understanding, verification and communication. In practice the interviewer is looking at a screen full of code the agent wrote, and the candidate's own contribution is a few prompts and a few minutes of testing. Separating the two takes an experienced interviewer watching closely, and most loops don't have one in every slot.
+
+It's the same mistake many [promotion rubrics](/leveling-matrix-after-coding-agents) make: measuring the volume of what someone can produce, when agents inflated volume for everybody who uses them. A build round is a delivery metric compressed into an hour.
+
+## The job is rejection, so test rejection
+
+Look at what your senior engineers spend their attention on once agents write most of the first drafts. They read a diff they didn't write. They notice the agent assumed the list is always sorted. They notice the test covers the happy path and nothing else. They notice a retry limit went missing in a refactor. Then they decide whether it merges.
+
+That's the scarce skill, and there's evidence it's the one that erodes. Anthropic's [randomized trial on skill formation](https://www.anthropic.com/research/AI-assistance-coding-skills) had 52 engineers learn an unfamiliar Python library with or without AI help. The AI group averaged 50% on the follow-up quiz against 67% for the hand-coding group, and the largest gap was on debugging questions. People who delegated the code generation fully learned the least.
+
+That trial was about learning, not hiring, and it's one small study. But it points the same way as the work itself: the person who can find out why code is wrong is harder to find than the person who can get code written.
+
+Anthropic's own [workforce report](https://www.anthropic.com/research/employment-at-anthropic) says the biggest increases on its technical interview scorecards were in comments on candidates' "autonomy and judgment." If that's what your interviewers are reaching for, give them a round designed to show it.
+
+## The strongest case for build rounds
+
+The best argument against this goes like this. Directing an agent is a real skill, and a review round doesn't test it. Breaking a vague problem into agent-sized pieces, giving the agent the right context, noticing when it's going in circles and killing the session: these separate strong engineers from weak ones every day. Meta's reported rubric already includes verification and debugging, so a well-run build round tests rejection too, just inside a more realistic task.
+
+There's a fairness argument as well. Review rounds reward pattern matching. A candidate who has seen a race condition in Python async code before will spot the planted one in a minute. A strong engineer from a different stack might not, and you'll mark them down for unfamiliarity rather than judgment.
+
+Both points are fair, and the second one is a real risk. My answer to the first is that you can get most of the direction signal from a short conversation about the PR (how would you have briefed the agent to avoid this?) without spending an hour watching the agent type. My answer to the second is in how you seed the defects: make most of them about reasoning, not trivia, and let the candidate run anything they like.
+
+## Where the review round stops working
+
+**Junior hiring.** A new graduate shouldn't be expected to catch a subtle concurrency bug in an unfamiliar codebase. For junior roles, keep a round that shows how they learn and use the review round to see how they ask questions, not what they catch.
+
+**Greenfield and prototyping roles.** If the job is mostly zero-to-one work where nothing exists yet to review, the build round is closer to the work. Test the work you're hiring for.
+
+**Defect leakage.** Planted bugs get shared. Reuse one PR for a year and it ends up on a prep site. Rotate PRs every quarter and keep a pool of at least three.
+
+**Calibration cost.** A build round has an obvious pass signal: does it work? A review round needs interviewers who agree on what a good catch looks like. Run every new PR past two or three of your own engineers first and record what they found. If your seniors miss a planted defect, it's too obscure.
+
+**It doesn't replace system design.** Reviewing a 300-line diff is a different skill from shaping a system. Keep the design round for senior and staff loops.
+
+## The review round kit
+
+Replace one coding round with this. Sixty minutes, any tools allowed, including an agent of the candidate's choice.
+
+**Setup.** Take a real, small feature from your own codebase or a realistic stand-in. Have a coding agent implement it from a short ticket, then seed exactly three defects of different kinds. Keep the PR between 200 and 400 lines across three to six files, with a ticket and the agent's own PR description attached.
+
+**Seed one of each kind:**
+
+1. **A wrong assumption.** The code works for the examples in the ticket but encodes an assumption the ticket never made: input is sorted, IDs are unique, timestamps share a timezone.
+2. **A verification gap.** Tests that pass and prove little. Mocked so heavily they test the mock, or an assertion that can never fail.
+3. **A removed safeguard.** Something load-bearing deleted as cleanup: a retry limit, an auth check, a feature flag, a rate limit. Agents [do delete these](/agents-delete-safeguards-in-migrations) when nobody tells them they matter.
+
+**Run it.** Ten minutes to read the ticket and PR with no questions. Thirty minutes of review, out loud, running anything they want. Twenty minutes of discussion: what would you change, would you merge it, and how would you have briefed the agent so this didn't happen?
+
+**Score it.**
+
+| Signal | Strong | Weak |
+| --- | --- | --- |
+| Catches | Finds two or three planted defects, or finds something real you didn't plant | Finds none, or only style issues |
+| Verification | Runs the tests, then checks whether they could fail | Reads the tests and trusts the green check |
+| Questions | Asks about intent: what the ticket meant, who calls this, what breaks if it's wrong | Asks only about syntax or the tooling |
+| Merge decision | Clear yes or no with a reason, and the smallest change that would flip it | "Looks good with a few nits" or no decision at all |
+| Agent direction | Names what was missing from the agent's brief that caused a defect | Blames the agent or says they'd write it by hand |
+| Use of tools | Uses an agent to explore or test, and checks what it says | Accepts the agent's review of the PR as the answer |
+
+The last row is the one I'd weigh most. A candidate who asks their own agent to review the agent's PR and reads out its summary has shown you exactly how they'll work. So has the one who uses the agent to write a failing test for a hunch.
+
+## Run it in shadow first
+
+Don't swap your loop overnight. For one hiring cycle, put three or four of your current engineers, at different levels, through the round as a calibration exercise. If the scores line up with how you'd rank them on real work, you have a round. If your best reviewer scores worst, your PR is testing trivia and needs new defects.
+
+Then replace one build round, not all of them. You'll learn more from the candidates who do well on one and badly on the other than from any argument about which round is better.
