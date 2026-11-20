@@ -129,6 +129,13 @@ const nextConfig: NextConfig = {
         destination: "/topics/:topic.md",
         permanent: true,
       },
+      // Old site's index pages. Search Console still shows impressions for
+      // them, and they 404 here. Old tags map onto topics where the slug
+      // matches; anything else lands on the topic page's own 404.
+      { source: "/articles", destination: "/", permanent: true },
+      { source: "/guides", destination: "/", permanent: true },
+      { source: "/tags", destination: "/", permanent: true },
+      { source: "/tags/:tag", destination: "/topics/:tag", permanent: true },
       // Old site used /articles/<slug>; this one is flat. One entry per
       // migrated post, old slug -> new (often shortened) slug.
       {
