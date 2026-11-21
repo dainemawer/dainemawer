@@ -1,11 +1,14 @@
 import "server-only";
 import { UserError } from "@/lib/errors";
 import type { Transaction } from "@/lib/expenses/transactions";
+import { fetchWithRetry } from "@/lib/retry";
 
 // Investec Private Banking API (read-only use): accounts and posted
 // transactions. OAuth client credentials plus an API key; tokens last 30
 // minutes and are kept per server instance. Responses are never cached
 // beyond the request: transactions are fetched live, not stored.
+// Investec sometimes answers with a passing 5xx, so every call is retried
+// twice (lib/retry.ts) before it counts as failed.
 //
 // INVESTEC_BASE_URL defaults to production. .env.example points local dev
 // at Investec's sandbox, which returns mock accounts and transactions.
@@ -29,17 +32,19 @@ async function accessToken(): Promise<string> {
   const basic = Buffer.from(
     `${process.env.INVESTEC_CLIENT_ID}:${process.env.INVESTEC_CLIENT_SECRET}`,
   ).toString("base64");
-  const response = await fetch(`${BASE_URL}/identity/v2/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "x-api-key": process.env.INVESTEC_API_KEY ?? "",
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: new URLSearchParams({ grant_type: "client_credentials" }),
-    cache: "no-store",
-  });
+  const response = await fetchWithRetry(() =>
+    fetch(`${BASE_URL}/identity/v2/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "x-api-key": process.env.INVESTEC_API_KEY ?? "",
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({ grant_type: "client_credentials" }),
+      cache: "no-store",
+    }),
+  );
   if (!response.ok) {
     throw new UserError(`Investec sign-in failed (${response.status}).`);
   }
@@ -56,13 +61,13 @@ async function accessToken(): Promise<string> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      Authorization: `Bearer ${await accessToken()}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
+  const authorization = `Bearer ${await accessToken()}`;
+  const response = await fetchWithRetry(() =>
+    fetch(`${BASE_URL}${path}`, {
+      headers: { Authorization: authorization, Accept: "application/json" },
+      cache: "no-store",
+    }),
+  );
   if (response.status === 401) token = null;
   if (!response.ok) {
     throw new UserError(`Investec request failed (${response.status}).`);
