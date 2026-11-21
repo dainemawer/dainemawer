@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 import { TAG } from "@/lib/cache-tags";
 import { type LinearIssue, linearToday } from "@/lib/linear-today";
 import { fraction, type Project, type ProjectStatus } from "@/lib/projects";
@@ -85,6 +86,11 @@ const TODAY_QUERY = `query Today($filter: IssueFilter) {
 /** What needs you in Linear today, for the HUD, or null when Linear is down. */
 export async function getLinearToday() {
   await requireSession();
+  // Live data, never part of a prerender. The issues cache is short-lived,
+  // so Next treats it as dynamic and abandons it when a prerender (or a
+  // prefetch of /) finishes; without this the catch below logs that
+  // abandonment as a Linear failure.
+  await connection();
   const today = await getToday();
   // Only the fetch is caught: the session check's own signals (a redirect,
   // or the prerender stopping at it) must reach Next.
