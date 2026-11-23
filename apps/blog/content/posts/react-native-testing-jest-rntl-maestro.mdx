@@ -1,0 +1,110 @@
+---
+title: 'React Native Testing: What Jest, RNTL and Maestro Each Catch'
+dek: Next.js habits tell you a green Jest run means something. In React Native it means less than you think, because the native layer is mocked and nothing has layout. Once agents write the code and the tests, the Maestro flow on a real build is the only check that touches the app users run.
+date: '2026-11-23'
+social: 'I wrote six Jest and RNTL tests against an Expo app with two real bugs. All six passed, including two that pressed a button hidden under an overlay. What each React Native test layer can and can''t see.'
+topics:
+  - react-native
+  - ai
+shortAnswer: "In React Native, Jest catches logic bugs, React Native Testing Library catches component behavior, and Maestro catches what users hit on a real build. Jest never runs native code and RNTL has no layout, so a green suite proves less than it does in Next.js. When agents write the code, gate merges on Maestro flows."
+takeaways:
+  - "Jest with jest-expo mocks every native Expo module. In this run, SecureStore returned undefined after a successful save, and a signed-in check written against the device behavior reported a signed-in user with an empty store."
+  - "React Native Testing Library has no layout engine. Both fireEvent and userEvent pressed a button hidden under a full-screen overlay, and a snapshot recorded the overlay without complaint."
+  - "The web has the same layout blind spot, and web teams cover it with Playwright. In React Native, Maestro is that layer, and it runs against a real build on a simulator or emulator."
+  - "Agents make the gap worse. A test an agent writes against a mock it also wrote checks the agent's assumption twice. Keep Jest for pure logic, keep RNTL for component behavior, and stop accepting snapshot and native-mock tests as evidence."
+  - "RNTL 14 made render, fireEvent and act async. Tests written the v13 way failed in this run. Point agents at the docs RNTL ships in node_modules."
+faq:
+  - question: What is the best way to test a React Native app?
+    answer: Use three layers. Jest for pure logic like reducers, formatters and API clients. React Native Testing Library for component behavior such as what renders after a press. Maestro or Detox for end-to-end flows on a real build in a simulator or emulator. Only the last layer runs native code and real layout.
+  - question: Jest vs Maestro for React Native, which should I use?
+    answer: Both, for different jobs. Jest is fast and runs anywhere but mocks native modules and has no layout, so it can't see an overlay blocking a button or a secure storage call that behaves differently on a device. Maestro drives the real app, so it catches those, at the cost of slower runs and a simulator or emulator.
+  - question: Does React Native Testing Library run native code?
+    answer: No. Its own docs say tests don't execute native code, aren't aware of view state held by native components, and don't assert on the native view hierarchy. It renders your components into a JavaScript tree with Test Renderer, not the React Native renderer.
+  - question: Are snapshot tests worth it in React Native?
+    answer: Rarely as a correctness check. A snapshot records the props of the rendered tree, so it will happily store a layout bug. Expo's testing docs recommend end-to-end tests over snapshot unit tests for UI. Keep a few snapshots for shared design primitives if you want a change alarm, and don't count them as coverage.
+  - question: Can AI agents write Maestro tests?
+    answer: Yes. The Maestro CLI bundles an MCP server, so an agent like Claude Code or Codex can open a simulator, inspect the view hierarchy, write a YAML flow and run it. That gives the agent a check against the real app instead of against mocks it wrote itself.
+needsRewrite: false
+---
+
+A green Jest run in a React Native app tells you less than the same run in Next.js. I wrote a six-test probe against Expo SDK 58 and React Native Testing Library 14. All six passed. Two of them pressed a button that sits under a full-screen overlay, and another showed the suite treating an empty secure store as a signed-in user.
+
+That matters more now that agents write a growing share of both the code and the tests. A web developer moving to React Native brings the habit of trusting the unit suite, and an agent brings the habit of making the suite pass. Put those together and you get a lot of green that doesn't describe the app on the phone.
+
+## Jest vs React Native Testing Library vs Maestro: what each one tests
+
+On the web, React Testing Library runs inside jsdom, which is a fake browser but a fairly complete one. `localStorage` stores and returns values. Events bubble through a DOM. React Native has no equivalent. RNTL's own [testing environment guide](https://unpkg.com/@testing-library/react-native@14.1.0/docs/guides/testing-environment.md) says so directly: there's no React Native runtime package for Jest, so tests "don't execute native code," "are unaware of view state managed by native components," and assertions "don't operate on native view hierarchy."
+
+So the three layers split like this:
+
+- Jest runs your JavaScript in Node. With the `jest-expo` preset, every native Expo module is replaced by a generated mock. Async functions resolve to `undefined`.
+- React Native Testing Library renders your components into a JavaScript tree and lets you query it by role and text, then fire presses and typing at it. It knows about props and accessibility state. It doesn't know where anything is on screen.
+- Maestro drives a built app on an iOS simulator or Android emulator through the real view hierarchy, with flows written in YAML. It's the React Native counterpart to Playwright: slower, and the only one of the three that runs native code.
+
+Expo's [unit testing docs](https://docs.expo.dev/develop/unit-testing/) already lean this way, recommending end-to-end tests over snapshot unit tests for UI and pointing at Maestro. It's easy to read that and still write the snapshot, because the snapshot is quicker.
+
+## What the probe caught, and what it missed
+
+The probe was a throwaway Expo project in `/tmp`: `expo@58.0.26`, `react-native@0.88.1`, `jest-expo@58.0.15`, `@testing-library/react-native@14.1.0`, Jest 30. Two small pieces of app code, both with a bug a device would expose.
+
+```tsx
+// session.ts
+export async function isSignedIn() {
+  // On a device, a missing key resolves to null.
+  return (await SecureStore.getItemAsync("session_token")) !== null;
+}
+
+// CheckoutScreen.tsx
+<View style={{ flex: 1 }}>
+  <Pressable accessibilityRole="button" onPress={() => setPaid(true)}>
+    <Text>Pay now</Text>
+  </Pressable>
+  {/* Full-screen toast layer, missing pointerEvents="none" */}
+  <View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} />
+  {paid ? <Text>Payment sent</Text> : null}
+</View>
+```
+
+| Test | Result | What it means |
+| --- | --- | --- |
+| `saveToken("abc123")` then `readToken()` | Passed, read back `undefined` | The SecureStore mock accepts writes and returns nothing |
+| `isSignedIn()` with nothing ever saved | Passed, returned `true` | The mock's `undefined` isn't the device's `null`, so the suite sees a signed-in user |
+| `getItemAsync("@app/token")` rejects | Passed | Key validation lives in JavaScript, so Jest does catch it |
+| `fireEvent.press` on "Pay now", expect "Payment sent" | Passed | RNTL pressed a button that sits under an overlay |
+| `userEvent.press` on the same button | Passed | The more realistic API has no layout either |
+| Snapshot of `CheckoutScreen` | Passed, snapshot written | The overlay is in the snapshot, recorded as correct |
+
+Six tests, six passes, 3.1 seconds. Jest did catch one real problem, the invalid key, because `expo-secure-store` checks keys in JavaScript before it calls native code. That's the rule for what Jest can see. Anything decided in JavaScript is testable. Anything decided by the platform is a mock's opinion.
+
+I didn't run Maestro here, because there was no simulator in this environment, so I can't show you its output on the overlay. What I can say is that a Maestro `tapOn: "Pay now"` goes through the device's real hit testing, which is the thing RNTL skips.
+
+One more result from the same run. I wrote the first version of the probe the way RNTL 13 worked, with a synchronous `render`. Three of six tests failed. RNTL 14 made `render`, `fireEvent` and `act` async, per its [v14 migration guide](https://oss.callstack.com/react-native-testing-library/14.x/docs/start/migration-v14). An agent trained mostly on v13 examples will make the same mistake, and its fix might be to rewrite the test until it passes rather than to read the changelog.
+
+## Why agents make the mock problem worse
+
+When an agent hits `readToken()` returning `undefined` in a test, the cheapest fix is to add `jest.mock("expo-secure-store")` with an in-memory `Map`. The test goes green. But now the mock encodes the agent's belief about how SecureStore behaves, and the code under test encodes the same belief. If the belief is wrong, both are wrong together and the test can't notice. You've checked the assumption against itself.
+
+This is the same trap as letting an agent grade its own work, just hidden inside a test file. The review signal you want is one the agent can't satisfy by editing the test. In a React Native app that means a check against the real runtime.
+
+Maestro can run inside that loop too. Its CLI bundles an [MCP server](https://maestro.dev/blog/maestro-mcp-for-ai-coding-agents), registered in Claude Code with `claude mcp add maestro -- maestro mcp`. An agent can boot a simulator, read the view hierarchy, write a flow and run it. That turns the expensive layer into something the agent does in its own loop, before a human reviews anything.
+
+## How should you test a React Native app? Start by testing less
+
+This is the policy I'd write for a React Native codebase where agents open a meaningful share of PRs.
+
+- **Keep Jest for pure logic.** Reducers, date and currency formatting, API clients, validation, anything with no native import. These tests are fast and they mean what they say. If your domain layer is [shared with a Next.js app](/shared-typescript-nextjs-expo-monorepo), test it once there.
+- **Keep RNTL for component behavior.** "After pressing Retry, the error clears and the list shows" is a good RNTL test. Query by role and text, use `userEvent`, and assert on what renders.
+- **Stop counting snapshots as coverage.** They record whatever the tree looked like, bugs included. If you keep any, keep them for shared design primitives as a change alarm, next to the [token rules](/design-tokens-web-native-agents) that do the real constraining.
+- **Stop accepting tests that mock a native module and then assert on the mock.** A test that stubs SecureStore, camera, notifications or the filesystem and then checks that the stub was called is testing the agent's model of the platform. Push that behavior into a Maestro flow, or isolate it behind a thin adapter you test once on a device.
+- **Gate merges on a short Maestro suite.** Sign in, the main purchase or submit path, and whatever broke last month. Five to ten flows on every PR is a better signal than five hundred Jest tests. Expo's EAS Workflows can run Maestro against a PR build. Its Maestro job was still marked alpha in the docs at the time of writing, so check before you depend on it.
+- **Point agents at the installed docs.** RNTL 14 ships `docs/guides/llm-guidelines.md` inside the package and suggests adding a line to your `AGENTS.md` or `CLAUDE.md` telling agents to read it first. Do that, for the same reason this site keeps [instruction files under review](/agent-instruction-files-are-code).
+
+## Where this stops working
+
+Maestro is slow and it needs a simulator or emulator, which means macOS runners for iOS or a paid cloud. A team with a tight CI budget can't run every flow on every PR, and will need to pick which flows gate merges and which run nightly.
+
+End-to-end flows are also flakier than unit tests. Network, animations and device state all leak in. A flaky gate teaches people, and agents, to retry until green, which is worse than no gate. Keep the gating suite small enough that every failure gets read.
+
+And some bugs need real hardware. Biometric prompts, push notification delivery, low-memory kills and performance on a mid-range Android phone don't reproduce on a simulator. For performance, the [field metrics contract](/core-web-vitals-mobile-app-equivalents) does that job, not a test.
+
+The probe doesn't prove Jest is useless. It proved Jest is narrow. Its blind spots are where native code and layout live, and that's where web developers' instincts are weakest and agents' training data is thinnest. Spend your test budget there.

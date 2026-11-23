@@ -20,7 +20,6 @@ Everything else in the queue stays for next time.
 
 <!-- - Example: CSS anchor positioning now that Safari shipped it — compare against the old popover + JS approach. -->
 
-- Testing a React Native app when your habits come from Next.js: what Jest, React Native Testing Library and Maestro each catch, and what to stop testing. [topics: react-native]
 - Ten browser assumptions that break in a web developer's first month with React Native: no cascade, layout differences, lists, navigation state, and platform-specific behavior. [topics: react-native]
 - Authentication shared between a Next.js app and an Expo app: cookies versus tokens, secure storage on device, refresh handling, and where the two flows have to differ. [topics: react-native, javascript]
 
