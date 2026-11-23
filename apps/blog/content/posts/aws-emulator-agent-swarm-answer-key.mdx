@@ -1,0 +1,100 @@
+---
+title: AWS's Agent Swarm Worked Because It Had an Answer Key. Most Codebases Don't.
+dek: The AWS Emulator's 30,000 agent commits are the wrong headline. Its git history shows a swarm that spent as many commits finding bugs as fixing them, graded against real AWS. Before you copy the swarm, check whether you have the answer key.
+date: '2026-11-20'
+topics:
+  - ai
+  - staff-engineering
+  - engineering-management
+shortAnswer: AWS Emulator shows agent swarms can build large systems with no human-written code, but only when a trusted oracle exists. Every fidelity test was checked against real AWS accounts, and a finder agent committed as often as the fixer. Teams should pick swarm work by whether a reference system can grade it, not by how big it is.
+takeaways:
+  - "AWS Emulator's public history has 37,179 commits from 21 October to 19 November 2026, and none was authored under a human name. 29,686 landed in the first 21 days, which matches AWS's own figure."
+  - "The issue-finding agent authored 18,873 commits and the issue-fixing agent 18,266. Finding divergences from real AWS was as large a job as writing the code."
+  - "The swarm's grader is the expensive part. All 31,449 fidelity tests in the public evaluation suite were verified against at least two sandboxed AWS accounts, so a failing test means the emulator is wrong, not the test."
+  - "Swarms transfer to work with an oracle: ports, migrations, rewrites, protocol clones and API-compatible replacements. Product features, where the spec is a guess, don't have one."
+  - "Budget the finder before the fixer. If you can't say what system grades the agents' output, adding agents adds unreviewed code, not progress."
+faq:
+  - question: Was the AWS Emulator really written entirely by AI agents?
+    answer: According to AWS, yes. Its public git history agrees. Of 37,179 commits between 21 October and 19 November 2026, every one was authored by an agent identity such as IssueFinderAgent or IssueFixerAgent, and the repository says it does not accept pull requests because agents maintain it.
+  - question: How did AWS verify code written by an agent swarm?
+    answer: With fidelity tests, small boto3 programs that drive a workflow and assert how AWS behaved. Each was run against at least two sandboxed real AWS accounts before it was trusted. Agents then fixed the emulator until it passed. At launch the release passed 24,243 of 42,857 scored tests, or 56.6%.
+  - question: When should my team use a swarm of coding agents?
+    answer: When there is an oracle that can grade the output without a human, such as an existing system you are porting, a public API you are cloning, or a legacy implementation you are replacing. If correctness depends on product judgment that only people hold, more agents mostly produce more code for those people to review.
+  - question: What is an oracle in software testing for AI agents?
+    answer: A source of truth an automated check can query to decide whether output is correct. For AWS Emulator it was real AWS itself. For a migration it is the old system. Agents iterate quickly against an oracle and drift without one.
+needsRewrite: false
+---
+
+The most impressive number in AWS's agent-built emulator isn't the commit count. It's that every test grading those commits was first run against real AWS, in at least two sandboxed accounts. That's the part of the project you probably can't copy, and most of the coverage skipped it.
+
+AWS launched [AWS Emulator](https://github.com/aws/aws-emulator) on 11 November: a local copy of the AWS APIs, written in Rust, for testing without an AWS account. Swami Sivasubramanian's [guest post on Werner Vogels' blog](https://www.allthingsdistributed.com/2026/11/aws-emulator-and-the-engineers-job-when-agents-write-the-code.html) says agents wrote and tested all of it, and Simon Willison [picked up](https://simonwillison.net/2026/Nov/11/aws-emulator/) the striking stat: 29,684 commits in the first three weeks. The takeaway most people drew was that swarms of agents can now build big systems. That's true. It's also the least useful reading for anyone deciding what to point a swarm at next quarter.
+
+## What the git history actually shows
+
+AWS Emulator was built by two agents doing nearly all the work. One finds places where the emulator differs from real AWS, the other fixes them, and they commit about equally often. No commit in the public history carries a human author.
+
+The repository is public, so I cloned its full commit history (without file contents) and counted. Every number in this table comes from that clone, taken at commit `ec5f6fb` on 19 November, and the public evaluation suite.
+
+| Measure | Result |
+| --- | --- |
+| Commits, 21 Oct to 19 Nov 2026 | 37,179 |
+| Commits in the first 21 days | 29,686, which matches AWS's figure |
+| Commits authored under a human name | 0 |
+| Authored by `IssueFinderAgent` | 18,873 (8,309 of them merges) |
+| Authored by `IssueFixerAgent` | 18,266 |
+| Fix commits that close a filed issue | 17,568 |
+| Issue-filing commits | 10,564 |
+| Issues retracted as abandoned or wrong | 184 |
+| Time from issue filed to fix, median | 43 hours (p10 3.4 hours, p90 13 days) |
+| Fixer commits touching a test file | 18,035 of 18,266 |
+| Fixer commits touching the read-only `vendor/` framework | 0 of 18,266 |
+| Issues resolved, still open | 17,672 resolved, 5,356 open |
+| Fidelity tests in the public evaluation suite | 31,449, of which 5,742 span more than one service |
+
+The two agents with the most commits are a finder and a fixer, and the finder has slightly more. One agent's whole job is to run fidelity tests, find where the emulator diverges from AWS, and file a structured issue: the operation, what AWS does, what the emulator does, why it matters, and a trace ID for the failing check. The other picks up an issue and fixes it. Nearly every fix touches a test. None touches the framework the agents are told not to edit.
+
+Read that way, the project is a grading loop that happens to produce code.
+
+## The answer key is the expensive part
+
+The evaluation suite's README states the rule plainly: every fidelity test "was verified against at least two sandboxed AWS accounts, so it asserts real AWS behavior. Behavior that no fidelity test covers is not verified."
+
+Look at what that buys the swarm. When a test fails, there's no debate about whether the test or the code is wrong, because the test has already been checked against the thing being imitated. The fixer agent doesn't need to know what the product should do. It needs to make one more check match AWS. That's a task an agent can loop on for days without a human, and the history shows it did, at roughly 500 to 3,700 commits a day.
+
+Sivasubramanian's post lists the human work as the fidelity tests checked against real AWS, a merge gate staffed by several security agents, and deterministic checks that keep agents out of code they shouldn't touch. Coverage of the post also picked up his own story of supervising an agent rebuilding a replication engine, which ran for several nights before he noticed it had no way to check its results. That story carries the lesson: without a grader, those nights were wasted.
+
+AWS had an oracle most companies would kill for: a production system with public Smithy models for every API and the budget to hit it from sandboxed accounts thousands of times. Even with all that, the launch release passed [24,243 of 42,857 scored tests, or 56.6%](https://www.marktechpost.com/2026/11/12/aws-emulator-local-aws-api-emulator-ai-agents/). The swarm is fast, but the answer key sets the ceiling.
+
+## So what should a staff engineer or EM do differently
+
+### Sort the backlog by oracle
+
+Ask one question about any large piece of work: what grades the output without a person? Whether it's big enough to parallelise matters much less. Work with a strong answer key looks like the emulator: porting a service to a new runtime where the old one still answers requests, replacing a vendor SDK behind an identical interface, migrating a React Native app's data layer where recorded production responses define correct, or cloning an internal API you already have contract tests for. Those are swarm candidates. A new onboarding flow isn't, because the spec is a guess until users touch it.
+
+### Fund the finder before the fixer
+
+The emulator's commit split suggests a budget split. If your plan for an agent project is 90% "agents write the code" and 10% "we'll review it", you've built the fixer and skipped the finder. The finder is the part that turns a reference system into a stream of small, checkable tasks with evidence attached. On most teams that's a staff engineer's quarter, not a sprint.
+
+### Make the read-only zone mechanical
+
+No fixer commit touched `vendor/`. The repo's [AGENTS.md](https://github.com/aws/aws-emulator/blob/main/AGENTS.md) marks the framework and several generated files as not editable, and the history shows the line held across all 18,266 fixer commits. The only commits that touched it came from the scaffolding agent. If your agents can change the test harness or the shared engine without anyone noticing, the grader stops meaning anything. I made a similar argument about [design tokens and compilers that can say no](/design-tokens-web-native-agents). The emulator is the same idea at 400-service scale.
+
+### Expect review to move rather than shrink
+
+The emulator doesn't accept pull requests from people at all. Humans file issues, and agents decide how to fix them. That inverts the usual open source contribution model, and it's where internal teams are heading for oracle-backed work too. The human job becomes writing a good bug report against the reference and judging whether the reference itself is right.
+
+## Where this argument stops working
+
+There are four limits worth naming.
+
+First, the oracle can be wrong, or right about the wrong thing. Fidelity tests check behaviour the agents chose to probe. The README is explicit that anything uncovered isn't verified, and it tells you not to use the emulator to test security. An answer key with gaps still produces confident code in the gaps.
+
+Second, I didn't run the emulator. A full build needs about 100 GB for `target/`, more than this test environment had. My numbers describe how the project was built, not how well it works on your stack. Independent hands-on reports exist, and they vary.
+
+Third, commit counts flatter the work. 8,309 of the finder's commits are merges, and nobody outside AWS knows what the swarm cost in tokens or in sandboxed AWS calls. A team copying this pattern without that number is copying half a business case.
+
+Fourth, product teams aren't stuck forever. You can build partial oracles: recorded production traffic, golden screenshots, property tests, a legacy system kept alive just to answer "what did it do?" Osmani's case for [differential tests against the old system](/til/agentic-verification) points the same way. But each of those is real engineering, and it has to come first.
+
+## The question to bring to planning
+
+Next time someone proposes pointing ten agents at a project, ask one question before any discussion of tooling: what will tell the agents they're wrong, without a person in the loop? If the answer is a real system, a recorded corpus or a test suite you already trust, the AWS Emulator is evidence the swarm can work. If the answer is "the reviewers", you're not planning a swarm. You're planning a review queue.
