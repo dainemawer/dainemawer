@@ -1,34 +1,45 @@
 ---
-title: How to Review AI-Generated Code Without Becoming a Bottleneck
-dek: A framework for staff engineers reviewing pull requests an agent wrote.
+title: 'How to Review AI-Generated Code: A Checklist That Scales'
+dek: Agent-written pull requests fail by looking finished, so the habits that worked on human diffs give them a free pass. Review the intent before the lines, and track review hours before review becomes the new bottleneck.
 date: '2026-09-07'
+updated: '2026-11-25'
 topics:
   - staff-engineering
   - ai
-shortAnswer: Reviewing AI-generated code means checking whether it should exist, not just how it was built. Read the diff for its plan before going line by line, run the feature instead of trusting a green CI check, and hold agent-authored code to the same architectural bar as anything else. Never let clean-looking code earn a faster review.
+shortAnswer: To review AI-generated code, check intent before lines. Confirm the diff solves the ticket's real problem, run the feature instead of trusting green CI, and look for patterns the codebase already has. Save line-by-line scrutiny for auth, data and migrations. Clean-looking agent code gets the same review as anything else, never a faster one.
 takeaways:
   - The failure mode isn't bad code, it's plausible code. Agents produce diffs that read cleanly, pass CI, and still solve the wrong problem, so review the intent first.
   - Read a diff for its plan before reading it line by line. Ask what problem this solves and whether the approach makes sense, before checking whether each line is correct.
   - Run agent-authored code before approving it, even when the tests pass. Passing tests only prove the tests were satisfied, not that the feature works.
-  - Hold the same architectural bar you'd hold a junior engineer to. An agent has no opinion about your codebase's conventions unless you gave it one.
+  - Hold the same architectural bar you'd hold a new hire to. An agent has no opinion about your codebase's conventions unless you gave it one.
   - Track review time per PR, not just merge time. If review is eating the hours agents saved on writing, that's the real bottleneck to fix.
 faq:
+  - question: How do you review AI-generated code?
+    answer: Start with intent. Check that the diff solves the problem in the ticket and that its shape matches that problem, then run the feature yourself. After that, read line by line where the risk is (auth, payments, data, migrations) and check for duplicated helpers or new patterns the codebase already has an answer for.
   - question: Is reviewing AI-generated code different from reviewing a human's code?
     answer: The mechanics are the same, but the failure mode shifts. A human's bad code usually looks bad. An agent's bad code often looks clean, passes lint, and still solves the wrong problem, so the review has to spend more time on intent and less on style.
+  - question: Does AI-generated code have more bugs?
+    answer: Some evidence says yes. CodeRabbit's December 2025 analysis of 470 open-source pull requests found AI co-authored PRs averaged about 1.7 times as many issues as human-only ones. CodeRabbit sells an AI review product and couldn't confirm authorship directly, so treat the number as a signal, not a verdict.
   - question: How do you review AI-generated pull requests faster without lowering the bar?
     answer: Read for the plan before the line-by-line. Confirm the agent understood the actual requirement, skim the diff for a coherent approach, then only zoom into the sections that touch state, auth, or data. Skip re-litigating formatting a linter already caught.
-  - question: Should staff engineers write prompts or review agent output?
-    answer: Both, but the leverage is in review. A staff engineer who prompts well but reviews carelessly ships confident-looking bugs at higher volume. The skill that scales is judging whether agent output actually fits the system, not producing more of it.
+  - question: Can AI review AI-generated code?
+    answer: It can do the first pass. A review bot is good at catching mechanical issues, missing null checks and style drift. It can't tell you whether the change should exist or whether it duplicates something your team already decided on, so a human still owns the approval.
 needsRewrite: false
 ---
 
-Something changed in the last year of code review, and it's not the volume. It's what a bad pull request looks like now.
+Something changed in code review over the last year, and it's not the volume. It's what a bad pull request looks like now.
 
 A human engineer under time pressure writes code that looks rushed. Inconsistent naming, a missing edge case, a comment that says `// TODO: fix this properly later`. You can smell it in the diff before you've read a single line. An AI agent under no pressure at all writes code that looks finished. Consistent style, sensible variable names, a clean commit message, tests that pass. It can just as easily be solving the wrong problem, and nothing about how it reads will tell you that.
 
 That's the actual shift for staff engineers right now. Review used to be about how something was built. Increasingly, it needs to be about whether it should exist at all.
 
-This isn't a niche problem. Adoption of agentic coding tools roughly doubled in the first half of 2026, with [JetBrains reporting](https://blog.jetbrains.com/research/2026/08/ai-coding-agent-adoption-2026/) around 39% of professional developers using tools like Claude Code at work by mid-year, up from 18% in January. That's a lot of pull requests where the author isn't a person, arriving faster than most teams' review habits were built to handle.
+This isn't a niche problem anymore. JetBrains' 2026 Developer Ecosystem research, drawn from more than 15,000 professional developers, [found](https://blog.jetbrains.com/research/2026/08/ai-coding-agent-adoption-2026/) that 39% were using Claude Code at work by mid-2026, up from 18% in January, and that nine in ten use some AI coding agent at least weekly. That's a lot of pull requests where the author isn't a person, arriving faster than most teams' review habits were built to handle.
+
+## Is AI-generated code harder to review?
+
+It's harder in a specific way: the cues reviewers rely on stop working. Years of reading human code teach you to slow down when a diff looks messy and speed up when it looks careful. Agent output always looks careful, so that instinct gives every agent PR a discount it hasn't earned.
+
+The early numbers suggest the discount is a mistake. CodeRabbit's [State of AI vs Human Code Generation report](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) looked at 470 open-source pull requests and found AI co-authored ones averaged 10.83 issues each against 6.45 for human-only ones, roughly 1.7 times as many. Read that with two caveats. CodeRabbit sells AI code review, and it inferred authorship from co-author signals rather than confirming it. The direction still matches what the rest of this post argues: the problems are there, they're just better dressed.
 
 ## Read the diff for a plan, not a translation
 
@@ -36,7 +47,7 @@ The instinct with a large diff is to go top to bottom, checking each line. That 
 
 Before reading a single line, ask what problem this diff claims to solve, and whether the shape of the change matches that problem. A ticket asking for "add validation to the signup form" that comes back touching six files across three unrelated features is a signal worth chasing before you look at indentation. So is a one-file diff for something you expected to touch shared state. Both questions get easier to answer when [the scope was agreed in writing before the agent started](/spec-driven-development).
 
-Once the plan makes sense, then go line by line, but weight your attention. A helper function with a descriptive name and a single return statement needs a glance. Anything touching auth, payments, or a database migration needs the scrutiny you'd give it regardless of who wrote it.
+Once the plan makes sense, then go line by line, but weight your attention. A helper function with a descriptive name and a single return statement needs a glance. Anything touching auth, payments, or a database migration needs the scrutiny you'd give it regardless of who wrote it. Migrations deserve extra suspicion, because [agents will remove a safeguard that's in the way of finishing](/agents-delete-safeguards-in-migrations) and describe it as cleanup.
 
 ## Run it before you trust it
 
@@ -50,14 +61,43 @@ An agent has no opinion about your codebase's conventions unless you gave it one
 
 The fix isn't reviewing agent output more suspiciously than human output. It's reviewing it exactly as carefully, without the unconscious discount that comes from code looking tidy. Treat a clean-looking diff from an agent the way you'd treat a clean-looking diff from a new hire who hasn't seen the rest of the codebase yet: probably fine, worth a specific check for whether it reinvented something that already exists.
 
+## An AI code review checklist for agent pull requests
+
+This is the order I'd run the review in. The first four items are cheap and catch the expensive mistakes, so they come before anyone reads a line.
+
+| # | Check | What you're looking for | Stop and send back if |
+| --- | --- | --- | --- |
+| 1 | Restate the problem | Can you say in one sentence what the ticket needed? Does the PR description say the same thing? | The PR solves a neighbouring problem, or a bigger one than asked |
+| 2 | Check the shape | Files touched, lines changed, which layers moved | The diff touches areas the ticket never mentioned |
+| 3 | Check new dependencies and files | New packages, new config, new instruction files like `AGENTS.md` | Anything new that nobody asked for |
+| 4 | Run it | Pull the branch, exercise the change and the edge case the ticket cared about | It only works on the happy path |
+| 5 | Read the risky parts line by line | Auth, payments, data writes, migrations, concurrency | A check, guard or constraint was removed or loosened |
+| 6 | Look for reinvention | New helpers, wrappers, formatters, clients | The codebase already has one |
+| 7 | Read the tests last | Do new tests assert behavior, or just mirror the implementation? | Tests were edited to match the code instead of the requirement |
+| 8 | Ask who gets paged | Could the on-call engineer debug this without the agent's context? | Nobody on the team can explain how it works |
+
+Item 3 is there because new files are where agent risk hides. [Instruction files are code](/agent-instruction-files-are-code) that later agents will obey, so a PR that adds one deserves the same review as a PR that changes CI. Item 8 is the one teams skip, and it's the one that matters most for anything on a paged path. [Approval proves someone read the diff, not that anyone can own it at 3am](/pager-owns-agent-written-code).
+
+## Can you use AI to review AI-generated code?
+
+Yes, for the first pass, and it's a sensible use of the tools. A review bot is good at the mechanical layer: missing null checks, inconsistent error handling, a forgotten `await`. Letting it go first means the human reviewer starts on items 1, 2 and 8 of the checklist instead of spending attention on things a machine can catch.
+
+Where it stops working is judgment. A second model can tell you the code is internally consistent. It can't tell you the ticket was misread, that your team decided last quarter to stop adding wrappers around the HTTP client, or that the on-call rotation won't be able to debug this. Those checks need someone who knows the system and is accountable for it. A bot comment is input to the approval, not the approval.
+
 ## Watch where the time actually goes
 
-The promise of agentic coding is that engineers spend less time writing and more time on judgment calls. That only holds if review doesn't eat up the hours writing used to take, without anyone noticing it happened. If a feature that took a day to write now takes ten minutes to generate but ninety minutes to review properly, the team hasn't gotten faster. It's moved the bottleneck and made it less visible, because "review" doesn't show up on a burndown chart the way "in progress" does.
+The promise of agentic coding is that engineers spend less time writing and more time on judgment calls. That only holds if review doesn't eat the hours writing used to take. If a feature that took a day to write now takes ten minutes to generate but ninety minutes to review properly, the team hasn't gotten faster. It's moved the bottleneck and made it less visible, because "review" doesn't show up on a burndown chart the way "in progress" does.
 
-Track review time per pull request the same way you'd track anything else you're trying to protect. If it's climbing while merge counts go up, that's not a sign to review less carefully. It's a sign the team is [generating output faster than it can verify it](/wip-limits-for-ai-agents), which is a staffing and process problem, not a code quality one.
+Track review time per pull request the same way you'd track anything else you're trying to protect. If it's climbing while merge counts go up, that's not a sign to review less carefully. It's a sign the team is [generating output faster than it can verify it](/wip-limits-for-ai-agents), which is a staffing and process problem, not a code quality one. It's also a planning problem: if your sprint estimates still price the writing, [they're pricing the part agents made cheap](/plan-sprints-in-review-hours).
+
+## Where this approach stops working
+
+The checklist assumes a reviewer who knows the system well enough to spot reinvention and misread tickets. On a codebase nobody fully understands, or in a team where review is already the junior engineers' job, it degrades into box-ticking. The fix there is upstream: tighter specs and smaller PRs, not a longer checklist.
+
+It also doesn't scale to every diff. Running every agent PR by hand is a real cost, and for low-risk changes (copy edits, test-only changes, dependency bumps with a good test suite) the honest answer is to skip item 4 and say so. What you shouldn't do is let "looks clean" be the reason you skipped it.
 
 ## The actual skill that scales
 
-Prompting well is a skill, and it's useful. But it's not the skill that determines whether a team's agent-heavy workflow holds up under scrutiny six months from now. That skill is judgment: reading a diff and knowing whether it fits, running a feature and knowing whether it actually works, and asking whether a clean-looking solution solved the right problem in the first place.
+Prompting well is a skill, and it's useful. But it's not the skill that determines whether a team's agent-heavy workflow holds up six months from now. That skill is judgment: reading a diff and knowing whether it fits, running a feature and knowing whether it actually works, and asking whether a clean-looking solution solved the right problem in the first place. It's also, increasingly, [what's worth testing for in interviews](/agent-pull-request-interview).
 
 That judgment doesn't get automated by better prompts. It's the same senior-engineer instinct review has always needed, applied to a category of author that's gotten very good at looking like it doesn't need it.
