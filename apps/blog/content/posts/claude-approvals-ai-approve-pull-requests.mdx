@@ -1,0 +1,133 @@
+---
+title: 'Claude Approvals: Should AI Approve Your Pull Requests?'
+dek: Anthropic's new Claude Approvals agent can approve pull requests against a policy file you write. The idea is sound. The permissive starter policy isn't, because it leaves the files that steer your agents unguarded. Let classifiers add reviewers, never remove them.
+date: '2026-11-27'
+social: "Claude Approvals' permissive starter policy lets an author plus a passing Claude review merge almost anything. On this site's repo, 33 of 34 merges that touched AGENTS.md, dependencies or CI would have gone through. A safer policy."
+topics:
+  - ai
+  - engineering-management
+  - staff-engineering
+shortAnswer: AI can safely approve pull requests only on narrow, low-risk paths, under rules that read facts about the change rather than a model's judgment. Claude Approvals' permissive starter policy lets an author plus a passing Claude review merge almost anything, so keep a non-author human on code, dependencies, CI and agent instruction files.
+takeaways:
+  - "Claude Approvals, part of the Claude Ship launch on 23 November 2026, is a GitHub check that applies a policy file, `.claude/approvals.yml`, and can post an approving review where the policy allows it. It's in public beta for Team and Enterprise plans."
+  - "In the permissive starter policy, a pull request that passes Claude's Code Review needs only its author. Only policy files, `REVIEW.md`, `CODEOWNERS` and a few git files are protected by default. `AGENTS.md`, `CLAUDE.md`, `.mcp.json` and `.github/` aren't."
+  - "Anthropic's docs say a pull request's own text can steer a classifier's answer. A rule that lowers the number of reviewers when a classifier says 'pass' can be talked down by the author."
+  - "Run against the 79 merged pull requests in this site's repository, a path-and-size policy found 34 that touched agent instructions, dependencies or CI. The permissive starter would have held only one of those for a second person."
+  - "Use classifiers to add reviewers, never to remove them. Tier by path and size, put `claude: approves` only where a bad merge is cheap to undo, and run in observe mode until the check agrees with your reviewers."
+faq:
+  - question: What is Claude Approvals?
+    answer: A Claude Ship agent that adds a Claude Approvals check to GitHub pull requests. It reads a policy file in your repository, works out how many people still have to approve, and can post an approving review where the policy allows Claude to. It launched in public beta on 23 November 2026 for Team and Enterprise plans.
+  - question: Can AI approve pull requests safely?
+    answer: On narrow paths, yes. Docs, content and other changes that are cheap to revert are reasonable places for an AI approval. For application code, dependencies, CI workflows and agent instruction files, keep at least one human who isn't the author, and don't let a model's answer lower that requirement.
+  - question: Does Claude Approvals let pull requests merge without human review?
+    answer: It can. Anthropic's docs list the cases, including `seats 1`, which the author can fill, bot-friendly people lists, and rules that read a classifier. With GitHub auto-merge or a merge queue and a policy that asks for no person, a change can merge with nobody acting.
+  - question: What is the difference between Claude Code Review and Claude Approvals?
+    answer: Code Review reads a pull request and posts findings ranked by severity. It doesn't approve or block. Approvals is a policy engine. It counts approvals against rules you write, and it can read Code Review's result as one input to decide whether Claude may approve.
+  - question: How do I set up Claude Approvals?
+    answer: Commit `.claude/approvals.yml` with `mode observe` to the default branch, watch the check on real pull requests, then delete the observe line, rerun the check on open pull requests and make Claude Approvals a required status check in GitHub, with the Claude app as its source.
+needsRewrite: false
+---
+
+The most dangerous line in Anthropic's new approvals agent isn't a bug. It's in the first starter policy the setup docs offer: once Claude's review passes, "one is enough", and the author counts as that one. Run that policy against a real repository and almost every change that edits an agent's instructions, a dependency or a CI workflow can merge with nobody but its author looking.
+
+Anthropic launched [Claude Ship](https://code.claude.com/docs/en/claude-ship) on 23 November: three agents for GitHub pull requests. Code Review, which finds problems, is generally available. PR Steward, which pushes fixes for failing checks and review comments, is in public beta. So is [Claude Approvals](https://code.claude.com/docs/en/approvals), and it's the one that matters for anyone who owns a review process. Most of the coverage led with "Claude can now approve your PRs". That's the least interesting part. The interesting part is that Approvals makes you write down, in YAML, which changes deserve which humans. Most teams have never done that. Their whole review policy is a GitHub setting that says "1 approval".
+
+## What is Claude Approvals?
+
+Claude Approvals is a GitHub check that applies a policy file, `.claude/approvals.yml`, to each pull request. It reports who still has to approve and, where every applying rule says `claude: approves`, posts an approving review from `claude[bot]`. The check only blocks a merge if you make it a required status check in GitHub.
+
+A rule names `paths` and a `verdict`: whether Claude `approves`, `comments` or `blocks`, and how many `seats` people must fill. Rules can carry an `if` or an `override`. Those conditions read facts about the pull request, such as `pr/diff_lines`, `pr/authors` or `pr/base`, or a classifier's answer, such as `claude/code_review = pass`. Where several rules apply, the strictest verdict wins. It's a decent design. The defaults are where to be careful.
+
+## Can AI approve pull requests safely?
+
+On some paths, yes. The case for it is real. The Claude Code team's own numbers, from [Addy Osmani's write-up](/til/claude-code-team-code-review), show merged pull requests more than doubling from June to September while the share of reverted ones fell by over 40%. The team's stated aim is for most changes to merge with at most one human in the loop. Review is now the constraint on most teams using agents heavily, and a policy engine that frees humans from rubber-stamping typo fixes buys back real hours.
+
+The problem is what "passes Claude's review" is allowed to unlock. Three things in Anthropic's own docs should shape your policy.
+
+**The author fills a seat.** On a pull request opened by someone with write access, the author counts toward `seats` without approving. `seats: 1` means nobody else has to look. The permissive starter policy drops a change to `seats: 1` and `claude: approves` whenever Code Review passes.
+
+**Protected files are a short list.** Approvals always wants a person on changes to policy files, `.claude/classifiers/`, the root `REVIEW.md`, `CODEOWNERS`, `.gitmodules`, `.gitattributes`, symlinks and submodule pointers. The [policy reference](https://code.claude.com/docs/en/approvals-policy) says it plainly: "Don't rely on other files being protected." `AGENTS.md`, `CLAUDE.md`, `.mcp.json` and `.github/` aren't on the list. Those are exactly the files [that tell your agents what to do](/agent-instruction-files-are-code).
+
+**Classifier answers can be steered.** The [GitHub rules page](https://code.claude.com/docs/en/approvals-github-rules) warns that a pull request's author's text "can steer a classifier's answer", and that a steered answer "can lower what the pull request needs". The classifier docs give the remedy: on paths that matter, ask for a person "in a rule that reads no classifier".
+
+Put those together and the rule I'd adopt is short. **Classifiers can add reviewers. They can never remove them.** A model that says "this touches auth, add the security team" is useful even if it's sometimes wrong, because the cost of an error is a little extra review. A model that says "this is routine, skip the second person" is only as trustworthy as the least honest pull request description it will ever read.
+
+## What I measured on a real repository
+
+I couldn't run Approvals itself in this test environment, because it needs a Team or Enterprise organization with the GitHub app installed. What I could do was apply the deterministic parts of a policy, paths and diff size, to real history. I wrote a short script that applies those rules, using this repo's own content paths, to every merged pull request on this site's monorepo (79 merges since 5 October 2026) and sorts each one into a tier by the files it changed.
+
+- **34 of 79** touched a file that steers agents, CI or dependencies. The biggest trigger was an app's `AGENTS.md`, edited in 26 merges. Next came `package.json` files and `pnpm-lock.yaml`, then `.github/workflows/` and one skill file under `.agents/skills/`.
+- **Only 1 of those 34** touched anything under `.claude/`, so the permissive starter would have asked for two people on just that one. The other 33 could have merged on the author plus a passing review.
+- **33 of 79** changed only posts or docs, with a median diff of 94 lines and a maximum of 247. Those are the honest candidates for a Claude approval.
+- **12** changed application code without touching any agent-control file.
+
+The skill file is the detail worth noticing. This repo keeps its skills in `.agents/skills/` and symlinks them into `.claude/skills/`. Approvals protects the symlink. It doesn't protect the file the symlink points to. An edit to a skill's instructions changes what every future agent session does, and the policy engine sees an ordinary Markdown file.
+
+## A Claude Approvals policy that tiers by risk
+
+This is the policy I'd start a team on. It's written against the [policy file reference](https://code.claude.com/docs/en/approvals-policy). I haven't run it through Approvals' own validator, so expect to fix a key or two when the check first reads it.
+
+```yaml
+# .claude/approvals.yml
+version: 1
+mode: observe # delete once the check agrees with your reviewers
+
+locals:
+  reviewer: { count: 1, from: [humans, "!pr/authors"] }
+  agent_control:
+    - "**/AGENTS.md"
+    - "**/CLAUDE.md"
+    - "**/.mcp.json"
+    - ".agents/**"
+    - ".github/**"
+    - "**/package.json"
+    - "pnpm-lock.yaml"
+    - "lefthook.yml"
+
+rules:
+  - purpose: "Code takes one person who isn't an author. Claude reviews and comments."
+    paths: ["**", "!docs/**", "!content/**"]
+    verdict: { claude: comments, seats: ["@reviewer"] }
+    advisory: [claude/code_review]
+
+  - purpose: "Files that steer agents, CI or dependencies take a non-author human. No classifier lowers this."
+    paths: "@agent_control"
+    nested: inherit
+    verdict: { claude: comments, seats: ["@reviewer"] }
+    advisory: [claude/code_review]
+
+  - purpose: "Small docs and content changes: Claude may approve once its review passes."
+    paths: ["docs/**", "content/**"]
+    verdict: { claude: comments, seats: ["@reviewer"] }
+    override:
+      - if: "claude/code_review = pass AND pr/diff_lines <= 300"
+        verdict: { claude: approves, seats: 1 }
+
+  - purpose: "Review rules take two people who aren't authors."
+    paths: ["**/.claude/**", "REVIEW.md", "**/CODEOWNERS"]
+    nested: inherit
+    verdict: { claude: comments, seats: [{ count: 2, from: [humans, "!pr/authors"] }] }
+```
+
+Four choices in it are deliberate:
+
+- The only `override` that relaxes anything sits on paths where a bad merge is a revert, not an incident.
+- The agent-control rule has no `if`, so no model's answer can talk it down. That covers dependency bumps too, which is where [supply-chain worms get in](/npm-supply-chain-worm-defense). The "routine" pull request everyone wants auto-approved is the riskiest one to wave through.
+- `"!pr/authors"` keeps the author out of the reviewer seat. If an agent works under a machine user, add its login too (`"!your-ci-bot"`), because Approvals counts machine users as people.
+- `nested: inherit` stops a subdirectory policy file from loosening the strict rules.
+
+Then fix the GitHub side, which the docs spell out. Require the Claude Approvals check with the Claude app as its source, since "any source" lets another check of the same name satisfy it. Turn on dismissing stale approvals. Require no more than one approval in GitHub's own branch rule. And look hard at auto-merge and merge queues, because with any rule that asks for no person, "a change can merge without anyone acting".
+
+## Where this argument stops working
+
+The strongest objection is that paths are a crude proxy for risk. A three-line change to session handling is more dangerous than 300 lines of docs, and a classifier can see that while my YAML can't. That's true, and it's why the classifiers belong in the policy. They belong on the side that adds reviewers, as in `"repo/change_risk >= high"` asking for a second person, not on the side that removes them.
+
+Second, small teams will find this policy slow. With two engineers, "a person who isn't an author" means the other engineer on every code change. The permissive starter exists because some teams would rather merge fast and revert. If your test suite is strong enough to act as the real gate, that can be a reasonable bet. Make it on purpose, path by path, not by copying the first example in the docs.
+
+Third, my numbers come from one repository that's mostly a blog, with a pull request mix skewed toward content. A product codebase would show a different split. Run the same count on yours before you trust mine. The useful number is how many merges touched files that steer agents, CI or dependencies, and it's usually higher than people expect.
+
+Fourth, none of this replaces knowing [who owns the code once it's in production](/pager-owns-agent-written-code). Approvals decides who has to look. It doesn't decide who gets paged.
+
+## The meeting to have before you enable it
+
+Claude Approvals forces a written answer to a question most engineering orgs have dodged: which changes need which people? Treat the policy file as a review policy. It needs owners, a pull request of its own and a quarterly look at what the check approved. Start in observe mode, compare its verdicts against what your reviewers actually did for two weeks, and only then let Claude approve, starting with the paths where you would be fine never looking.
